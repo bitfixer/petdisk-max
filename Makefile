@@ -7,6 +7,7 @@ DEVICE     = atmega644p
 CLOCK      = 8000000
 PROGRAMMER = -c linuxspi -P /dev/spidev0.0
 SRCDIR     = src
+BIN        = bin
 OBJECTS    = $(SRCDIR)/petdisk.o\
 $(SRCDIR)/EspConn.o\
 $(SRCDIR)/Serial.o\
@@ -97,6 +98,7 @@ progdisable:
 clean:
 	rm -f *.hex *.elf *.o *.bin
 	rm -f $(SRCDIR)/*.o
+	rm -f $(BIN)/*
 
 $(SRCDIR)/githash.h:
 	echo const unsigned char _hash[] PROGMEM = \"$(shell git rev-parse --short HEAD | tr [:lower:] [:upper:])\"\; > $@
@@ -126,6 +128,6 @@ bootloader.elf: bootloader.o SPI_routines.o SD_routines.o FAT32_tiny.o
 	$(COMPILECPP) -Ttext=$(BOOTLOADER_ADDR_644_H) -o bootloader.elf bootloader.o SPI_routines.o SD_routines.o FAT32_tiny.o
 
 # pad the end of the main program with zeros, leaving enough room for the bootloader
-petdisk_and_bootloader.bin: petdisk.bin bootloader.bin
-	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_644_D) - $(shell stat --format="%s" petdisk.bin)) >> petdisk.bin
-	cat petdisk.bin bootloader.bin > petdisk_and_bootloader.bin
+$(BIN)/petdisk_and_bootloader.bin: $(BIN)/petdisk.bin $(BIN)/bootloader.bin
+	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_644_D) - $(shell stat --format="%s" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
+	cat $(BIN)/petdisk.bin $(BIN)/bootloader.bin > $(BIN)/petdisk_and_bootloader.bin
