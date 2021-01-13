@@ -7,7 +7,8 @@ DEVICE     = atmega644p
 CLOCK      = 8000000
 PROGRAMMER = -c linuxspi -P /dev/spidev0.0
 SRCDIR     = src
-OBJECTS    = $(SRCDIR)/EspConn.o\
+OBJECTS    = $(SRCDIR)/petdisk.o\
+$(SRCDIR)/EspConn.o\
 $(SRCDIR)/Serial.o\
 $(SRCDIR)/EspHttp.o\
 $(SRCDIR)/SD_routines.o\
@@ -101,8 +102,8 @@ $(SRCDIR)/githash.h:
 	echo const unsigned char _hash[] PROGMEM = \"$(shell git rev-parse --short HEAD | tr [:lower:] [:upper:])\"\; > $@
 
 # file targets:
-%.elf: $(SRCDIR)/githash.h %.o $(OBJECTS)
-	$(COMPILECPP) -o $*.elf $*.o $(OBJECTS)
+%.elf: $(SRCDIR)/githash.h $(OBJECTS)
+	$(COMPILECPP) -o $*.elf $(OBJECTS)
 	rm $(SRCDIR)/githash.h
 
 %.hex: %.elf
