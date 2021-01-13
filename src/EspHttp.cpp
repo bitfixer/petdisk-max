@@ -5,7 +5,6 @@
 
 bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes)
 {
-    char temp[16];
     _log->transmitString(params);
     _log->transmitStringF(PSTR("\r\n"));
     // prepare url

@@ -248,14 +248,20 @@ unsigned long FAT32::getSetNextCluster (unsigned long clusterNumber,
     //read the sector into a buffer
     while(retry < 10)
     { 
-        if(!_sd->readSingleBlock(FATEntrySector,_FatBuffer)) break; retry++;
+        if (!_sd->readSingleBlock(FATEntrySector,_FatBuffer)) 
+        {
+            break;
+        } 
+        retry++;
     }
 
     //get the cluster address from the buffer
     FATEntryValue = (unsigned long *) &_FatBuffer[FATEntryOffset];
 
-    if(get_set == GET)
-      return ((*FATEntryValue) & 0x0fffffff);
+    if (get_set == GET)
+    {
+        return ((*FATEntryValue) & 0x0fffffff);
+    }
 
     *FATEntryValue = clusterEntry;   //for setting new value in cluster entry in FAT
 

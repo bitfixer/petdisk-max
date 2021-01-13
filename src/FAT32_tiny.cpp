@@ -215,7 +215,11 @@ unsigned long FAT32::getNextCluster (unsigned long clusterNumber, unsigned long 
     //read the sector into a buffer
     while (retry < 10)
     { 
-        if(!_sd->readSingleBlock(FATEntrySector,_FatBuffer)) break; retry++;
+        if (!_sd->readSingleBlock(FATEntrySector,_FatBuffer)) 
+        {
+            break; 
+        }
+        retry++;
     }
 
     //get the cluster address from the buffer
@@ -238,10 +242,6 @@ bool FAT32::getNextDirectoryEntry()
 {
     unsigned long firstSector;
     struct dir_Structure *dir;
-    struct dir_Longentry_Structure *longent;
-    unsigned char ord;
-    unsigned char this_long_filename_length;
-    unsigned char k;
     
     // reset long entry info
     _filePosition.isLongFilename = 0;
