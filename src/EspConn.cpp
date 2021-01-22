@@ -57,8 +57,6 @@ bool EspConn::init() {
     {
         return false;
     }
-
-    return true;
 }
 
 void EspConn::scanNetworks() {
@@ -205,9 +203,13 @@ int EspConn::sendData(uint8_t sock, unsigned char* data, int len)
             }
         } while (start >= 0);
 
+        for (int i = 0; i < current_buffer_size; i++)
+        {
+            _logSerial->transmitByte(_serialBuffer[i]);
+        }
+
         sprintf_P(temp, "\r\nDONE\r\n");
         _logSerial->transmitString(temp);
-        return 0;
     }
     else
     {

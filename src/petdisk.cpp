@@ -136,7 +136,7 @@ void writeFile(IEEE488* ieee, DataSource* dataSource)
         rdchar = ieee->get_byte_from_bus();
         dataBuffer[numBytes++] = rdchar;
         
-        if ((int)numBytes >= writeBufferSize)
+        if (numBytes >= writeBufferSize)
         {
             dataSource->writeBufferToFile(numBytes);
             numBytes = 0;
@@ -354,7 +354,7 @@ typedef struct pd_config {
     char urls[4][64];
     char wifi_ssid[33];
     char wifi_password[64];
-} pd_config;
+};
 
 
 class PETdisk
@@ -493,7 +493,7 @@ void PETdisk::init(FAT32* fat32, Serial1* log, uint8_t* buffer, uint16_t* buffer
             nds->setUrlData(
                 (void*)eeprom_offset, 
                 url_offset, 
-                (void*)(eeprom_offset+url_offset), 
+                (void*)eeprom_offset+url_offset, 
                 strlen(pdcfg->urls[url_index]) - url_offset);
 
             sprintf_P(tmp, PSTR("d %d %d %d\r\n"), device_id, eeprom_offset, url_offset);
@@ -544,8 +544,7 @@ bool PETdisk::configChanged(struct pd_config* pdcfg)
     // check pdconfig against version in eeprom
     uint8_t byte;
     uint8_t* cfg = (uint8_t*)pdcfg;
-    int config_size = (int)sizeof(struct pd_config);
-    for (int i = 0; i < config_size; i++)
+    for (int i = 0; i < sizeof(struct pd_config); i++)
     {
         byte = eeprom_read_byte((const uint8_t*)i);
         if (byte != cfg[i])
@@ -702,6 +701,8 @@ int main(void)
     SerialLogger logger(&serial);
     logger.init();
 
+    logSerial.transmitString("R\r\n");
+
     SD sd(&spi, SPI_CS);
     FAT32 fat32(&sd, _buffer, &_buffer[512], &logSerial);
 
@@ -740,6 +741,7 @@ int main(void)
     
     unsigned char* progname = (unsigned char*)&_buffer[1024-64];
 
+    char tmp[8];
     int filename_position = 0;
     int filenotfound = 0;
     unsigned char getting_filename = 0;
@@ -762,6 +764,7 @@ int main(void)
 
     PETdisk petdisk;
     petdisk.init(&fat32, &logSerial, _buffer, &_bufferSize, &espConn, &espHttp, (NetworkDataSource**)nds_array);
+    logSerial.transmitString("C\r\n");
 
     // test
     /*
@@ -829,7 +832,7 @@ int main(void)
             logger.log("getting filename\r\n");
             getting_filename = 1;
 
-            memset(progname, 0, 64);
+            memset(progname, 0, 255);
             
             if (rdchar == 0xF1)
             {
@@ -967,6 +970,7 @@ int main(void)
                         bytes_to_send = dataSource->getNextFileBlock();
                         if (dataSource->isLastBlock())
                         {
+                            logSerial.transmitString("last block\r\n");
                             done_sending = 1;
                         }
 

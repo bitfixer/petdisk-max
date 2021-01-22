@@ -11,7 +11,7 @@ typedef struct urlData
     int eepromHostLength;
     void* eepromUrl;
     int eepromUrlLength;
-} urlData;
+};
 
 class NetworkDataSource : public DataSource
 {

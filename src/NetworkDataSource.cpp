@@ -8,7 +8,7 @@ typedef struct receiveBuffer {
     char serialBuffer[832];
     char receiveUrl[128];
     char fileName[64];
-} receiveBuffer;
+};
 
 bool NetworkDataSource::init()
 {
