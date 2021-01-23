@@ -3,7 +3,7 @@
 # Copyright: <insert your copyright message here>
 # License: <insert your license reference here>
 
-DEVICE     = atmega644p
+DEVICE     = atmega1284p
 CLOCK      = 8000000
 PROGRAMMER = -c linuxspi -P /dev/spidev0.0
 SRCDIR     = src
@@ -27,7 +27,7 @@ FUSES 		= -U lfuse:w:0xc2:m -U hfuse:w:0xda:m -U efuse:w:0xff:m -U lock:w:0xEF:m
 
 # For computing fuse byte values for other devices and options see
 # the fuse bit calculator at http://www.engbedded.com/fusecalc/
-
+# also http://eleccelerator.com/fusecalc/fusecalc.php
 
 # Tune the lines below only if you know what you are doing:
 
@@ -37,8 +37,10 @@ COMPILECPP = avr-g++ -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -std=c++11 $(INC
 
 BOOTLOADER_ADDR_324_H = 0x7000
 BOOTLOADER_ADDR_644_H = 0xF000
+BOOTLOADER_ADDR_1284_H = 0x1F000
 BOOTLOADER_ADDR_324_D = 28672
 BOOTLOADER_ADDR_644_D = 61440
+BOOTLOADER_ADDR_1284_D = 126976
 
 # symbolic targets:
 all:	petdisk.hex
@@ -130,11 +132,11 @@ disasm:	%.elf
 	avr-objdump -d $*.elf
 
 $(BIN)/bootloader.elf: bindir $(BOOTLOADER_OBJECTS)
-	$(COMPILECPP) -Ttext=$(BOOTLOADER_ADDR_644_H) -o $(BIN)/bootloader.elf $(BOOTLOADER_OBJECTS)
+	$(COMPILECPP) -Ttext=$(BOOTLOADER_ADDR_1284_H) -o $(BIN)/bootloader.elf $(BOOTLOADER_OBJECTS)
 
 # pad the end of the main program with zeros, leaving enough room for the bootloader
 $(BIN)/petdisk_and_bootloader.bin: bindir $(BIN)/petdisk.bin $(BIN)/bootloader.bin
-	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_644_D) - $(shell stat --format="%s" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
+	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_1284_D) - $(shell stat --format="%s" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
 	cat $(BIN)/petdisk.bin $(BIN)/bootloader.bin > $(BIN)/petdisk_and_bootloader.bin
 
 bindir:
