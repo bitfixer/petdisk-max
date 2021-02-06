@@ -42,6 +42,10 @@ BOOTLOADER_ADDR_324_D = 28672
 BOOTLOADER_ADDR_644_D = 61440
 BOOTLOADER_ADDR_1284_D = 126976
 
+# pin definitions
+
+RESET_PIN = 6
+
 # symbolic targets:
 all:	petdisk.hex
 
@@ -141,3 +145,7 @@ $(BIN)/petdisk_and_bootloader.bin: bindir $(BIN)/petdisk.bin $(BIN)/bootloader.b
 
 bindir:
 	mkdir -p bin
+
+reset:
+	gpio write $(RESET_PIN) 0
+	gpio write $(RESET_PIN) 1

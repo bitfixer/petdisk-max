@@ -121,7 +121,7 @@ public:
     bool findFile(char* fileName);
     void deleteFile();
 
-    int writeBufferSize()
+    unsigned int writeBufferSize()
     {
         return 512;
     }

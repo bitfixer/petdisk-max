@@ -5,7 +5,7 @@
 #include "EspHttp.h"
 #include "Serial.h"
 
-typedef struct urlData
+struct urlData
 {
     void* eepromHost;
     int eepromHostLength;
@@ -59,7 +59,7 @@ public:
     unsigned char* getFilename();
     unsigned char* getBuffer();
 
-    int writeBufferSize()
+    unsigned int writeBufferSize()
     {
         return 512;
     }

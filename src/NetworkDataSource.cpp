@@ -4,7 +4,7 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 
-typedef struct receiveBuffer {
+struct receiveBuffer {
     char serialBuffer[832];
     char receiveUrl[128];
     char fileName[64];
