@@ -701,8 +701,6 @@ int main(void)
     SerialLogger logger(&serial);
     logger.init();
 
-    //logSerial.transmitString("R\r\n");
-
     SD sd(&spi, SPI_CS);
     FAT32 fat32(&sd, _buffer, &_buffer[512], &logSerial);
 
@@ -828,7 +826,7 @@ int main(void)
         }
         else if ((rdchar == 0xF0 || rdchar == 0xF1) && ieee.atn_is_low())
         {
-            logger.log("getting filename\r\n");
+            //logger.log("getting filename\r\n");
             getting_filename = 1;
 
             memset(progname, 0, 255);
@@ -863,13 +861,28 @@ int main(void)
                 }
                 else // file load command
                 {
+                    logSerial.transmitString("got filename:\r\n");
+                    logSerial.transmitString((char*)progname);
+                    logSerial.transmitString("\r\n");
+
+                    // check for DLOAD command, will contain : character
+                    if (progname[1] == ':')
+                    {
+                        filename_position -= 2;
+                        memmove(progname, &progname[2], filename_position);
+                    }
+
                     // copy the PRG file extension onto the end of the file name
                     pgm_memcpy(&progname[filename_position], (unsigned char *)_fileExtension, 5);
 
                     // have the full filename now
                     getting_filename = 0;
-                    logger.log((char*)progname);
-                    logger.log("**\r\n");
+                    //logger.log((char*)progname);
+                    //logger.log("**\r\n");
+
+                    logSerial.transmitString((char*)progname);
+                    logSerial.transmitString((char*)"\r\n");
+
                     filename_position = 0;
                     gotname = 1;
                 }
@@ -877,7 +890,7 @@ int main(void)
         }
         else if (rdchar == 0x60 && ieee.atn_is_low())
         {
-            logger.log("checking for dir\r\n");
+            //logger.log("checking for dir\r\n");
             if (progname[0] == '$')
             {
                 // copy the directory header
@@ -894,12 +907,6 @@ int main(void)
 
         if (init_datasource == false)
         {
-            /*
-            if (!dataSource->init())
-            {
-                break;
-            }
-            */
             dataSource->init();
             init_datasource = true;
         }
@@ -922,8 +929,6 @@ int main(void)
                     logger.log("found file\r\n");
                 }
             }
-
-            //memset(progname, 0, 255);
         }
         gotname = 0;
 

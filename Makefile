@@ -79,7 +79,7 @@ fuse:
 	sudo make $*.install
 	make progdisable
 
-%.programbin: %.bin
+%.programbin:
 	make progenable
 	sudo make $*.installbin
 	make progdisable
@@ -88,7 +88,7 @@ fuse:
 	make fuse
 	make $*.flash
 
-%.installbin: %.bin
+%.installbin:
 	make fuse
 	make $*.flashbin
 
