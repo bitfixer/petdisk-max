@@ -32,6 +32,14 @@
 #define LED_PIN1        PB0
 #define LED_PIN2        PB1
 
+// addresses for PET IEEE commands
+#define PET_LOAD_FNAME_ADDR     0xF0
+#define PET_SAVE_FNAME_ADDR     0xF1
+#define PET_OPEN_FNAME_MASK     0xF0
+#define PET_READ_CMD_ADDR       0x60
+#define PET_SAVE_CMD_ADDR       0x61
+#define PET_OPEN_IO_ADDR        0x60
+
 const unsigned char _dirHeader[] PROGMEM =
 {
     0x01,
@@ -791,7 +799,9 @@ int main(void)
     {
         if (IEEE_CTL == 0x00) // unlistened
         {
-            //buscmd = ieee.wait_for_device_address(0x08);
+            // not currently listening on the bus.
+            // waiting for a valid device address
+
             dataSource = 0;
             while (dataSource == 0)
             {
@@ -824,11 +834,96 @@ int main(void)
             filenotfound = 0;
             ieee.unlisten();
         }
+
+        if (ieee.atn_is_low())
+        {
+            if ((rdchar == PET_LOAD_FNAME_ADDR || rdchar == PET_SAVE_FNAME_ADDR))
+            {
+                getting_filename = 1;
+
+                // clear filename
+                memset(progname, 0, 255);
+                
+                if (rdchar == PET_SAVE_FNAME_ADDR)
+                {
+                    savefile = 1;
+                }
+                else
+                {
+                    savefile = 0;
+                }
+            }
+            else if (rdchar == PET_READ_CMD_ADDR)
+            {
+                if (progname[0] == '$')
+                {
+                    // copy the directory header
+                    pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
+                    
+                    // print directory title
+                    pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
+                    _buffer[31] = 0x00;
+                }
+            }
+        }
+        else
+        {
+            if (getting_filename == 1) // reading bytes of a filename
+            {
+                // add character to filename
+                progname[filename_position++] = rdchar;
+                progname[filename_position] = 0;
+
+                // is this the last character?
+                if (ieee.eoi_is_low())
+                {
+                    if (progname[0] == '$') // directory request
+                    {
+                        getting_filename = 0;
+                        filename_position = 0;
+
+                        if (!dataSource->isInitialized())
+                        {
+                            filenotfound = 1;
+                        }
+                    }
+                    else // file load command
+                    {
+                        logSerial.transmitString("got filename:\r\n");
+                        logSerial.transmitString((char*)progname);
+                        logSerial.transmitString("\r\n");
+
+                        // check for DLOAD command, will contain : character
+                        if (progname[1] == ':')
+                        {
+                            filename_position -= 2;
+                            memmove(progname, &progname[2], filename_position);
+                        }
+
+                        // copy the PRG file extension onto the end of the file name
+                        pgm_memcpy(&progname[filename_position], (unsigned char *)_fileExtension, 5);
+
+                        // have the full filename now
+                        getting_filename = 0;
+                        logSerial.transmitString((char*)progname);
+                        logSerial.transmitString((char*)"\r\n");
+                        filename_position = 0;
+                        gotname = 1;
+                    }
+                }
+            }
+
+        }
+
+        /*
+        if (filenotfound == 1)
+        {
+            filenotfound = 0;
+            ieee.unlisten();
+        }
         else if ((rdchar == 0xF0 || rdchar == 0xF1) && ieee.atn_is_low())
         {
-            //logger.log("getting filename\r\n");
             getting_filename = 1;
-
             memset(progname, 0, 255);
             
             if (rdchar == 0xF1)
@@ -901,6 +996,7 @@ int main(void)
                 _buffer[31] = 0x00;
             }
         }
+        */
 
         // signal that we are done handling this byte
         ieee.acknowledge_bus_byte();
@@ -985,7 +1081,7 @@ int main(void)
             }
         }
         // SAVE requested
-        else if (rdchar == 0x61 && ieee.atn_is_low())
+        else if (rdchar == PET_SAVE_CMD_ADDR && ieee.atn_is_low())
         {
             // write file
             // about to write file
@@ -997,6 +1093,18 @@ int main(void)
 
     while(1) {}
     return 0;
+}
+
+unsigned char processFilename(unsigned char* filename, unsigned char length)
+{
+    unsigned char drive_separator = ':';
+    unsigned char* sepptr = (unsigned char*)memmem(filename, length, &drive_separator, 1);
+    if (sepptr)
+    {
+        // found a drive separator
+        int seplen = sepptr - filename + 1;
+        memmove(filename, sepptr + 1, length - seplen);
+    }
 }
 
 // can you make the interrupt handler self contained?
