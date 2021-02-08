@@ -78,7 +78,7 @@ void prog_init()
     ESP_CONTROL = (1 << ESP_CH_PD) | (1 << ESP_RST);
     sei();
 }
-
+ 
 void reset_esp()
 {
     ESP_PORT &= ~(1 << ESP_RST);
@@ -715,7 +715,7 @@ int main(void)
     SPI spi;
     spi.init();
 
-    Serial serial;
+    Serial0 serial;
     serial.init(0);  
 
     Serial1 logSerial;
@@ -857,7 +857,7 @@ int main(void)
                 getting_filename = 1;
 
                 // clear filename
-                memset(progname, 0, 255);
+                memset(progname, 0, 64);
                 
                 if (rdchar == PET_SAVE_FNAME_ADDR)
                 {

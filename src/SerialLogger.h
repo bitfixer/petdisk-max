@@ -16,7 +16,7 @@ public:
 
     void log(const char* str)
     {
-        _serial->transmitString((unsigned char*)str);
+        _serial->transmitString(str);
     }
 
     void log(unsigned char* data, int length)

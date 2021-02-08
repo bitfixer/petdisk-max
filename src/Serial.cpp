@@ -3,7 +3,8 @@
 #include <string.h>
 #include <avr/pgmspace.h>
 
-void Serial::init(unsigned int ubrr, bool double_speed)
+// Serial Port 0
+void Serial0::init(unsigned int ubrr, bool double_speed)
 {
     UBRR0H = (unsigned char)(ubrr>>8);
     UBRR0L = (unsigned char)ubrr;
@@ -12,71 +13,76 @@ void Serial::init(unsigned int ubrr, bool double_speed)
     UCSR0C = (1<<USBS0)|(3<<UCSZ00);
 }
 
-void Serial::transmitByte(unsigned char data)
+void Serial0::transmitByte(unsigned char data)
 {
     while ( !(UCSR0A & (1<<UDRE0)) ) {}
     UDR0 = data;
 }
-
-void Serial::transmitString(unsigned char* string)
-{
-    while (*string) 
-    {
-        transmitByte(*string++);
-    }
-}
     
-unsigned char Serial::receiveByte()
+unsigned char Serial0::receiveByte()
 {
     unsigned char data;
     while ( !(UCSR0A & (1<<RXC0)) ) {}
     data = UDR0;
     return(data);
 }
-void Serial::enable_interrupt()
+
+void Serial0::enable_interrupt()
 {
     UCSR0B |= (1 << RXCIE0);
 }
     
-void Serial::disable_interrupt()
+void Serial0::disable_interrupt()
 {
     UCSR0B &= ~(1 << RXCIE0);
 }
 
 
-
-
-void Serial1::init(unsigned int ubrr)
+// Serial Port 1
+void Serial1::init(unsigned int ubrr, bool double_speed)
 {
     UBRR1H = (unsigned char)(ubrr>>8);
     UBRR1L = (unsigned char)ubrr;
-    UCSR1A = 0x00;
+    UCSR1A = double_speed ? (1<<U2X1) : 0x00;
     UCSR1B = (1<<RXEN1)|(1<<TXEN1);
     UCSR1C = (1<<USBS1)|(3<<UCSZ10);
 }
 
-void Serial1::transmitByte(char data)
+void Serial1::transmitByte(unsigned char data)
 {
     while ( !(UCSR1A & (1<<UDRE1)) ) {}
     UDR1 = data;
 }
 
-void Serial1::transmitString(char* str)
+unsigned char Serial1::receiveByte()
+{
+    unsigned char data;
+    while ( !(UCSR1A & (1<<RXC1)) ) {}
+    data = UDR1;
+    return(data);
+}
+
+void Serial1::enable_interrupt()
+{
+    UCSR1B |= (1 << RXCIE1);
+}
+    
+void Serial1::disable_interrupt()
+{
+    UCSR1B &= ~(1 << RXCIE1);
+}
+
+
+// shared
+void Serial::transmitString(const char* str)
 {
     while (*str != 0) 
     {
         transmitByte(*str++);
     }
-
-    /*
-    for (int i = 0; i < strlen(str); i++)
-    {
-        transmitByte(str[i]);
-    }
-    */
 }
 
-void Serial1::transmitStringF(const char* string)
+void Serial::transmitStringF(const char* string)
 {
     while (pgm_read_byte(&(*string)))
     {

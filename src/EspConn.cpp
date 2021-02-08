@@ -37,11 +37,10 @@ bool EspConn::device_present() {
 }
 
 bool EspConn::attempt_baud_rate_setting() {
-
     _serial->init(8, true);
     char cmd[64];
     sprintf_P(cmd, PSTR("AT+UART_DEF=500000,8,1,0,0\r\n"));
-    _serial->transmitString((unsigned char*)cmd);
+    _serial->transmitString(cmd);
     _delay_ms(1000);
     _serial->init(0, false);
     return true;
@@ -81,8 +80,8 @@ bool EspConn::sendCmd(const char* cmd, int timeout) {
     }
     
     _serial->enable_interrupt();
-    _serial->transmitString((unsigned char*)cmd);
-    _serial->transmitString((unsigned char*)"\r\n");
+    _serial->transmitString(cmd);
+    _serial->transmitString("\r\n");
     int result = readUntil(0, true, true, timeout);
     _serial->disable_interrupt();
 
@@ -166,7 +165,7 @@ int EspConn::sendData(uint8_t sock, unsigned char* data, int len)
     }
 
     _serial->enable_interrupt();
-    _serial->transmitString((unsigned char*)cmd);
+    _serial->transmitString(cmd);
     readUntil("> ", false, true, 5000);
 
     // send payload data
