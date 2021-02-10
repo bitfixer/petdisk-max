@@ -68,6 +68,7 @@ public:
     ~IEEE488() {}
 
     void sendIEEEBytes(unsigned char *entry, int size, unsigned char isLast);
+    unsigned char sendIEEEByteCheckForATN(unsigned char byte);
     unsigned char wait_for_device_address(unsigned char my_address);
     void unlisten();
     void begin_output();
