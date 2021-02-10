@@ -28,6 +28,11 @@ public:
         }
     }
 
+    void logF(const char* str)
+    {
+        _serial->transmitStringF(str);
+    }
+
 private:
     Serial* _serial;
 };

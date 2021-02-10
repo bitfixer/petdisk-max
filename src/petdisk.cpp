@@ -1147,16 +1147,26 @@ void PETdisk::run()
                         bytes_to_send = 0;
                     }
                     */
+                    _logger->logF(PSTR("sending\r\n"));
+                    char tmp[8];
                     while (done_sending == 0)
                     {
-                        bytes_to_send = _dataSource->getNextFileBlock();
+                        if (bytes_to_send == 0)
+                        {
+                            bytes_to_send = _dataSource->getNextFileBlock();
+                        }
+
                         if (_dataSource->isLastBlock())
                         {
                             done_sending = 1;
                         }
 
+                        sprintf(tmp, "s %d\r\n", bytes_to_send);
+                        _logger->log(tmp);
                         _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
+                        bytes_to_send = 0;
                     }
+                    _logger->logF(PSTR("done\r\n"));
                 }
             }
             else if (_currentState == OPEN_DATA_READ)
