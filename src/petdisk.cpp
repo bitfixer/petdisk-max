@@ -285,7 +285,6 @@ private:
     void writeFile();
     void listFiles();
     unsigned char wait_for_device_address();
-    void run2();
 };
 
 void PETdisk::init(
@@ -1005,18 +1004,9 @@ void PETdisk::run()
             }
         }
 
-        /*
-        // raise NDAC
-        PORTC = NOT_NRFD;
-        wait_for_dav_high();
-        // open file if needed
-        */
         _ieee->acknowledge_bus_byte();
 
-        //_ieee->signal_ready_for_data();
-
         // === PREPARE FOR READ/WRITE
-        // === re-init sd card and open file
 
         if (_currentState == FILE_READ_OPENING ||
             _currentState == FILE_SAVE_OPENING ||
@@ -1024,7 +1014,6 @@ void PETdisk::run()
             _currentState == DIR_READ)
         {
             // initialize sd card
-            //error = _dataSource->initializeStorage();
             _dataSource->init();
 
             if (_currentState == FILE_SAVE_OPENING)
@@ -1043,15 +1032,7 @@ void PETdisk::run()
                 }
                 else
                 {
-                    if (_currentState == OPEN_FNAME_READ_DONE)
-                    {
-                        bytes_to_send = _dataSource->getNextFileBlock();
-                    }
-                    else
-                    {
-                        // test
-                        bytes_to_send = _dataSource->getNextFileBlock();
-                    }
+                    bytes_to_send = _dataSource->getNextFileBlock();
 
                     _fileReadByte = 0;
                     filenotfound = 0;
@@ -1066,8 +1047,6 @@ void PETdisk::run()
         if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
         {
             // unlisten or untalk command
-            //PORTC = NOT_NDAC;
-            //unlisten();
             _ieee->signal_ready_for_data();
             _ieee->unlisten();
             _currentState = IDLE;
@@ -1080,23 +1059,6 @@ void PETdisk::run()
         if (_currentState == FILE_READ || _currentState == OPEN_DATA_READ)
         {
             // ==== STARTING LOAD SEQUENCE
-
-            // release NRFD/NDAC
-            /*
-            DDRC = NDAC;
-
-            // wait for atn high
-            wait_for_atn_high();
-
-            DDRC = DAV | EOI;
-            PORTC = 0xFF;
-
-            // change data bus to output
-            DATA_CTL = 0xff;
-            DDRB = DDRB | (DATA0 | DATA1);
-
-            wait_for_ndac_low();
-            */
             _ieee->begin_output();
 
             if (_currentState == FILE_READ)
@@ -1114,7 +1076,6 @@ void PETdisk::run()
                         _dataSource->openDirectory((const char*)&progname[2]);
                     }
                     // write directory entries
-                    //ListFilesIEEE(ds, (unsigned char*)_buffer);
                     listFiles();
                 }
                 else // read from file
@@ -1147,8 +1108,6 @@ void PETdisk::run()
                         bytes_to_send = 0;
                     }
                     */
-                    _logger->logF(PSTR("sending\r\n"));
-                    char tmp[8];
                     while (done_sending == 0)
                     {
                         if (bytes_to_send == 0)
@@ -1161,12 +1120,9 @@ void PETdisk::run()
                             done_sending = 1;
                         }
 
-                        sprintf(tmp, "s %d\r\n", bytes_to_send);
-                        _logger->log(tmp);
                         _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
                         bytes_to_send = 0;
                     }
-                    _logger->logF(PSTR("done\r\n"));
                 }
             }
             else if (_currentState == OPEN_DATA_READ)
@@ -1250,235 +1206,6 @@ void PETdisk::run()
     }
 }
 
-void PETdisk::run2()
-{
-    // main loop
-    while(1) 
-    {
-        if (_currentState == FILE_NOT_FOUND)
-        {
-            _ieee->unlisten();
-            _currentState = IDLE;
-            filenotfound = 0;
-        }
-
-        if (IEEE_CTL == 0x00) // unlistened
-        {
-            // not currently listening on the bus.
-            // waiting for a valid device address
-
-            _dataSource = 0;
-            while (_dataSource == 0)
-            {
-                ieee_address = _ieee->get_device_address(&buscmd);
-                _dataSource = getDataSource(ieee_address);
-
-                if (_dataSource == 0)
-                {
-                    _ieee->reject_address();
-                    continue;
-                }
-
-                _ieee->accept_address();
-            }
-
-            filenotfound = 0;
-            filename_position = 0;
-
-            if (buscmd == LISTEN)
-            {
-                init_datasource = false;
-            }
-        }
-
-        // read single byte from ieee bus
-        rdchar = _ieee->get_byte_from_bus();
-
-        if (filenotfound == 1)
-        {
-            filenotfound = 0;
-            _ieee->unlisten();
-        }
-
-        // handle bus commands
-        if (_ieee->atn_is_low())
-        {
-            char tmp[8];
-            sprintf(tmp, "rd %X\r\n", rdchar);
-            _logger->log(tmp);
-            if ((rdchar == PET_LOAD_FNAME_ADDR || rdchar == PET_SAVE_FNAME_ADDR))
-            {
-                getting_filename = 1;
-
-                // clear filename
-                memset(progname, 0, 64);
-                
-                if (rdchar == PET_SAVE_FNAME_ADDR)
-                {
-                    savefile = 1;
-                }
-                else
-                {
-                    savefile = 0;
-                }
-            }
-            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
-            {
-                _openFileAddress = (rdchar & PET_OPEN_FNAME_MASK);
-            }
-            else if (rdchar == PET_READ_CMD_ADDR)
-            {
-
-
-                if (progname[0] == '$')
-                {
-                    // copy the directory header
-                    pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
-                    
-                    // print directory title
-                    pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
-                    _buffer[31] = 0x00;
-                }
-            }
-        }
-        else
-        {
-            if (getting_filename == 1) // reading bytes of a filename
-            {
-                // add character to filename
-                progname[filename_position++] = rdchar;
-                progname[filename_position] = 0;
-
-                // is this the last character?
-                if (_ieee->eoi_is_low())
-                {
-                    if (progname[0] == '$') // directory request
-                    {
-                        getting_filename = 0;
-                        filename_position = 0;
-
-                        if (!_dataSource->isInitialized())
-                        {
-                            filenotfound = 1;
-                        }
-                    }
-                    else // file load command
-                    {
-                        _logger->log("got filename:\r\n");
-                        _logger->log((char*)progname);
-                        _logger->log("\r\n");
-
-
-                        filename_position = processFilename(progname, filename_position);
-
-                        // copy the PRG file extension onto the end of the file name
-                        pgm_memcpy(&progname[filename_position], (unsigned char *)_fileExtension, 5);
-
-                        // have the full filename now
-                        getting_filename = 0;
-                        _logger->log((char*)progname);
-                        _logger->log((char*)"\r\n");
-                        filename_position = 0;
-                        gotname = 1;
-                    }
-                }
-            }
-        }
-
-        // signal that we are done handling this byte
-        _ieee->acknowledge_bus_byte();
-
-        if (init_datasource == false)
-        {
-            _dataSource->init();
-            init_datasource = true;
-        }
-
-        if (gotname == 1)
-        {
-            if (savefile == 1)
-            {
-                _dataSource->openFileForWriting(progname);
-            }
-            else
-            {
-                // file read, either LOAD or OPEN command
-                if (!_dataSource->isInitialized() || !_dataSource->openFileForReading(progname))
-                {
-                    _logger->log("not found\r\n");
-                    filenotfound = 1;
-                }
-                else
-                {
-                    _logger->log("found file\r\n");
-                }
-            }
-        }
-        gotname = 0;
-
-        if ((rdchar == 0x3F) || (rdchar == 0x5F && _ieee->atn_is_low()))
-        {
-            _logger->log("unlisten\r\n");
-            _ieee->signal_ready_for_data();
-            _ieee->unlisten();
-            // unlistened from the bus, go back to waiting
-            continue;
-        }
-        
-        _ieee->signal_ready_for_data();
-
-        // LOAD requested
-        if (rdchar == PET_OPEN_IO_ADDR && _ieee->atn_is_low())
-        {
-            // starting LOAD sequence
-            if (filenotfound == 0)
-            {
-                _ieee->begin_output();
-
-                if (progname[0] == '$') // directory
-                {
-                    // write directory header
-                    _ieee->sendIEEEBytes(_buffer, 32, 0);
-
-                    if (progname[1] == ':')
-                    {
-                        // change directory command
-                        _dataSource->openDirectory((const char*)&progname[2]);
-                    }
-
-                    listFiles();
-                }
-                else // read from file
-                {
-                    // retrieve full contents of file
-                    // and write to ieee bus
-                    done_sending = 0;
-                    while (done_sending == 0)
-                    {
-                        bytes_to_send = _dataSource->getNextFileBlock();
-                        if (_dataSource->isLastBlock())
-                        {
-                            //logSerial.transmitString("last block\r\n");
-                            done_sending = 1;
-                        }
-
-                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
-                    }
-                }
-                _ieee->end_output();
-            }
-        }
-        // SAVE requested
-        else if (rdchar == PET_SAVE_CMD_ADDR && _ieee->atn_is_low())
-        {
-            // write file
-            // about to write file
-            writeFile();
-            _ieee->unlisten();
-        }
-    }
-}
-
 unsigned char PETdisk::processFilename(unsigned char* filename, unsigned char length)
 {
     unsigned char drive_separator = ':';
@@ -1489,6 +1216,14 @@ unsigned char PETdisk::processFilename(unsigned char* filename, unsigned char le
         int seplen = sepptr - filename + 1;
         memmove(filename, sepptr + 1, length - seplen);
         length -= seplen;
+    }
+
+    // find part of string before ','
+    drive_separator = ',';
+    sepptr = (unsigned char*)memmem(filename, length, &drive_separator, 1);
+    if (sepptr)
+    {
+        length = sepptr - filename;
     }
 
     return length;
@@ -1530,23 +1265,7 @@ int main(void)
     IEEE488 ieee(&logger);
     ieee.unlisten();
 
-    /*
-    unsigned char buscmd;
-    unsigned char ieee_address;
-    unsigned char rdchar;
-    
-    unsigned char* progname = (unsigned char*)&_buffer[1024-64];
-    int filename_position = 0;
-    int filenotfound = 0;
-    unsigned char getting_filename = 0;
-    unsigned char savefile = 0;
-    unsigned char gotname = 0;
-    unsigned char done_sending = 0;
-    bool init_datasource = false;
-    int bytes_to_send = 0;
-    unsigned char _openFileAddress = 0;
-    */
-
+    // init 4 possible network datasources
     NetworkDataSource nds0(&espHttp, _buffer, &_bufferSize, &logSerial);
     NetworkDataSource nds1(&espHttp, _buffer, &_bufferSize, &logSerial);
     NetworkDataSource nds2(&espHttp, _buffer, &_bufferSize, &logSerial);
@@ -1572,225 +1291,6 @@ int main(void)
     
     // execute run loop
     petdisk.run();
-
-    /*
-    // main loop
-    while(1) 
-    {
-        if (IEEE_CTL == 0x00) // unlistened
-        {
-            // not currently listening on the bus.
-            // waiting for a valid device address
-
-            dataSource = 0;
-            while (dataSource == 0)
-            {
-                ieee_address = ieee.get_device_address(&buscmd);
-                dataSource = petdisk.getDataSource(ieee_address);
-
-                if (dataSource == 0)
-                {
-                    ieee.reject_address();
-                    continue;
-                }
-
-                ieee.accept_address();
-            }
-
-            filenotfound = 0;
-            filename_position = 0;
-
-            if (buscmd == LISTEN)
-            {
-                init_datasource = false;
-            }
-        }
-
-        // read single byte from ieee bus
-        rdchar = ieee.get_byte_from_bus();
-
-        if (filenotfound == 1)
-        {
-            filenotfound = 0;
-            ieee.unlisten();
-        }
-
-        // handle bus commands
-        if (ieee.atn_is_low())
-        {
-            char tmp[8];
-            sprintf(tmp, "rd %X\r\n", rdchar);
-            logger.log(tmp);
-            if ((rdchar == PET_LOAD_FNAME_ADDR || rdchar == PET_SAVE_FNAME_ADDR))
-            {
-                getting_filename = 1;
-
-                // clear filename
-                memset(progname, 0, 64);
-                
-                if (rdchar == PET_SAVE_FNAME_ADDR)
-                {
-                    savefile = 1;
-                }
-                else
-                {
-                    savefile = 0;
-                }
-            }
-            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
-            {
-                _openFileAddress = (rdchar & PET_OPEN_FNAME_MASK);
-            }
-            else if (rdchar == PET_READ_CMD_ADDR)
-            {
-                if (progname[0] == '$')
-                {
-                    // copy the directory header
-                    pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
-                    
-                    // print directory title
-                    pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
-                    _buffer[31] = 0x00;
-                }
-            }
-        }
-        else
-        {
-            if (getting_filename == 1) // reading bytes of a filename
-            {
-                // add character to filename
-                progname[filename_position++] = rdchar;
-                progname[filename_position] = 0;
-
-                // is this the last character?
-                if (ieee.eoi_is_low())
-                {
-                    if (progname[0] == '$') // directory request
-                    {
-                        getting_filename = 0;
-                        filename_position = 0;
-
-                        if (!dataSource->isInitialized())
-                        {
-                            filenotfound = 1;
-                        }
-                    }
-                    else // file load command
-                    {
-                        logSerial.transmitString("got filename:\r\n");
-                        logSerial.transmitString((char*)progname);
-                        logSerial.transmitString("\r\n");
-
-
-                        filename_position = processFilename(progname, filename_position);
-
-                        // copy the PRG file extension onto the end of the file name
-                        pgm_memcpy(&progname[filename_position], (unsigned char *)_fileExtension, 5);
-
-                        // have the full filename now
-                        getting_filename = 0;
-                        logSerial.transmitString((char*)progname);
-                        logSerial.transmitString((char*)"\r\n");
-                        filename_position = 0;
-                        gotname = 1;
-                    }
-                }
-            }
-        }
-
-        // signal that we are done handling this byte
-        ieee.acknowledge_bus_byte();
-
-        if (init_datasource == false)
-        {
-            dataSource->init();
-            init_datasource = true;
-        }
-
-        if (gotname == 1)
-        {
-            if (savefile == 1)
-            {
-                dataSource->openFileForWriting(progname);
-            }
-            else
-            {
-                if (!dataSource->isInitialized() || !dataSource->openFileForReading(progname))
-                {
-                    logger.log("not found\r\n");
-                    filenotfound = 1;
-                }
-                else
-                {
-                    logger.log("found file\r\n");
-                }
-            }
-        }
-        gotname = 0;
-
-        if ((rdchar == 0x3F) || (rdchar == 0x5F && ieee.atn_is_low()))
-        {
-            logger.log("unlisten\r\n");
-            ieee.signal_ready_for_data();
-            ieee.unlisten();
-            // unlistened from the bus, go back to waiting
-            continue;
-        }
-        
-        ieee.signal_ready_for_data();
-
-        // LOAD requested
-        if (rdchar == PET_OPEN_IO_ADDR && ieee.atn_is_low())
-        {
-            // starting LOAD sequence
-            if (filenotfound == 0)
-            {
-                ieee.begin_output();
-
-                if (progname[0] == '$') // directory
-                {
-                    // write directory header
-                    ieee.sendIEEEBytes(_buffer, 32, 0);
-
-                    if (progname[1] == ':')
-                    {
-                        // change directory command
-                        dataSource->openDirectory((const char*)&progname[2]);
-                    }
-
-                    listFiles(&ieee, dataSource, &logSerial);
-                }
-                else // read from file
-                {
-                    // retrieve full contents of file
-                    // and write to ieee bus
-                    done_sending = 0;
-                    while (done_sending == 0)
-                    {
-                        bytes_to_send = dataSource->getNextFileBlock();
-                        if (dataSource->isLastBlock())
-                        {
-                            //logSerial.transmitString("last block\r\n");
-                            done_sending = 1;
-                        }
-
-                        ieee.sendIEEEBytes(dataSource->getBuffer(), bytes_to_send, done_sending);
-                    }
-                }
-                ieee.end_output();
-            }
-        }
-        // SAVE requested
-        else if (rdchar == PET_SAVE_CMD_ADDR && ieee.atn_is_low())
-        {
-            // write file
-            // about to write file
-            writeFile(&ieee, dataSource);
-            ieee.unlisten();
-        }
-
-    }
-    */
 
     while(1) {}
     return 0;
