@@ -62,6 +62,15 @@ const unsigned char _fileExtension[] PROGMEM =
     0x00,
 };
 
+const unsigned char _seqExtension[] PROGMEM =
+{
+    '.',
+    'S',
+    'E',
+    'Q',
+    0x00,
+};
+
 void pgm_memcpy(unsigned char *dest, unsigned char *src, int len)
 {
     int i;
@@ -129,188 +138,6 @@ void blink_led(int count, int ms_on, int ms_off)
             _delay_ms(1);
         }
     }
-}
-
-void writeFile(IEEE488* ieee, DataSource* dataSource)
-{
-    unsigned int numBytes;
-    unsigned char rdchar;
-    unsigned char* dataBuffer = dataSource->getBuffer();
-    unsigned int writeBufferSize = dataSource->writeBufferSize();
-    
-    numBytes = 0;
-    do
-    {
-        rdchar = ieee->get_byte_from_bus();
-        dataBuffer[numBytes++] = rdchar;
-        
-        if (numBytes >= writeBufferSize)
-        {
-            dataSource->writeBufferToFile(numBytes);
-            numBytes = 0;
-        }
-        
-        ieee->acknowledge_bus_byte();
-        ieee->signal_ready_for_data();
-    }
-    while (!ieee->eoi_is_low());
-    
-    if (numBytes > 0)
-    {
-        dataSource->writeBufferToFile(numBytes);
-    }
-    
-    dataSource->closeFile();
-}
-
-void listFiles(IEEE488* ieee, DataSource* dataSource, SerialLogger* log)
-{
-    bool gotDir;
-    unsigned char startline;
-    unsigned int dir_start;
-    unsigned char entry[32];
-    dir_start = 0x041f;
-    unsigned int file = 0;
-
-    //log->transmitStringF(PSTR("open dir\r\n"));
-    dataSource->openCurrentDirectory();
-
-    do
-    {
-        // get next directory entry
-        gotDir = dataSource->getNextDirectoryEntry();
-        if (gotDir == false)
-        {
-            dir_start += 0x0020;
-            startline = 0;
-            memset(entry, ' ', 32);
-            entry[startline] = (unsigned char)(dir_start & 0x00ff);
-            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-            entry[startline+2] = file+1;
-            entry[startline+3] = 0x00;
-            entry[startline+4] = 0x20;
-            entry[startline+5] = 0x20;
-            pgm_memcpy(&entry[startline+6], (unsigned char*)_firmwareString, 6);
-            pgm_memcpy(&entry[startline+6+6], (unsigned char*)_hash, 7);
-            entry[startline+31] = 0x00;
-            file++;
-            ieee->sendIEEEBytes(entry, 32, 0);
-
-            startline = 0;
-            dir_start += 0x001e;
-            entry[startline] = (unsigned char)(dir_start & 0x00ff);
-            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-            entry[startline+2] = 0xff;
-            entry[startline+3] = 0xff;
-            sprintf_P((char *)&entry[startline+4], PSTR("BLOCKS FREE.             "));
-            entry[startline+29] = 0x00;
-            entry[startline+30] = 0x00;
-            entry[startline+31] = 0x00;
-            
-            ieee->sendIEEEBytes(entry, 32, 1);
-            return;
-        }
-        else
-        {
-            if (!dataSource->isHidden() && !dataSource->isVolumeId())
-            {
-                // check if this is a file that can be used by petdisk
-                // currently .PRG files. Soon .SEQ and .REL
-
-                int fname_length = 0;
-                unsigned char* fileName = dataSource->getFilename();
-                fname_length = strlen((char*)fileName);
-                bool valid_file = false;
-                // check for correct extension
-                if (fname_length > 4)
-                {
-                    if (toupper(fileName[fname_length-3]) == 'P' &&
-                        toupper(fileName[fname_length-2]) == 'R' &&
-                        toupper(fileName[fname_length-1]) == 'G')
-                    {
-                        valid_file = true;
-                    }
-                }
-
-                if (!valid_file)
-                {
-                    // skip this file, continue to next
-                    continue;
-                }
-
-                dir_start += 0x0020;
-                startline = 0;
-
-                
-                entry[startline] = (unsigned char)(dir_start & 0x00ff);
-                entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-                entry[startline+2] = file+1;
-                entry[startline+3] = 0x00;
-                entry[startline+4] = 0x20;
-                entry[startline+5] = 0x20;
-                entry[startline+6] = 0x22;
-
-                int extensionPos = -1;
-                if (fname_length > 5)
-                {
-                    if (fileName[fname_length-4] == '.')
-                    {
-                        extensionPos = fname_length-3;
-                        fname_length = fname_length-4;
-                    }
-                }
-                
-                if (fname_length >= 17)
-                {
-                    fname_length = 17;
-                }
-                
-                for (int f = 0; f < fname_length; f++)
-                {
-                    // make sure filename is upper case
-                    entry[startline+7+f] = toupper(fileName[f]);
-                }
-
-                entry[startline+7+fname_length] = 0x22;
-                for (int f = 0; f < (17 - fname_length); f++)
-                {
-                    entry[startline+7+fname_length+f+1] = ' ';
-                }
-
-                if (dataSource->isDirectory())
-                {
-                    entry[startline+25] = 'D';
-                    entry[startline+26] = 'I';
-                    entry[startline+27] = 'R';
-                }
-                else
-                {
-                    if (extensionPos > 0)
-                    {
-                        // make sure extension is upper case
-                        entry[startline+25] = toupper(fileName[extensionPos]);
-                        entry[startline+26] = toupper(fileName[extensionPos+1]);
-                        entry[startline+27] = toupper(fileName[extensionPos+2]);
-                    }
-                    else
-                    {
-                        entry[startline+25] = ' ';
-                        entry[startline+26] = ' ';
-                        entry[startline+27] = ' ';
-                    }
-                }
-
-                entry[startline+28] = ' ';
-                entry[startline+29] = ' ';
-                entry[startline+30] = ' ';
-                entry[startline+31] = 0x00;
-                file++;
-
-                ieee->sendIEEEBytes(entry, 32, 0);
-            }
-        }
-    }
-    while (gotDir == true);
 }
 
 void checkForFirmware(char* buffer, FAT32* fat32, Serial1* log)
@@ -386,6 +213,13 @@ typedef enum _pdstate
     CLOSING
 } pdstate;
 
+typedef enum _filedir
+{
+    FNONE,
+    FREAD,
+    FWRITE
+} filedir;
+
 class PETdisk
 {
 public:
@@ -425,7 +259,7 @@ private:
     FAT32* _fat32;
     SerialLogger* _logger;
 
-    DataSource* dataSource;
+    DataSource* _dataSource;
     unsigned char buscmd;
     unsigned char ieee_address;
     unsigned char rdchar;
@@ -438,10 +272,20 @@ private:
     unsigned char done_sending;
     bool init_datasource;
     int bytes_to_send;
-    unsigned char _openFileAddress = 0;
+    pdstate _currentState;
+    unsigned char _openFileAddress;
+    int _fileWriteByte;
+    filedir _fileDirection;
+    int _fileReadByte;
+    int _useRemainderByte;
+    unsigned char _remainderByte;
 
     bool configChanged(struct pd_config* pdcfg);
     unsigned char processFilename(unsigned char* filename, unsigned char length);
+    void writeFile();
+    void listFiles();
+    unsigned char wait_for_device_address();
+    void run2();
 };
 
 void PETdisk::init(
@@ -460,7 +304,7 @@ void PETdisk::init(
     _logger = logger;
 
     // reset state variables
-    dataSource = 0;
+    _dataSource = 0;
     progname = (unsigned char*)&_buffer[1024-64];
     filename_position = 0;
     filenotfound = 0;
@@ -470,7 +314,13 @@ void PETdisk::init(
     done_sending = 0;
     init_datasource = false;
     bytes_to_send = 0;
+    _currentState = IDLE;
     _openFileAddress = 0;
+    _fileWriteByte = 0;
+    _fileDirection = FNONE;
+    _fileReadByte = 0;
+    _useRemainderByte = 0;
+    _remainderByte = 0;
 
     char tmp[32];
     if (readConfigFile(fat32, log, buffer))
@@ -768,23 +618,652 @@ DataSource* PETdisk::getDataSource(unsigned char id)
     return _dataSources[id-MIN_DEVICE_ID];
 }
 
+void PETdisk::writeFile()
+{
+    unsigned int numBytes;
+    unsigned char rdchar;
+    unsigned char* dataBuffer = _dataSource->getBuffer();
+    unsigned int writeBufferSize = _dataSource->writeBufferSize();
+    
+    numBytes = 0;
+    do
+    {
+        rdchar = _ieee->get_byte_from_bus();
+        dataBuffer[numBytes++] = rdchar;
+        
+        if (numBytes >= writeBufferSize)
+        {
+            _dataSource->writeBufferToFile(numBytes);
+            numBytes = 0;
+        }
+        
+        _ieee->acknowledge_bus_byte();
+        _ieee->signal_ready_for_data();
+    }
+    while (!_ieee->eoi_is_low());
+    
+    if (numBytes > 0)
+    {
+        _dataSource->writeBufferToFile(numBytes);
+    }
+    
+    _dataSource->closeFile();
+}
+
+void PETdisk::listFiles()
+{
+    bool gotDir;
+    unsigned char startline;
+    unsigned int dir_start;
+    unsigned char entry[32];
+    dir_start = 0x041f;
+    unsigned int file = 0;
+
+    //log->transmitStringF(PSTR("open dir\r\n"));
+    _dataSource->openCurrentDirectory();
+
+    do
+    {
+        // get next directory entry
+        gotDir = _dataSource->getNextDirectoryEntry();
+        if (gotDir == false)
+        {
+            dir_start += 0x0020;
+            startline = 0;
+            memset(entry, ' ', 32);
+            entry[startline] = (unsigned char)(dir_start & 0x00ff);
+            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
+            entry[startline+2] = file+1;
+            entry[startline+3] = 0x00;
+            entry[startline+4] = 0x20;
+            entry[startline+5] = 0x20;
+            pgm_memcpy(&entry[startline+6], (unsigned char*)_firmwareString, 6);
+            pgm_memcpy(&entry[startline+6+6], (unsigned char*)_hash, 7);
+            entry[startline+31] = 0x00;
+            file++;
+            _ieee->sendIEEEBytes(entry, 32, 0);
+
+            startline = 0;
+            dir_start += 0x001e;
+            entry[startline] = (unsigned char)(dir_start & 0x00ff);
+            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
+            entry[startline+2] = 0xff;
+            entry[startline+3] = 0xff;
+            sprintf_P((char *)&entry[startline+4], PSTR("BLOCKS FREE.             "));
+            entry[startline+29] = 0x00;
+            entry[startline+30] = 0x00;
+            entry[startline+31] = 0x00;
+            
+            _ieee->sendIEEEBytes(entry, 32, 1);
+            return;
+        }
+        else
+        {
+            if (!_dataSource->isHidden() && !_dataSource->isVolumeId())
+            {
+                // check if this is a file that can be used by petdisk
+                // currently .PRG files. Soon .SEQ and .REL
+
+                int fname_length = 0;
+                unsigned char* fileName = _dataSource->getFilename();
+                fname_length = strlen((char*)fileName);
+                bool valid_file = false;
+                // check for correct extension
+                if (fname_length > 4)
+                {
+                    if (toupper(fileName[fname_length-3]) == 'P' &&
+                        toupper(fileName[fname_length-2]) == 'R' &&
+                        toupper(fileName[fname_length-1]) == 'G')
+                    {
+                        valid_file = true;
+                    }
+                }
+
+                if (!valid_file)
+                {
+                    // skip this file, continue to next
+                    continue;
+                }
+
+                dir_start += 0x0020;
+                startline = 0;
+
+                
+                entry[startline] = (unsigned char)(dir_start & 0x00ff);
+                entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
+                entry[startline+2] = file+1;
+                entry[startline+3] = 0x00;
+                entry[startline+4] = 0x20;
+                entry[startline+5] = 0x20;
+                entry[startline+6] = 0x22;
+
+                int extensionPos = -1;
+                if (fname_length > 5)
+                {
+                    if (fileName[fname_length-4] == '.')
+                    {
+                        extensionPos = fname_length-3;
+                        fname_length = fname_length-4;
+                    }
+                }
+                
+                if (fname_length >= 17)
+                {
+                    fname_length = 17;
+                }
+                
+                for (int f = 0; f < fname_length; f++)
+                {
+                    // make sure filename is upper case
+                    entry[startline+7+f] = toupper(fileName[f]);
+                }
+
+                entry[startline+7+fname_length] = 0x22;
+                for (int f = 0; f < (17 - fname_length); f++)
+                {
+                    entry[startline+7+fname_length+f+1] = ' ';
+                }
+
+                if (_dataSource->isDirectory())
+                {
+                    entry[startline+25] = 'D';
+                    entry[startline+26] = 'I';
+                    entry[startline+27] = 'R';
+                }
+                else
+                {
+                    if (extensionPos > 0)
+                    {
+                        // make sure extension is upper case
+                        entry[startline+25] = toupper(fileName[extensionPos]);
+                        entry[startline+26] = toupper(fileName[extensionPos+1]);
+                        entry[startline+27] = toupper(fileName[extensionPos+2]);
+                    }
+                    else
+                    {
+                        entry[startline+25] = ' ';
+                        entry[startline+26] = ' ';
+                        entry[startline+27] = ' ';
+                    }
+                }
+
+                entry[startline+28] = ' ';
+                entry[startline+29] = ' ';
+                entry[startline+30] = ' ';
+                entry[startline+31] = 0x00;
+                file++;
+
+                _ieee->sendIEEEBytes(entry, 32, 0);
+            }
+        }
+    }
+    while (gotDir == true);
+}
+
+unsigned char PETdisk::wait_for_device_address()
+{
+    unsigned char ieee_address;
+    _dataSource = 0;
+    while (_dataSource == 0)
+    {
+        ieee_address = _ieee->get_device_address(&buscmd);
+        _dataSource = getDataSource(ieee_address);
+
+        if (_dataSource == 0)
+        {
+            _ieee->reject_address();
+            continue;
+        }
+
+        _ieee->accept_address();
+    }
+    return buscmd;
+}
+
 void PETdisk::run()
+{
+    // start main loop
+    while(1)
+    {
+        if (_currentState == FILE_NOT_FOUND)
+        {
+            _ieee->unlisten();
+            _currentState = IDLE;
+            filenotfound = 0;
+            filename_position = 0;
+            memset(progname, 0, 64);
+        }
+
+        if (IEEE_CTL == 0x00)
+        {
+            // if we are in an unlisten state,
+            // wait for my address
+            buscmd = wait_for_device_address();
+            if (buscmd == LISTEN)
+            {
+                _currentState = BUS_LISTEN;
+            }
+            else
+            {
+                _currentState = BUS_TALK;
+            }
+        }
+
+        rdchar = _ieee->get_byte_from_bus();
+
+        if (_ieee->atn_is_low()) // check for bus command
+        {
+            if (rdchar == PET_LOAD_FNAME_ADDR)
+            {
+                _currentState = LOAD_FNAME_READ;
+            }
+            else if (rdchar == PET_SAVE_FNAME_ADDR)
+            {
+                _currentState = SAVE_FNAME_READ;
+            }
+            else if ((rdchar & 0xF0) == PET_OPEN_FNAME_MASK) // open command to another address
+            {
+                _currentState = OPEN_FNAME_READ;
+                _openFileAddress = (rdchar & 0x0F);
+                _fileWriteByte = -1;
+            }
+            else if (rdchar == PET_READ_CMD_ADDR) // read command
+            {
+                if (filenotfound == 1)
+                {
+                    _currentState = FILE_NOT_FOUND;
+                }
+                else
+                {
+                    _currentState = FILE_READ;
+                    // open file for reading
+                    if (progname[0] == '$')
+                    {
+                        // copy the directory header
+                        pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
+
+                        // print directory title
+                        pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
+                        _buffer[31] = 0x00;
+                    }
+                }
+            }
+            else if (rdchar == PET_SAVE_CMD_ADDR) // save command
+            {
+                _currentState = FILE_SAVE;
+            }
+            else if ((rdchar & 0xF0) == PET_OPEN_IO_ADDR) // print or input command
+            {
+                unsigned char temp = rdchar & 0x0F;
+                if (temp == _openFileAddress)
+                {
+                    if (_currentState == BUS_LISTEN)
+                    {
+                        if (_fileWriteByte == -1)
+                        {
+                            //transmitString_F(_saving);
+                            _logger->log("saving\r\n");
+                            _dataSource->openFileForWriting(progname);
+                            _fileWriteByte = 0;
+                        }
+                        _fileDirection = FWRITE;
+                        _currentState = OPEN_DATA_WRITE;
+                    }
+                    else
+                    {
+                        if (filenotfound == 1)
+                        {
+                            _fileDirection = FNONE;
+                            _currentState = FILE_NOT_FOUND;
+                        }
+                        else
+                        {
+                            _fileDirection = FREAD;
+                            _currentState = OPEN_DATA_READ;
+                        }
+                    }
+                }
+            }
+            else if ((rdchar & 0xF0) == 0xE0)
+            {
+                unsigned char temp = rdchar & 0x0F;
+                if (temp == _openFileAddress && _fileDirection == FWRITE)
+                {
+                    if (_fileWriteByte > 0)
+                    {
+                        _dataSource->writeBufferToFile(_fileWriteByte);
+                        _fileWriteByte = 0;
+                    }
+
+                    _dataSource->closeFile();
+                }
+
+                _openFileAddress = -1;
+                _fileWriteByte = -1;
+                _fileDirection = FNONE;
+                _currentState = CLOSING;
+            }
+        }
+        else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
+        {
+            _buffer[_fileWriteByte++] = rdchar;
+            if (_fileWriteByte >= 512)
+            {
+                _dataSource->writeBufferToFile(_fileWriteByte);
+                _fileWriteByte = 0;
+            }
+        }
+        else if (_currentState == LOAD_FNAME_READ ||
+                 _currentState == SAVE_FNAME_READ ||
+                 _currentState == OPEN_FNAME_READ)
+        {
+            // add character to filename
+            progname[filename_position] = rdchar;
+            filename_position++;
+            progname[filename_position] = 0;
+
+            //if ((rdbus & EOI) == 0)
+            if (_ieee->eoi_is_low())
+            {
+                // this is a directory request
+                if (progname[0] == '$')
+                {
+                    filename_position = 0;
+                    _currentState = DIR_READ;
+                }
+                else
+                {
+                    // process filename, remove drive indicators and file type
+                    filename_position = processFilename(progname, filename_position);
+
+                    const unsigned char *ext;
+                    if (_currentState == OPEN_FNAME_READ)
+                    {
+                        ext = _seqExtension;
+                        _currentState = OPEN_FNAME_READ_DONE;
+                    }
+                    else
+                    {
+                        ext = _fileExtension;
+
+                        if (_currentState == LOAD_FNAME_READ)
+                        {
+                            _currentState = FILE_READ_OPENING;
+                        }
+                        else if (_currentState == SAVE_FNAME_READ)
+                        {
+                            _currentState = FILE_SAVE_OPENING;
+                        }
+                    }
+
+                    // copy the PRG file extension onto the end of the file name
+                    pgm_memcpy(&progname[filename_position], (unsigned char*)ext, 5);
+                    filename_position = 0;
+                    //transmitString(progname);
+                    _logger->log((const char*)progname);
+                }
+            }
+        }
+
+        /*
+        // raise NDAC
+        PORTC = NOT_NRFD;
+        wait_for_dav_high();
+        // open file if needed
+        */
+        _ieee->acknowledge_bus_byte();
+
+        //_ieee->signal_ready_for_data();
+
+        // === PREPARE FOR READ/WRITE
+        // === re-init sd card and open file
+
+        if (_currentState == FILE_READ_OPENING ||
+            _currentState == FILE_SAVE_OPENING ||
+            _currentState == OPEN_FNAME_READ_DONE ||
+            _currentState == DIR_READ)
+        {
+            // initialize sd card
+            //error = _dataSource->initializeStorage();
+            _dataSource->init();
+
+            if (_currentState == FILE_SAVE_OPENING)
+            {
+                // open file
+                _dataSource->openFileForWriting(progname);
+                _currentState = IDLE;
+            }
+            else if (_currentState == FILE_READ_OPENING ||
+                     _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
+            {
+                if (!_dataSource->openFileForReading(progname))
+                {
+                    // file not found
+                    filenotfound = 1;
+                }
+                else
+                {
+                    if (_currentState == OPEN_FNAME_READ_DONE)
+                    {
+                        bytes_to_send = _dataSource->getNextFileBlock();
+                    }
+                    else
+                    {
+                        // test
+                        bytes_to_send = _dataSource->getNextFileBlock();
+                    }
+
+                    _fileReadByte = 0;
+                    filenotfound = 0;
+                    _useRemainderByte = 0;
+                    _remainderByte = 0;
+                }
+
+                _currentState = IDLE;
+            }
+        }
+
+        if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
+        {
+            // unlisten or untalk command
+            //PORTC = NOT_NDAC;
+            //unlisten();
+            _ieee->signal_ready_for_data();
+            _ieee->unlisten();
+            _currentState = IDLE;
+            continue;
+        }
+
+        _ieee->signal_ready_for_data();
+
+        // LOAD requested
+        if (_currentState == FILE_READ || _currentState == OPEN_DATA_READ)
+        {
+            // ==== STARTING LOAD SEQUENCE
+
+            // release NRFD/NDAC
+            /*
+            DDRC = NDAC;
+
+            // wait for atn high
+            wait_for_atn_high();
+
+            DDRC = DAV | EOI;
+            PORTC = 0xFF;
+
+            // change data bus to output
+            DATA_CTL = 0xff;
+            DDRB = DDRB | (DATA0 | DATA1);
+
+            wait_for_ndac_low();
+            */
+            _ieee->begin_output();
+
+            if (_currentState == FILE_READ)
+            {
+                // get packet
+                if (progname[0] == '$')
+                {
+                    // reading a directory
+                    _ieee->sendIEEEBytes((unsigned char *)_buffer, 32, 0);
+
+                    // this is a change directory command
+                    if (progname[1] == ':')
+                    {
+                        // change directory command
+                        _dataSource->openDirectory((const char*)&progname[2]);
+                    }
+                    // write directory entries
+                    //ListFilesIEEE(ds, (unsigned char*)_buffer);
+                    listFiles();
+                }
+                else // read from file
+                {
+                    // send blocks of file
+                    done_sending = 0;
+
+                    /*
+                    // test
+                    int currByte = 0;
+                    int sizeBytes = ds->getFileSize();
+
+                    while (doneSending == 0)
+                    {
+                        // get next block of the file being read
+                        if (bytes_to_send == 0)
+                        {
+                            bytes_to_send = _dataSource->getNextFileBlock((unsigned char*)_buffer);
+                        }
+
+                        if (currByte + bytes_to_send >= sizeBytes)
+                        {
+                            done_sending = 1;
+                            bytes_to_send = sizeBytes - currByte;
+                            ds->closeFile();
+                        }
+                        currByte += bytes_to_send;
+
+                        sendIEEEBytes((unsigned char *)_buffer, bytes_to_send, doneSending);
+                        bytes_to_send = 0;
+                    }
+                    */
+                    while (done_sending == 0)
+                    {
+                        bytes_to_send = _dataSource->getNextFileBlock();
+                        if (_dataSource->isLastBlock())
+                        {
+                            done_sending = 1;
+                        }
+
+                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
+                    }
+                }
+            }
+            else if (_currentState == OPEN_DATA_READ)
+            {
+                /*
+                bool done = false;
+                bool found = false;
+                unsigned char temp = 0;
+                unsigned char result = 0;
+
+                while (!done)
+                {
+                    if (stateVars.useRemainderByte == 1)
+                        result = sendIEEEByteCheckForATN(stateVars.remainderByte);
+                    else
+                        result = sendIEEEByteCheckForATN(_buffer[stateVars.fileReadByte]);
+
+                    result = wait_for_ndac_high_or_atn_low();
+
+                    if (result == ATN)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        if (_useRemainderByte == 1)
+                        {
+                            _useRemainderByte = 0;
+                        }
+                        else
+                        {
+                            _remainderByte = _buffer[_fileReadByte];
+                            _fileReadByte++;
+                        }
+
+                        if (_fileReadByte >= 512)
+                        {
+                            // get next buffer block
+                            bytes_to_send = ds->getNextFileBlock((unsigned char*)_buffer);
+                            _fileReadByte = 0;
+                        }
+
+                        // raise DAV
+                        temp = DAV | EOI;
+                        // output to bus
+                        PORTC = temp;
+
+                        result = wait_for_ndac_low_or_atn_low();
+
+                        if (result == ATN)
+                        {
+                            if (stateVars.fileReadByte == 0)
+                            {
+                                stateVars.useRemainderByte = 1;
+                            }
+                            else
+                            {
+                                stateVars.fileReadByte--;
+                            }
+
+                            done = true;
+                        }
+                    }
+                }
+                */
+            }
+
+            // ==== ENDING LOAD SEQUENCE
+            _ieee->end_output();
+            _currentState = IDLE;
+
+        }
+        else if (_currentState == FILE_SAVE)
+        {
+            // save command
+            // todo: fix this
+            writeFile();
+            _ieee->unlisten();
+            _currentState = IDLE;
+        }
+    }
+}
+
+void PETdisk::run2()
 {
     // main loop
     while(1) 
     {
+        if (_currentState == FILE_NOT_FOUND)
+        {
+            _ieee->unlisten();
+            _currentState = IDLE;
+            filenotfound = 0;
+        }
+
         if (IEEE_CTL == 0x00) // unlistened
         {
             // not currently listening on the bus.
             // waiting for a valid device address
 
-            dataSource = 0;
-            while (dataSource == 0)
+            _dataSource = 0;
+            while (_dataSource == 0)
             {
                 ieee_address = _ieee->get_device_address(&buscmd);
-                dataSource = getDataSource(ieee_address);
+                _dataSource = getDataSource(ieee_address);
 
-                if (dataSource == 0)
+                if (_dataSource == 0)
                 {
                     _ieee->reject_address();
                     continue;
@@ -839,6 +1318,8 @@ void PETdisk::run()
             }
             else if (rdchar == PET_READ_CMD_ADDR)
             {
+
+
                 if (progname[0] == '$')
                 {
                     // copy the directory header
@@ -866,7 +1347,7 @@ void PETdisk::run()
                         getting_filename = 0;
                         filename_position = 0;
 
-                        if (!dataSource->isInitialized())
+                        if (!_dataSource->isInitialized())
                         {
                             filenotfound = 1;
                         }
@@ -899,7 +1380,7 @@ void PETdisk::run()
 
         if (init_datasource == false)
         {
-            dataSource->init();
+            _dataSource->init();
             init_datasource = true;
         }
 
@@ -907,11 +1388,12 @@ void PETdisk::run()
         {
             if (savefile == 1)
             {
-                dataSource->openFileForWriting(progname);
+                _dataSource->openFileForWriting(progname);
             }
             else
             {
-                if (!dataSource->isInitialized() || !dataSource->openFileForReading(progname))
+                // file read, either LOAD or OPEN command
+                if (!_dataSource->isInitialized() || !_dataSource->openFileForReading(progname))
                 {
                     _logger->log("not found\r\n");
                     filenotfound = 1;
@@ -951,10 +1433,10 @@ void PETdisk::run()
                     if (progname[1] == ':')
                     {
                         // change directory command
-                        dataSource->openDirectory((const char*)&progname[2]);
+                        _dataSource->openDirectory((const char*)&progname[2]);
                     }
 
-                    listFiles(_ieee, dataSource, _logger);
+                    listFiles();
                 }
                 else // read from file
                 {
@@ -963,14 +1445,14 @@ void PETdisk::run()
                     done_sending = 0;
                     while (done_sending == 0)
                     {
-                        bytes_to_send = dataSource->getNextFileBlock();
-                        if (dataSource->isLastBlock())
+                        bytes_to_send = _dataSource->getNextFileBlock();
+                        if (_dataSource->isLastBlock())
                         {
                             //logSerial.transmitString("last block\r\n");
                             done_sending = 1;
                         }
 
-                        _ieee->sendIEEEBytes(dataSource->getBuffer(), bytes_to_send, done_sending);
+                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
                     }
                 }
                 _ieee->end_output();
@@ -981,7 +1463,7 @@ void PETdisk::run()
         {
             // write file
             // about to write file
-            writeFile(_ieee, dataSource);
+            writeFile();
             _ieee->unlisten();
         }
     }

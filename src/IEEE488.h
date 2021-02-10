@@ -52,10 +52,11 @@
 #define DATA0   0x01
 #define DATA1   0x02
 
-//#define DATALO  0x03
+#define TALK        0x40
+#define LISTEN      0x20
 
-#define TALK    0x40
-#define LISTEN  0x20
+#define UNTALK      0x5F
+#define UNLISTEN    0x3F
 
 class IEEE488 {
 public:
