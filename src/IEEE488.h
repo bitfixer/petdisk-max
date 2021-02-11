@@ -80,6 +80,11 @@ public:
     bool eoi_is_low();
     void signal_ready_for_data();
 
+    void raise_dav_and_eoi();
+    unsigned char wait_for_ndac_low_or_atn_low();
+    unsigned char wait_for_ndac_high_or_atn_low();
+    unsigned char wait_for_nrfd_high_or_atn_low();
+
     unsigned char get_device_address(unsigned char* dir);
     void accept_address();
     void reject_address();

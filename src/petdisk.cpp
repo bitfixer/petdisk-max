@@ -266,11 +266,7 @@ private:
     unsigned char* progname;
     int filename_position;
     int filenotfound;
-    unsigned char getting_filename;
-    unsigned char savefile;
-    unsigned char gotname;
     unsigned char done_sending;
-    bool init_datasource;
     int bytes_to_send;
     pdstate _currentState;
     unsigned char _openFileAddress;
@@ -307,11 +303,7 @@ void PETdisk::init(
     progname = (unsigned char*)&_buffer[1024-64];
     filename_position = 0;
     filenotfound = 0;
-    getting_filename = 0;
-    savefile = 0;
-    gotname = 0;
     done_sending = 0;
-    init_datasource = false;
     bytes_to_send = 0;
     _currentState = IDLE;
     _openFileAddress = 0;
@@ -824,7 +816,7 @@ void PETdisk::run()
     // start main loop
     while(1)
     {
-        if (_currentState == FILE_NOT_FOUND)
+        if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
         {
             _ieee->unlisten();
             _currentState = IDLE;
@@ -941,11 +933,13 @@ void PETdisk::run()
                 _fileWriteByte = -1;
                 _fileDirection = FNONE;
                 _currentState = CLOSING;
+                //_currentState = IDLE;
             }
         }
         else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
         {
-            _buffer[_fileWriteByte++] = rdchar;
+            unsigned char* dataBuffer = _dataSource->getBuffer();
+            dataBuffer[_fileWriteByte++] = rdchar;
             if (_fileWriteByte >= 512)
             {
                 _dataSource->writeBufferToFile(_fileWriteByte);
@@ -1013,7 +1007,7 @@ void PETdisk::run()
             _currentState == OPEN_FNAME_READ_DONE ||
             _currentState == DIR_READ)
         {
-            // initialize sd card
+            // initialize datasource
             _dataSource->init();
 
             if (_currentState == FILE_SAVE_OPENING)
@@ -1127,20 +1121,24 @@ void PETdisk::run()
             }
             else if (_currentState == OPEN_DATA_READ)
             {
-                /*
                 bool done = false;
                 bool found = false;
                 unsigned char temp = 0;
                 unsigned char result = 0;
+                unsigned char* dataBuffer = _dataSource->getBuffer();
 
                 while (!done)
                 {
-                    if (stateVars.useRemainderByte == 1)
-                        result = sendIEEEByteCheckForATN(stateVars.remainderByte);
+                    if (_useRemainderByte == 1)
+                    {
+                        result = _ieee->sendIEEEByteCheckForATN(_remainderByte);
+                    }
                     else
-                        result = sendIEEEByteCheckForATN(_buffer[stateVars.fileReadByte]);
+                    {
+                        result = _ieee->sendIEEEByteCheckForATN(dataBuffer[_fileReadByte]);
+                    }
 
-                    result = wait_for_ndac_high_or_atn_low();
+                    result = _ieee->wait_for_ndac_high_or_atn_low();
 
                     if (result == ATN)
                     {
@@ -1154,40 +1152,40 @@ void PETdisk::run()
                         }
                         else
                         {
-                            _remainderByte = _buffer[_fileReadByte];
+                            _remainderByte = dataBuffer[_fileReadByte];
                             _fileReadByte++;
                         }
 
                         if (_fileReadByte >= 512)
                         {
                             // get next buffer block
-                            bytes_to_send = ds->getNextFileBlock((unsigned char*)_buffer);
+                            bytes_to_send = _dataSource->getNextFileBlock();
                             _fileReadByte = 0;
                         }
 
                         // raise DAV
-                        temp = DAV | EOI;
+                        //temp = DAV | EOI;
                         // output to bus
-                        PORTC = temp;
+                        //PORTC = temp;
+                        _ieee->raise_dav_and_eoi();
 
-                        result = wait_for_ndac_low_or_atn_low();
+                        result = _ieee->wait_for_ndac_low_or_atn_low();
 
                         if (result == ATN)
                         {
-                            if (stateVars.fileReadByte == 0)
+                            if (_fileReadByte == 0)
                             {
-                                stateVars.useRemainderByte = 1;
+                                _useRemainderByte = 1;
                             }
                             else
                             {
-                                stateVars.fileReadByte--;
+                                _fileReadByte--;
                             }
 
                             done = true;
                         }
                     }
                 }
-                */
             }
 
             // ==== ENDING LOAD SEQUENCE
