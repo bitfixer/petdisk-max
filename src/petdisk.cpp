@@ -892,8 +892,6 @@ void PETdisk::run()
                     {
                         if (_fileWriteByte == -1)
                         {
-                            //transmitString_F(_saving);
-                            _logger->log("saving\r\n");
                             _dataSource->openFileForWriting(progname);
                             _fileWriteByte = 0;
                         }
@@ -1076,32 +1074,6 @@ void PETdisk::run()
                 {
                     // send blocks of file
                     done_sending = 0;
-
-                    /*
-                    // test
-                    int currByte = 0;
-                    int sizeBytes = ds->getFileSize();
-
-                    while (doneSending == 0)
-                    {
-                        // get next block of the file being read
-                        if (bytes_to_send == 0)
-                        {
-                            bytes_to_send = _dataSource->getNextFileBlock((unsigned char*)_buffer);
-                        }
-
-                        if (currByte + bytes_to_send >= sizeBytes)
-                        {
-                            done_sending = 1;
-                            bytes_to_send = sizeBytes - currByte;
-                            ds->closeFile();
-                        }
-                        currByte += bytes_to_send;
-
-                        sendIEEEBytes((unsigned char *)_buffer, bytes_to_send, doneSending);
-                        bytes_to_send = 0;
-                    }
-                    */
                     while (done_sending == 0)
                     {
                         if (bytes_to_send == 0)
@@ -1138,6 +1110,9 @@ void PETdisk::run()
                         result = _ieee->sendIEEEByteCheckForATN(dataBuffer[_fileReadByte]);
                     }
 
+                    // NOTE: seems to not read properly from file
+                    // need to fix the sending part here
+
                     result = _ieee->wait_for_ndac_high_or_atn_low();
 
                     if (result == ATN)
@@ -1163,10 +1138,6 @@ void PETdisk::run()
                             _fileReadByte = 0;
                         }
 
-                        // raise DAV
-                        //temp = DAV | EOI;
-                        // output to bus
-                        //PORTC = temp;
                         _ieee->raise_dav_and_eoi();
 
                         result = _ieee->wait_for_ndac_low_or_atn_low();
@@ -1196,7 +1167,6 @@ void PETdisk::run()
         else if (_currentState == FILE_SAVE)
         {
             // save command
-            // todo: fix this
             writeFile();
             _ieee->unlisten();
             _currentState = IDLE;
