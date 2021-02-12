@@ -94,6 +94,9 @@ private:
 
     void lower_nrfd();
     void raise_nrfd();
+    void lower_dav();
+    void raise_dav();
+
     void wait_for_atn_high();
     void wait_for_dav_low();
     void wait_for_dav_high();

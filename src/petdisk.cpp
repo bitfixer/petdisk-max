@@ -1110,9 +1110,6 @@ void PETdisk::run()
                         result = _ieee->sendIEEEByteCheckForATN(dataBuffer[_fileReadByte]);
                     }
 
-                    // NOTE: seems to not read properly from file
-                    // need to fix the sending part here
-
                     result = _ieee->wait_for_ndac_high_or_atn_low();
 
                     if (result == ATN)

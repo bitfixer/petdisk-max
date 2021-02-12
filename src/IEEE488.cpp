@@ -207,8 +207,9 @@ void IEEE488::send_byte(unsigned char byte, int last)
     if (last == 0)
     {
         //lower DAV
-        temp = DAV_MASK;
-        IEEE_PORT = ~temp;
+        //temp = DAV_MASK;
+        //IEEE_PORT = ~temp;
+        lower_dav();
     }
     else 
     {
@@ -220,7 +221,7 @@ void IEEE488::send_byte(unsigned char byte, int last)
     // wait for NDAC high
     wait_for_ndac_high();
     
-    // raise DAV
+    // raise DAV and EOI
     temp = DAV_MASK | EOI_MASK;
     // output to bus
     IEEE_PORT = temp;
@@ -387,11 +388,21 @@ unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
         return result;
     }
 
-    // lower DAV
-    temp = DAV_MASK;
-    // output to bus
-    IEEE_PORT = ~temp;
-    return 0;
+    lower_dav();
+}
+
+void IEEE488::lower_dav()
+{
+    unsigned char temp = IEEE_PORT;
+    temp &= ~DAV_MASK;
+    IEEE_PORT = temp;
+}
+
+void IEEE488::raise_dav()
+{
+    unsigned char temp = IEEE_PORT;
+    temp |= DAV_MASK;
+    IEEE_PORT = temp;
 }
 
 void IEEE488::sendIEEEBytes(unsigned char *entry, int size, unsigned char isLast)
