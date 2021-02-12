@@ -196,25 +196,6 @@ void IEEE488::recv_byte(unsigned char *byte)
 void IEEE488::send_byte(unsigned char byte, int last)
 {
     unsigned char temp, temp2;
-    //unsigned char temp,temp2;
-    //unsigned char lo,hi;
-    // invert the byte
-    //temp = ~byte;
-
-    /*
-    lo = temp & DATALO;
-    hi = temp & ~DATALO;
-    
-    
-    // output the byte
-    //PORTA = temp;
-    DATA_PORT = hi;
-    temp = PORTB;
-    temp = temp & ~DATALO;
-    temp = temp | lo;
-    PORTB = temp;
-    */
-
     // put the byte on the data lines
     DATA_PORT = ~byte;
     
@@ -225,9 +206,6 @@ void IEEE488::send_byte(unsigned char byte, int last)
     
     if (last == 0)
     {
-        //temp = DAV;
-        //PORTC = ~temp;
-
         //lower DAV
         temp = DAV_MASK;
         IEEE_PORT = ~temp;
@@ -409,10 +387,10 @@ unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
         return result;
     }
 
-    // raise DAV
+    // lower DAV
     temp = DAV_MASK;
     // output to bus
-    IEEE_PORT = temp;
+    IEEE_PORT = ~temp;
     return 0;
 }
 
