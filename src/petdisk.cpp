@@ -262,10 +262,9 @@ private:
 
     DataSource* _dataSource;
     unsigned char* progname;
-    int filename_position;
-    int filenotfound;
-    unsigned char done_sending;
-    int bytes_to_send;
+    int _filenamePosition;
+    int _fileNotFound;
+    int _bytesToSend;
     pdstate _currentState;
     unsigned char _openFileAddress;
     int _fileWriteByte;
@@ -298,10 +297,9 @@ void PETdisk::init(
     // reset state variables
     _dataSource = 0;
     progname = (unsigned char*)&_buffer[1024-64];
-    filename_position = 0;
-    filenotfound = 0;
-    done_sending = 0;
-    bytes_to_send = 0;
+    _filenamePosition = 0;
+    _fileNotFound = 0;
+    _bytesToSend = 0;
     _currentState = IDLE;
     _openFileAddress = 0;
     _fileWriteByte = 0;
@@ -823,8 +821,8 @@ void PETdisk::run()
         {
             _ieee->unlisten();
             _currentState = IDLE;
-            filenotfound = 0;
-            filename_position = 0;
+            _fileNotFound = 0;
+            _filenamePosition = 0;
             memset(progname, 0, 64);
         }
 
@@ -863,7 +861,7 @@ void PETdisk::run()
             }
             else if (rdchar == PET_READ_CMD_ADDR) // read command
             {
-                if (filenotfound == 1)
+                if (_fileNotFound == 1)
                 {
                     _currentState = FILE_NOT_FOUND;
                 }
@@ -903,7 +901,7 @@ void PETdisk::run()
                     }
                     else
                     {
-                        if (filenotfound == 1)
+                        if (_fileNotFound == 1)
                         {
                             _fileDirection = FNONE;
                             _currentState = FILE_NOT_FOUND;
@@ -951,9 +949,9 @@ void PETdisk::run()
                  _currentState == OPEN_FNAME_READ)
         {
             // add character to filename
-            progname[filename_position] = rdchar;
-            filename_position++;
-            progname[filename_position] = 0;
+            progname[_filenamePosition] = rdchar;
+            _filenamePosition++;
+            progname[_filenamePosition] = 0;
 
             //if ((rdbus & EOI) == 0)
             if (_ieee->eoi_is_low())
@@ -961,13 +959,13 @@ void PETdisk::run()
                 // this is a directory request
                 if (progname[0] == '$')
                 {
-                    filename_position = 0;
+                    _filenamePosition = 0;
                     _currentState = DIR_READ;
                 }
                 else
                 {
                     // process filename, remove drive indicators and file type
-                    filename_position = processFilename(progname, filename_position);
+                    _filenamePosition = processFilename(progname, _filenamePosition);
 
                     const unsigned char *ext;
                     if (_currentState == OPEN_FNAME_READ)
@@ -990,8 +988,8 @@ void PETdisk::run()
                     }
 
                     // copy the PRG file extension onto the end of the file name
-                    pgm_memcpy(&progname[filename_position], (unsigned char*)ext, 5);
-                    filename_position = 0;
+                    pgm_memcpy(&progname[_filenamePosition], (unsigned char*)ext, 5);
+                    _filenamePosition = 0;
                     _logger->log((const char*)progname);
                     _logger->logF(PSTR("\r\n"));
                 }
@@ -1010,7 +1008,7 @@ void PETdisk::run()
             // initialize datasource
             if (!_dataSource->init()) 
             {
-                filenotfound = 1;
+                _fileNotFound = 1;
                 _currentState = IDLE;
             }
 
@@ -1026,14 +1024,14 @@ void PETdisk::run()
                 if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
-                    filenotfound = 1;
+                    _fileNotFound = 1;
                 }
                 else
                 {
-                    bytes_to_send = _dataSource->getNextFileBlock();
+                    _bytesToSend = _dataSource->getNextFileBlock();
 
                     _fileReadByte = 0;
-                    filenotfound = 0;
+                    _fileNotFound = 0;
                     _useRemainderByte = 0;
                     _remainderByte = 0;
                 }
@@ -1079,12 +1077,12 @@ void PETdisk::run()
                 else // read from file
                 {
                     // send blocks of file
-                    done_sending = 0;
+                    unsigned char done_sending = 0;
                     while (done_sending == 0)
                     {
-                        if (bytes_to_send == 0)
+                        if (_bytesToSend == 0)
                         {
-                            bytes_to_send = _dataSource->getNextFileBlock();
+                            _bytesToSend = _dataSource->getNextFileBlock();
                         }
 
                         if (_dataSource->isLastBlock())
@@ -1092,8 +1090,8 @@ void PETdisk::run()
                             done_sending = 1;
                         }
 
-                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), bytes_to_send, done_sending);
-                        bytes_to_send = 0;
+                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending);
+                        _bytesToSend = 0;
                     }
                 }
             }
@@ -1137,7 +1135,7 @@ void PETdisk::run()
                         if (_fileReadByte >= 512)
                         {
                             // get next buffer block
-                            bytes_to_send = _dataSource->getNextFileBlock();
+                            _bytesToSend = _dataSource->getNextFileBlock();
                             _fileReadByte = 0;
                         }
 
