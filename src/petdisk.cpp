@@ -40,6 +40,8 @@
 #define PET_SAVE_CMD_ADDR       0x61
 #define PET_OPEN_IO_ADDR        0x60
 
+#define PET_ADDRESS_MASK        0x0F
+
 const unsigned char _dirHeader[] PROGMEM =
 {
     0x01,
@@ -236,7 +238,6 @@ public:
 
     void init(
         FAT32* fat32, 
-        Serial1* log, 
         uint8_t* buffer, 
         uint16_t* bufferSize, 
         EspConn* espConn, 
@@ -247,8 +248,8 @@ public:
     void setDataSource(unsigned char id, DataSource* dataSource);
     DataSource* getDataSource(unsigned char id);
 
-    bool readConfigFile(FAT32* fat32, Serial1* log, uint8_t* buffer);
-    void printConfig(struct pd_config* pdcfg, Serial1* log);
+    bool readConfigFile(FAT32* fat32, uint8_t* buffer);
+    void printConfig(struct pd_config* pdcfg);
     void run();
 
 private:
@@ -285,7 +286,6 @@ private:
 
 void PETdisk::init(
     FAT32* fat32, 
-    Serial1* log, 
     uint8_t* buffer, 
     uint16_t* bufferSize, 
     EspConn* espConn, 
@@ -314,18 +314,18 @@ void PETdisk::init(
     _remainderByte = 0;
 
     char tmp[32];
-    if (readConfigFile(fat32, log, buffer))
+    if (readConfigFile(fat32, buffer))
     {
-        log->transmitStringF(PSTR("read config file\r\n"));
+        _logger->logF(PSTR("read config file\r\n"));
     }
     else
     {
-        log->transmitStringF(PSTR("no config read\r\n"));
+        _logger->logF(PSTR("no config read\r\n"));
     }
 
     struct pd_config *pdcfg = (struct pd_config*)&buffer[512];
     eeprom_read_block(pdcfg, (void*)0, sizeof(struct pd_config));
-    printConfig(pdcfg, log);
+    printConfig(pdcfg);
 
     // check validity of config
     if (pdcfg->device_type[0] > DEVICE_END)
@@ -333,7 +333,7 @@ void PETdisk::init(
         // config not set
         // use defaults
         setDataSource(8, fat32);
-        log->transmitStringF(PSTR("using default\r\n"));
+        _logger->logF(PSTR("using default\r\n"));
         return;
     }
 
@@ -344,46 +344,51 @@ void PETdisk::init(
 
     if (strlen(pdcfg->wifi_ssid) > 0 && strlen(pdcfg->wifi_password) > 0)
     {
-        log->transmitStringF(PSTR("trying to connect\r\n"));
+        _logger->logF(PSTR("trying to connect\r\n"));
         
         bool device_present = true;
         if (!_espConn->device_present())
         {
-            log->transmitStringF(PSTR("no device!\r\n"));
+            _logger->logF(PSTR("no device!\r\n"));
             _espConn->attempt_baud_rate_setting();
             if (_espConn->device_present())
             {
-                log->transmitStringF(PSTR("device present at 115kbps\r\n"));
+                _logger->logF(PSTR("device present at 115kbps\r\n"));
             }
             else
             {
-                log->transmitStringF(PSTR("no device present.\r\n"));
+                _logger->logF(PSTR("no device present.\r\n"));
                 device_present = false;
             }
         }
         
         if (device_present)
         {
-            log->transmitStringF(PSTR("device present\r\n"));
+            _logger->logF(PSTR("device present\r\n"));
             if (_espConn->init())
             {
                 if (_espConn->connect(pdcfg->wifi_ssid, pdcfg->wifi_password))
                 {
+                    _logger->logF(PSTR("trying to connect\r\n"));
+                    _logger->log(pdcfg->wifi_ssid);
+                    _logger->log("\r\n");
+                    _logger->log(pdcfg->wifi_password);
+                    _logger->log("\r\n");
                     _espConn->setDns();
                     espConnected = true;
-                    log->transmitStringF(PSTR("connected\r\n"));
+                    _logger->logF(PSTR("connected\r\n"));
                     blink_led(2, 150, 150);
                 }
                 else
                 {
-                    log->transmitStringF(PSTR("no connect\r\n"));
+                    _logger->logF(PSTR("no connect\r\n"));
                     blink_led(5, 150, 150);
                 }
             }
             else
             {
                 blink_led(4, 150, 150);
-                log->transmitStringF(PSTR("could not connect\r\n"));
+                _logger->logF(PSTR("could not connect\r\n"));
             }
         }
         else
@@ -397,11 +402,11 @@ void PETdisk::init(
     for (int i = 0; i < 9; i++)
     {
         sprintf_P(tmp, PSTR("i %d dt %d\r\n"), i, pdcfg->device_type[i]);
-        log->transmitString(tmp);
+        _logger->log(tmp);
         if (pdcfg->device_type[i] == DEVICE_SD0)
         {
             setDataSource(i + MIN_DEVICE_ID, fat32);
-            log->transmitStringF(PSTR("SD0\r\n"));
+            _logger->logF(PSTR("SD0\r\n"));
         }
         else if (pdcfg->device_type[i] >= DEVICE_URL_BASE && network_drive_count < 4)
         {
@@ -422,7 +427,7 @@ void PETdisk::init(
                 strlen(pdcfg->urls[url_index]) - url_offset);
 
             sprintf_P(tmp, PSTR("d %d %d %d\r\n"), device_id, eeprom_offset, url_offset);
-            log->transmitString(tmp);
+            _logger->log(tmp);
             
             if (espConnected)
             {
@@ -438,30 +443,30 @@ void PETdisk::init(
     }
 }
 
-void PETdisk::printConfig(struct pd_config* pdcfg, Serial1* log)
+void PETdisk::printConfig(struct pd_config* pdcfg)
 {
     char tmp[16];
     for (int i = 0; i < 9; i++)
     {
         sprintf_P(tmp, PSTR("d %d->%d\r\n"), i, pdcfg->device_type[i]);
-        log->transmitString(tmp);
+        _logger->log(tmp);
     }
 
     for (int i = 0; i < 4; i++)
     {
         sprintf_P(tmp, PSTR("u %d->"), i);
-        log->transmitString(tmp);
-        log->transmitString(pdcfg->urls[i]);
-        log->transmitStringF(PSTR("\r\n"));
+        _logger->log(tmp);
+        _logger->log(pdcfg->urls[i]);
+        _logger->logF(PSTR("\r\n"));
     }
 
-    log->transmitStringF(PSTR("ssid: "));
-    log->transmitString(pdcfg->wifi_ssid);
-    log->transmitStringF(PSTR("\r\n"));
+    _logger->logF(PSTR("ssid: "));
+    _logger->log(pdcfg->wifi_ssid);
+    _logger->logF(PSTR("\r\n"));
 
-    log->transmitStringF(PSTR("ssid: "));
-    log->transmitString(pdcfg->wifi_password);
-    log->transmitStringF(PSTR("\r\n"));
+    _logger->logF(PSTR("ssid: "));
+    _logger->log(pdcfg->wifi_password);
+    _logger->logF(PSTR("\r\n"));
 }
 
 bool PETdisk::configChanged(struct pd_config* pdcfg)
@@ -480,7 +485,7 @@ bool PETdisk::configChanged(struct pd_config* pdcfg)
     return false;
 }
 
-bool PETdisk::readConfigFile(FAT32* fat32, Serial1* log, uint8_t* buffer)
+bool PETdisk::readConfigFile(FAT32* fat32, uint8_t* buffer)
 {
     // check for config file
     char cfg_fname[32];
@@ -536,7 +541,7 @@ bool PETdisk::readConfigFile(FAT32* fat32, Serial1* log, uint8_t* buffer)
         {
             if (id < MIN_DEVICE_ID || id > MAX_DEVICE_ID)
             {
-                log->transmitStringF("invalid field\r\n");
+                _logger->logF("invalid field\r\n");
                 return false;
             }
 
@@ -553,7 +558,7 @@ bool PETdisk::readConfigFile(FAT32* fat32, Serial1* log, uint8_t* buffer)
                 }
                 else
                 {
-                    log->transmitStringF("invalid sd\r\n");
+                    _logger->logF("invalid sd\r\n");
                 }
             }
             else
@@ -578,13 +583,13 @@ bool PETdisk::readConfigFile(FAT32* fat32, Serial1* log, uint8_t* buffer)
     if (configChanged(pdcfg))
     {
         // update eeprom with new config
-        log->transmitStringF(PSTR("config updated\r\n"));
+        _logger->logF(PSTR("config updated\r\n"));
         eeprom_write_block(pdcfg, (void*)0, sizeof(struct pd_config));
         blink_led(3, 150, 150);
     }
     else
     {
-        log->transmitStringF(PSTR("config not updated\r\n"));
+        _logger->logF(PSTR("config not updated\r\n"));
         blink_led(4, 150, 150);
     }
 
@@ -852,10 +857,10 @@ void PETdisk::run()
             {
                 _currentState = SAVE_FNAME_READ;
             }
-            else if ((rdchar & 0xF0) == PET_OPEN_FNAME_MASK) // open command to another address
+            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
             {
                 _currentState = OPEN_FNAME_READ;
-                _openFileAddress = (rdchar & 0x0F);
+                _openFileAddress = (rdchar & PET_ADDRESS_MASK);
                 _fileWriteByte = -1;
             }
             else if (rdchar == PET_READ_CMD_ADDR) // read command
@@ -883,9 +888,9 @@ void PETdisk::run()
             {
                 _currentState = FILE_SAVE;
             }
-            else if ((rdchar & 0xF0) == PET_OPEN_IO_ADDR) // print or input command
+            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_IO_ADDR) // print or input command
             {
-                unsigned char temp = rdchar & 0x0F;
+                unsigned char temp = rdchar & PET_ADDRESS_MASK;
                 if (temp == _openFileAddress)
                 {
                     if (_currentState == BUS_LISTEN)
@@ -913,9 +918,9 @@ void PETdisk::run()
                     }
                 }
             }
-            else if ((rdchar & 0xF0) == 0xE0)
+            else if ((rdchar & PET_OPEN_FNAME_MASK) == 0xE0)
             {
-                unsigned char temp = rdchar & 0x0F;
+                unsigned char temp = rdchar & PET_ADDRESS_MASK;
                 if (temp == _openFileAddress && _fileDirection == FWRITE)
                 {
                     if (_fileWriteByte > 0)
@@ -931,7 +936,6 @@ void PETdisk::run()
                 _fileWriteByte = -1;
                 _fileDirection = FNONE;
                 _currentState = CLOSING;
-                //_currentState = IDLE;
             }
         }
         else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
@@ -990,8 +994,8 @@ void PETdisk::run()
                     // copy the PRG file extension onto the end of the file name
                     pgm_memcpy(&progname[filename_position], (unsigned char*)ext, 5);
                     filename_position = 0;
-                    //transmitString(progname);
                     _logger->log((const char*)progname);
+                    _logger->logF(PSTR("\r\n"));
                 }
             }
         }
@@ -1006,7 +1010,11 @@ void PETdisk::run()
             _currentState == DIR_READ)
         {
             // initialize datasource
-            _dataSource->init();
+            if (!_dataSource->init()) 
+            {
+                filenotfound = 1;
+                _currentState = IDLE;
+            }
 
             if (_currentState == FILE_SAVE_OPENING)
             {
@@ -1244,8 +1252,7 @@ int main(void)
 
     PETdisk petdisk;
     petdisk.init(
-        &fat32, 
-        &logSerial, 
+        &fat32,
         _buffer, 
         &_bufferSize, 
         &espConn, 
