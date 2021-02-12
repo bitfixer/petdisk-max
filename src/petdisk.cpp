@@ -261,9 +261,6 @@ private:
     SerialLogger* _logger;
 
     DataSource* _dataSource;
-    unsigned char buscmd;
-    unsigned char ieee_address;
-    unsigned char rdchar;
     unsigned char* progname;
     int filename_position;
     int filenotfound;
@@ -799,6 +796,7 @@ void PETdisk::listFiles()
 unsigned char PETdisk::wait_for_device_address()
 {
     unsigned char ieee_address;
+    unsigned char buscmd;
     _dataSource = 0;
     while (_dataSource == 0)
     {
@@ -834,7 +832,7 @@ void PETdisk::run()
         {
             // if we are in an unlisten state,
             // wait for my address
-            buscmd = wait_for_device_address();
+            unsigned char buscmd = wait_for_device_address();
             if (buscmd == LISTEN)
             {
                 _currentState = BUS_LISTEN;
@@ -845,7 +843,7 @@ void PETdisk::run()
             }
         }
 
-        rdchar = _ieee->get_byte_from_bus();
+        unsigned char rdchar = _ieee->get_byte_from_bus();
 
         if (_ieee->atn_is_low()) // check for bus command
         {
