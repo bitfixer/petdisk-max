@@ -845,6 +845,10 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
+            //char tmp[8];
+            //sprintf(tmp, "R %X\r\n", rdchar);
+            //_logger->log(tmp);
+
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -1116,12 +1120,13 @@ void PETdisk::run()
 
                     result = _ieee->wait_for_ndac_high_or_atn_low();
 
-                    if (result == ATN)
+                    if (result == ATN_MASK)
                     {
                         done = true;
                     }
                     else
                     {
+                        bytes_sent++;
                         if (_useRemainderByte == 1)
                         {
                             _useRemainderByte = 0;
@@ -1142,8 +1147,8 @@ void PETdisk::run()
                         _ieee->raise_dav_and_eoi();
 
                         result = _ieee->wait_for_ndac_low_or_atn_low();
-
-                        if (result == ATN)
+                        
+                        if (result == ATN_MASK)
                         {
                             if (_fileReadByte == 0)
                             {
@@ -1216,7 +1221,7 @@ int main(void)
     logger.init();
 
     SD sd(&spi, SPI_CS);
-    FAT32 fat32(&sd, _buffer, &_buffer[512], &logSerial);
+    FAT32 fat32(&sd, _buffer, &_buffer[512], &logger);
 
     checkForFirmware((char*)&_buffer[769], &fat32, &logSerial);
 
