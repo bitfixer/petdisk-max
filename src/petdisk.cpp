@@ -1126,7 +1126,6 @@ void PETdisk::run()
                     }
                     else
                     {
-                        bytes_sent++;
                         if (_useRemainderByte == 1)
                         {
                             _useRemainderByte = 0;
