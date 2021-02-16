@@ -96,15 +96,15 @@ progenable:
 	gpio mode 12 alt0
 	gpio mode 13 alt0
 	gpio mode 14 alt0
-	gpio mode 6 in
+	gpio mode $(RESET_PIN) in
 
 progdisable:
 	gpio mode 12 in
 	gpio mode 13 in
 	gpio mode 14 in
-	gpio mode 6 out
-	gpio write 6 0
-	gpio write 6 1
+	gpio mode $(RESET_PIN) out
+	gpio write $(RESET_PIN) 0
+	gpio write $(RESET_PIN) 1
 
 clean:
 	rm -f *.hex *.elf *.o *.bin

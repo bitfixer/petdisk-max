@@ -226,9 +226,8 @@ typedef enum _filedir
 typedef struct _openFileInfo
 {
     char _fileName[64];
-    int _fileWriteByte;
     filedir _fileDirection;
-    int _fileReadByte;
+    int _fileBufferIndex;
     bool _useRemainderByte;
     int _byteIndex;
     unsigned char _remainderByte;
@@ -845,9 +844,8 @@ void PETdisk::resetFileInformation(unsigned char address)
     openFileInfo* fileInfo = getFileInfoForAddress(address);
     
     memset(fileInfo->_fileName, 0, 64);
-    fileInfo->_fileWriteByte = 0;
     fileInfo->_fileDirection = FNONE;
-    fileInfo->_fileReadByte = 0;
+    fileInfo->_fileBufferIndex = 0;
     fileInfo->_useRemainderByte = false;
     fileInfo->_remainderByte = 0;
     fileInfo->_byteIndex = 0;
@@ -898,14 +896,11 @@ void PETdisk::run()
             }
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
             {
-                //unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char addressIndex = address - 8;
                 _currentState = OPEN_FNAME_READ;
                 _secondaryAddress = rdchar & PET_ADDRESS_MASK;
-                //openFileInfo* of = &_openFileInformation[addressIndex];
-
+                
                 openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                of->_fileWriteByte = -1;
+                of->_fileBufferIndex = -1;
                 of->_opened = true;
             }
             else if (rdchar == PET_READ_CMD_ADDR) // read command
@@ -936,19 +931,17 @@ void PETdisk::run()
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_IO_ADDR) // print or input command
             {
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char addressIndex = address - 8;
-
-                //openFileInfo* of = &_openFileInformation[addressIndex];
+                
                 openFileInfo* of = getFileInfoForAddress(address);
                 if (of->_opened == true)
                 {
                     if (_currentState == BUS_LISTEN)
                     {
-                        if (of->_fileWriteByte == -1)
+                        if (of->_fileBufferIndex == -1)
                         {
                             _dataSource->openFileForWriting(progname);
                             strcpy(of->_fileName, (char*)progname);
-                            of->_fileWriteByte = 0;
+                            of->_fileBufferIndex = 0;
                         }
                         of->_fileDirection = FWRITE;
                         _currentState = OPEN_DATA_WRITE;
@@ -976,45 +969,23 @@ void PETdisk::run()
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_CLOSE_FILE)
             {
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
-                /*
-                if (temp == _openFileAddress && _fileDirection == FWRITE)
+                openFileInfo* of = getFileInfoForAddress(address);
+                if (of != NULL)
                 {
-                    if (_fileWriteByte > 0)
-                    {
-                        _dataSource->writeBufferToFile(_fileWriteByte);
-                        _fileWriteByte = 0;
-                    }
-
-                    _dataSource->closeFile();
-                }
-
-                _openFileAddress = -1;
-                _fileWriteByte = -1;
-                _fileDirection = FNONE;
-                _currentState = CLOSING;
-
-                _logger->log(".\r\n");
-                */
-
-                if (address >= 8 && address < 16) {
-                    //unsigned char addressIndex = address - 8;
-                    // file opened for write, close the file
-                    //openFileInfo* of = &_openFileInformation[addressIndex];
-                    openFileInfo* of = getFileInfoForAddress(address);
                     if (of->_fileDirection == FWRITE)
                     {
-                        if (of->_fileWriteByte > 0)
+                        if (of->_fileBufferIndex > 0)
                         {
-                            _dataSource->writeBufferToFile(of->_fileWriteByte);
-                            of->_fileWriteByte = 0;
+                            _dataSource->writeBufferToFile(of->_fileBufferIndex);
+                            of->_fileBufferIndex = 0;
                         }
 
                         _dataSource->closeFile();
                     }
 
                     resetFileInformation(address);
-                    _currentState = CLOSING;
                 }
+                _currentState = CLOSING;
             }
         }
         else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
@@ -1025,11 +996,11 @@ void PETdisk::run()
 
             openFileInfo* of = &_openFileInformation[addressIndex];
 
-            dataBuffer[of->_fileWriteByte++] = rdchar;
-            if (of->_fileWriteByte >= 512)
+            dataBuffer[of->_fileBufferIndex++] = rdchar;
+            if (of->_fileBufferIndex >= 512)
             {
-                _dataSource->writeBufferToFile(of->_fileWriteByte);
-                of->_fileWriteByte = 0;
+                _dataSource->writeBufferToFile(of->_fileBufferIndex);
+                of->_fileBufferIndex = 0;
             }
         }
         else if (_currentState == LOAD_FNAME_READ ||
@@ -1109,9 +1080,6 @@ void PETdisk::run()
             else if (_currentState == FILE_READ_OPENING ||
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
-                //unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char address = _secondaryAddress;
-                //unsigned char addressIndex = address-8;
                 if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
@@ -1129,7 +1097,7 @@ void PETdisk::run()
                         strcpy(of->_fileName, (const char*)progname);
 
                         _fileNotFound = 0;
-                        of->_fileReadByte = 0;
+                        of->_fileBufferIndex = 0;
                         of->_useRemainderByte = false;
                         of->_remainderByte = 0;
                         of->_nextByte = _dataSource->getBuffer()[0];
@@ -1205,8 +1173,6 @@ void PETdisk::run()
                 unsigned char* dataBuffer = _dataSource->getBuffer();
 
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char addressIndex = address - 8;
-                //openFileInfo* of = &_openFileInformation[addressIndex];
                 openFileInfo* of = getFileInfoForAddress(address);
 
                 while (!done)
@@ -1234,8 +1200,8 @@ void PETdisk::run()
                         }
                         else
                         {
-                            of->_remainderByte = dataBuffer[of->_fileReadByte];
-                            of->_fileReadByte++;
+                            of->_remainderByte = dataBuffer[of->_fileBufferIndex];
+                            of->_fileBufferIndex++;
                             of->_byteIndex++;
                         }
 
@@ -1252,11 +1218,11 @@ void PETdisk::run()
                             _bufferFileIndex = address;
                         }
 
-                        if (of->_fileReadByte >= 512)
+                        if (of->_fileBufferIndex >= 512)
                         {
                             // get next buffer block
                             _bytesToSend = _dataSource->getNextFileBlock();
-                            of->_fileReadByte = 0;
+                            of->_fileBufferIndex = 0;
                         }
 
                         _ieee->raise_dav_and_eoi();
@@ -1265,19 +1231,19 @@ void PETdisk::run()
                         
                         if (result == ATN_MASK)
                         {
-                            if (of->_fileReadByte == 0)
+                            if (of->_fileBufferIndex == 0)
                             {
                                 of->_useRemainderByte = true;
                             }
                             else
                             {
-                                of->_fileReadByte--;
+                                of->_fileBufferIndex--;
                             }
 
                             done = true;
                         }
 
-                        of->_nextByte = dataBuffer[of->_fileReadByte];
+                        of->_nextByte = dataBuffer[of->_fileBufferIndex];
                     }
                 }
             }
