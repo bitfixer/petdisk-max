@@ -232,6 +232,7 @@ typedef struct _openFileInfo
     int _fileReadByte;
     int _useRemainderByte;
     unsigned char _remainderByte;
+    unsigned char _nextByte;
     bool _opened;
 } openFileInfo;
 
@@ -845,6 +846,7 @@ void PETdisk::resetFileInformation(unsigned char index)
     fileInfo->_fileReadByte = 0;
     fileInfo->_useRemainderByte = 0;
     fileInfo->_remainderByte = 0;
+    fileInfo->_nextByte = 0;
     fileInfo->_opened = false;
 }
 
@@ -1160,6 +1162,7 @@ void PETdisk::run()
                     _fileNotFound = 0;
                     of->_useRemainderByte = 0;
                     of->_remainderByte = 0;
+                    of->_nextByte = _dataSource->getBuffer()[0];
 
                     /*
                     _fileReadByte = 0;
@@ -1248,7 +1251,8 @@ void PETdisk::run()
                     }
                     else
                     {
-                        result = _ieee->sendIEEEByteCheckForATN(dataBuffer[of->_fileReadByte]);
+                        //result = _ieee->sendIEEEByteCheckForATN(dataBuffer[of->_fileReadByte]);
+                        result = _ieee->sendIEEEByteCheckForATN(of->_nextByte);
                     }
 
                     result = _ieee->wait_for_ndac_high_or_atn_low();
@@ -1293,6 +1297,8 @@ void PETdisk::run()
 
                             done = true;
                         }
+
+                        of->_nextByte = dataBuffer[of->_fileReadByte];
                     }
                 }
             }
