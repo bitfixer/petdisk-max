@@ -888,10 +888,6 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
-            char tmp[8];
-            sprintf(tmp, "R %X\r\n", rdchar);
-            _logger->log(tmp);
-
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -967,9 +963,6 @@ void PETdisk::run()
                         }
                         else
                         {
-                            char tmp[8];
-                            sprintf(tmp, "b %d\r\n", of->_fileReadByte);
-                            _logger->log(tmp);
                             of->_fileDirection = FREAD;
                             _currentState = OPEN_DATA_READ;
                         }
@@ -1003,7 +996,7 @@ void PETdisk::run()
                 _logger->log(".\r\n");
                 */
 
-                if (address >= 8 && address <= 16) {
+                if (address >= 8 && address < 16) {
                     //unsigned char addressIndex = address - 8;
                     // file opened for write, close the file
                     //openFileInfo* of = &_openFileInformation[addressIndex];
