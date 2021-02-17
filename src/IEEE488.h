@@ -52,10 +52,11 @@
 #define DATA0   0x01
 #define DATA1   0x02
 
-//#define DATALO  0x03
+#define TALK        0x40
+#define LISTEN      0x20
 
-#define TALK    0x40
-#define LISTEN  0x20
+#define UNTALK      0x5F
+#define UNLISTEN    0x3F
 
 class IEEE488 {
 public:
@@ -67,6 +68,7 @@ public:
     ~IEEE488() {}
 
     void sendIEEEBytes(unsigned char *entry, int size, unsigned char isLast);
+    unsigned char sendIEEEByteCheckForATN(unsigned char byte);
     unsigned char wait_for_device_address(unsigned char my_address);
     void unlisten();
     void begin_output();
@@ -78,6 +80,11 @@ public:
     bool eoi_is_low();
     void signal_ready_for_data();
 
+    void raise_dav_and_eoi();
+    unsigned char wait_for_ndac_low_or_atn_low();
+    unsigned char wait_for_ndac_high_or_atn_low();
+    unsigned char wait_for_nrfd_high_or_atn_low();
+
     unsigned char get_device_address(unsigned char* dir);
     void accept_address();
     void reject_address();
@@ -87,6 +94,9 @@ private:
 
     void lower_nrfd();
     void raise_nrfd();
+    void lower_dav();
+    void raise_dav();
+
     void wait_for_atn_high();
     void wait_for_dav_low();
     void wait_for_dav_high();

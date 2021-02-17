@@ -111,6 +111,57 @@ void IEEE488::wait_for_ndac_low()
     }
 }
 
+unsigned char IEEE488::wait_for_ndac_low_or_atn_low()
+{
+    unsigned char rdchar;
+    while (1)
+    {
+        rdchar = IEEE_PIN;
+        if ((rdchar & ATN_MASK) == 0x00)
+        {
+            return ATN_MASK;
+        }
+        else if ((rdchar & NDAC_MASK) == 0x00)
+        {
+            return NDAC_MASK;
+        }
+    }
+}
+
+unsigned char IEEE488::wait_for_ndac_high_or_atn_low()
+{
+    unsigned char rdchar;
+    while (1)
+    {
+        rdchar = IEEE_PIN;
+        if ((rdchar & ATN_MASK) == 0x00)
+        {
+            return ATN_MASK;
+        }
+        else if ((rdchar & NDAC_MASK) != 0x00)
+        {
+            return NDAC_MASK;
+        }
+    }
+}
+
+unsigned char IEEE488::wait_for_nrfd_high_or_atn_low()
+{
+    unsigned char rdchar;
+    while (1)
+    {
+        rdchar = IEEE_PIN;
+        if ((rdchar & ATN_MASK) == 0x00)
+        {
+            return ATN_MASK;
+        }
+        else if ((rdchar & NRFD_MASK) != 0x00)
+        {
+            return NRFD_MASK;
+        }
+    }
+}
+
 void IEEE488::lower_nrfd()
 {
     IEEE_PORT = IEEE_PORT & NOT_NRFD_MASK;
@@ -145,25 +196,6 @@ void IEEE488::recv_byte(unsigned char *byte)
 void IEEE488::send_byte(unsigned char byte, int last)
 {
     unsigned char temp, temp2;
-    //unsigned char temp,temp2;
-    //unsigned char lo,hi;
-    // invert the byte
-    //temp = ~byte;
-
-    /*
-    lo = temp & DATALO;
-    hi = temp & ~DATALO;
-    
-    
-    // output the byte
-    //PORTA = temp;
-    DATA_PORT = hi;
-    temp = PORTB;
-    temp = temp & ~DATALO;
-    temp = temp | lo;
-    PORTB = temp;
-    */
-
     // put the byte on the data lines
     DATA_PORT = ~byte;
     
@@ -174,12 +206,10 @@ void IEEE488::send_byte(unsigned char byte, int last)
     
     if (last == 0)
     {
-        //temp = DAV;
-        //PORTC = ~temp;
-
         //lower DAV
-        temp = DAV_MASK;
-        IEEE_PORT = ~temp;
+        //temp = DAV_MASK;
+        //IEEE_PORT = ~temp;
+        lower_dav();
     }
     else 
     {
@@ -191,11 +221,16 @@ void IEEE488::send_byte(unsigned char byte, int last)
     // wait for NDAC high
     wait_for_ndac_high();
     
-    // raise DAV
+    // raise DAV and EOI
     temp = DAV_MASK | EOI_MASK;
     // output to bus
     IEEE_PORT = temp;
     
+}
+
+void IEEE488::raise_dav_and_eoi()
+{
+    IEEE_PORT = DAV_MASK | EOI_MASK;
 }
 
 void IEEE488::unlisten()
@@ -331,6 +366,43 @@ void IEEE488::end_output()
     set_data_input();
     lower_ndac();
     unlisten();
+}
+
+unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
+{
+    unsigned char temp, temp2;
+    unsigned char result = 0;
+    // put the byte on the data lines
+    DATA_PORT = ~byte;
+    
+    result = wait_for_ndac_low_or_atn_low();
+    if (result == ATN_MASK)
+    {
+        return result;
+    }
+
+    // wait for NRFD high
+    result = wait_for_nrfd_high_or_atn_low();
+    if (result == ATN_MASK)
+    {
+        return result;
+    }
+
+    lower_dav();
+}
+
+void IEEE488::lower_dav()
+{
+    unsigned char temp = IEEE_PORT;
+    temp &= ~DAV_MASK;
+    IEEE_PORT = temp;
+}
+
+void IEEE488::raise_dav()
+{
+    unsigned char temp = IEEE_PORT;
+    temp |= DAV_MASK;
+    IEEE_PORT = temp;
 }
 
 void IEEE488::sendIEEEBytes(unsigned char *entry, int size, unsigned char isLast)

@@ -83,7 +83,7 @@ typedef struct _file_position {
 class FAT32 : public DataSource
 {
 public:
-    FAT32(SD* sd, unsigned char* fatbuffer, unsigned char* longEntryBuffer, Serial1* logger)
+    FAT32(SD* sd, unsigned char* fatbuffer, unsigned char* longEntryBuffer, SerialLogger* logger)
     : _sd(sd)
     , _FatBuffer(fatbuffer)
     , _longEntryString(longEntryBuffer)
@@ -130,7 +130,7 @@ private:
     SD* _sd;
     unsigned char* _FatBuffer;
     unsigned char* _longEntryString;
-    Serial1* _logger;
+    SerialLogger* _logger;
     file_position _filePosition;
     struct dir_Structure* _currentDirectoryEntry;
     bool _initialized;
