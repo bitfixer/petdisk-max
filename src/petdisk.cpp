@@ -935,19 +935,15 @@ void PETdisk::run()
             }
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_IO_ADDR) // print or input command
             {
-                unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char addressIndex = address - 8;
-
-                //openFileInfo* of = &_openFileInformation[addressIndex];
-                openFileInfo* of = getFileInfoForAddress(address);
+                _secondaryAddress = rdchar & PET_ADDRESS_MASK;
+                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
                 if (of->_opened == true)
                 {
                     if (_currentState == BUS_LISTEN)
                     {
                         if (of->_fileWriteByte == -1)
                         {
-                            _dataSource->openFileForWriting(progname);
-                            strcpy(of->_fileName, (char*)progname);
+                            _dataSource->openFileForWriting((unsigned char*)of->_fileName);
                             of->_fileWriteByte = 0;
                         }
                         of->_fileDirection = FWRITE;
@@ -958,7 +954,7 @@ void PETdisk::run()
                         // file read
                         if (_fileNotFound == 1)
                         {
-                            resetFileInformation(address);
+                            resetFileInformation(_secondaryAddress);
                             _currentState = FILE_NOT_FOUND;
                         }
                         else
@@ -976,30 +972,8 @@ void PETdisk::run()
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_CLOSE_FILE)
             {
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
-                /*
-                if (temp == _openFileAddress && _fileDirection == FWRITE)
-                {
-                    if (_fileWriteByte > 0)
-                    {
-                        _dataSource->writeBufferToFile(_fileWriteByte);
-                        _fileWriteByte = 0;
-                    }
-
-                    _dataSource->closeFile();
-                }
-
-                _openFileAddress = -1;
-                _fileWriteByte = -1;
-                _fileDirection = FNONE;
-                _currentState = CLOSING;
-
-                _logger->log(".\r\n");
-                */
-
                 if (address >= 8 && address < 16) {
-                    //unsigned char addressIndex = address - 8;
                     // file opened for write, close the file
-                    //openFileInfo* of = &_openFileInformation[addressIndex];
                     openFileInfo* of = getFileInfoForAddress(address);
                     if (of->_fileDirection == FWRITE)
                     {
@@ -1019,17 +993,16 @@ void PETdisk::run()
         }
         else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
         {
-            unsigned char address = rdchar & PET_ADDRESS_MASK;
-            unsigned char addressIndex = address - 8;
             unsigned char* dataBuffer = _dataSource->getBuffer();
-
-            openFileInfo* of = &_openFileInformation[addressIndex];
-
-            dataBuffer[of->_fileWriteByte++] = rdchar;
-            if (of->_fileWriteByte >= 512)
+            openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+            if (of != NULL)
             {
-                _dataSource->writeBufferToFile(of->_fileWriteByte);
-                of->_fileWriteByte = 0;
+                dataBuffer[of->_fileWriteByte++] = rdchar;
+                if (of->_fileWriteByte >= 512)
+                {
+                    _dataSource->writeBufferToFile(of->_fileWriteByte);
+                    of->_fileWriteByte = 0;
+                }
             }
         }
         else if (_currentState == LOAD_FNAME_READ ||
@@ -1054,6 +1027,9 @@ void PETdisk::run()
                 {
                     // process filename, remove drive indicators and file type
                     _filenamePosition = processFilename(progname, _filenamePosition);
+
+                    // TODO: figure out at this point if this is a read or write using modifiers in filename
+                    // this prevents having to try opening the file every time, which is slow.
 
                     const unsigned char *ext;
                     if (_currentState == OPEN_FNAME_READ)
@@ -1109,9 +1085,9 @@ void PETdisk::run()
             else if (_currentState == FILE_READ_OPENING ||
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
-                //unsigned char address = rdchar & PET_ADDRESS_MASK;
-                //unsigned char address = _secondaryAddress;
-                //unsigned char addressIndex = address-8;
+                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+                strcpy(of->_fileName, (const char*)progname);
+
                 if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
@@ -1124,10 +1100,6 @@ void PETdisk::run()
 
                     if (_currentState == OPEN_FNAME_READ_DONE)
                     {
-                        //openFileInfo* of = &_openFileInformation[addressIndex];
-                        openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                        strcpy(of->_fileName, (const char*)progname);
-
                         _fileNotFound = 0;
                         of->_fileReadByte = 0;
                         of->_useRemainderByte = false;
