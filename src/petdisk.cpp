@@ -829,7 +829,6 @@ unsigned char PETdisk::wait_for_device_address()
         _ieee->accept_address();
     }
 
-    _logger->printf("a %X\r\n", ieee_address);
     return buscmd;
 }
 
@@ -892,9 +891,6 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
-            char tmp[8];
-            sprintf(tmp, "R %X\r\n", rdchar);
-            _logger->log(tmp);
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -908,8 +904,6 @@ void PETdisk::run()
                 _currentState = OPEN_FNAME_READ;
                 _secondaryAddress = rdchar & PET_ADDRESS_MASK;
 
-                _logger->log("here\r\n");
-                
                 openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
                 of->_fileBufferIndex = -1;
                 of->_opened = true;
@@ -1004,7 +998,7 @@ void PETdisk::run()
             if (of != NULL)
             {
                 dataBuffer[of->_fileBufferIndex++] = rdchar;
-                if (of->_fileBufferIndex >= 512)
+                if (of->_fileBufferIndex >= _dataSource->writeBufferSize())
                 {
                     _dataSource->writeBufferToFile(of->_fileBufferIndex);
                     of->_fileBufferIndex = 0;
@@ -1100,6 +1094,7 @@ void PETdisk::run()
             else if (_currentState == FILE_READ_OPENING ||
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
+                _logger->printf("o %s\r\n", progname);
                 if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
@@ -1235,7 +1230,7 @@ void PETdisk::run()
                         if (_bufferFileIndex != address)
                         {
                             _dataSource->openFileForReading((unsigned char*)of->_fileName);
-                            int blocksToRead = (of->_byteIndex / 512) + 1;
+                            int blocksToRead = (of->_byteIndex / _dataSource->readBufferSize()) + 1;
 
                             // read enough blocks to get back to the right block of the file
                             for (int i = 0; i < blocksToRead; i++)
@@ -1245,7 +1240,7 @@ void PETdisk::run()
                             _bufferFileIndex = address;
                         }
 
-                        if (of->_fileBufferIndex >= 512)
+                        if (of->_fileBufferIndex >= _dataSource->readBufferSize())
                         {
                             // get next buffer block
                             _bytesToSend = _dataSource->getNextFileBlock();

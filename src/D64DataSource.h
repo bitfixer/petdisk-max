@@ -93,6 +93,7 @@ public:
     unsigned char* getFilename();
     unsigned char* getBuffer();
     unsigned int writeBufferSize();
+    unsigned int readBufferSize();
 
 private:
 	DataSource* _fileDataSource;

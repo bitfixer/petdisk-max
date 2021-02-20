@@ -108,7 +108,15 @@ unsigned char* D64DataSource::getBuffer()
 {
     return _cbmBuffer + 2;
 }
-unsigned int D64DataSource::writeBufferSize() {}
+unsigned int D64DataSource::writeBufferSize() 
+{
+	return 254;
+}
+
+unsigned int D64DataSource::readBufferSize() 
+{
+	return 254;
+}
 
 uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)
 {
