@@ -18,6 +18,7 @@
 #include "IEEE488.h"
 #include "DataSource.h"
 #include "NetworkDataSource.h"
+#include "D64DataSource.h"
 #include "githash.h"
 
 #define ESP_CONTROL     DDRD
@@ -887,6 +888,9 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
+            char tmp[8];
+            sprintf(tmp, "R %X\r\n", rdchar);
+            _logger->log(tmp);
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -1091,7 +1095,13 @@ void PETdisk::run()
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
                 openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                strcpy(of->_fileName, (const char*)progname);
+                //strcpy(of->_fileName, (const char*)progname);
+
+                _logger->log("1\r\n");
+                if (_dataSource == NULL)
+                {
+                    _logger->log("null\r\n");
+                }
 
                 if (!_dataSource->openFileForReading(progname))
                 {
@@ -1113,6 +1123,7 @@ void PETdisk::run()
                         _bufferFileIndex = _secondaryAddress;
                     }
                 }
+                _logger->log("2\r\n");
 
                 _currentState = IDLE;
             }
@@ -1374,7 +1385,32 @@ int main(void)
         (NetworkDataSource**)nds_array,
         &ieee,
         &logger);
-    
+
+    // TESTING
+    // try loading all clusters of a file on sd card
+    /*
+    fat32.openFileForReading((unsigned char*)"ushergam.d64");
+    int b = 0;
+    bool done = false;
+    char tmp[16];
+    logger.log("here\r\n");
+    fat32.indexFileForSeeking();
+    fat32.seek(1000);
+    fat32.seek(2000);
+    fat32.seek(100000);
+    */
+
+    D64DataSource d64DataSource;
+    d64DataSource.initWithDataSource(&fat32, "ushergam.d64", &logger);
+    //d64DataSource.openFileForReading((unsigned char*)"USHER.PRG");
+
+    //d64DataSource.getNextFileBlock();
+    //d64DataSource.getNextFileBlock();
+
+    petdisk.setDataSource(9, &d64DataSource);
+
+    logger.log("back\r\n");
+
     // execute run loop
     petdisk.run();
 

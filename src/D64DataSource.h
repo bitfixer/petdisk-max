@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "DataSource.h"
+#include "SerialLogger.h"
 
 // need to mount a file as a d64 filesystem
 // the file will be served from another datasource
@@ -70,10 +71,11 @@ public:
 
 	bool init() 
     {
+        _logger->log("d64init\r\n");
         return true;
     }
     
-	bool initWithDataSource(DataSource* dataSource, const char* fileName);
+	bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
 
     void openFileForWriting(unsigned char* fileName);
     bool openFileForReading(unsigned char* fileName);
@@ -100,12 +102,14 @@ private:
     uint8_t _dirTrackBlock[2];
     uint8_t _fileTrackBlock[2];
     uint8_t _dirIndexInBuffer;
+    Logger* _logger;
 
     void cbmMount(CBMDisk* disk, char* name);
     void cbmPrintHeader(CBMDisk* disk);
     int cbmLoadHeader(CBMDisk* disk);
     uint32_t cbmBlockLocation(uint8_t* tb);
     uint8_t* cbmReadBlock(uint8_t* tb);
+    void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();
     CBMFile_Entry* cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uint8_t fileType);
 

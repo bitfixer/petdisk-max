@@ -3,13 +3,20 @@
 #include "D64DataSource.h"
 #include "cbmlayout.h"
 
-bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName)
+bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger)
 {
 	_fileDataSource = dataSource;
+	_logger = logger;
 	_cbmTrackLayout = (uint32_t*)LAYOUT_CBM;
 
 	// mount the file as a D64 drive
 	bool success = _fileDataSource->openFileForReading((unsigned char*)fileName);
+	if (!success)
+	{
+		return false;
+	}
+
+	_fileDataSource->indexFileForSeeking();
 	cbmMount(&_cbmDisk, (char*)fileName);
 	return true;
 }
@@ -17,14 +24,20 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
 void D64DataSource::openFileForWriting(unsigned char* fileName) {}
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
 {
-	printf("openFileForReading %s\n", (char*)fileName);
-	
+	char tmp[64];
+	sprintf(tmp, "d64 open %s\r\n", fileName);
+	_logger->log(tmp);
+	uint8_t sep = '.';
+	uint8_t* sepptr = (uint8_t*)memmem(fileName, strlen((char*)fileName), &sep, 1);
+	*sepptr = 0;
+
 	CBMFile_Entry* entry = cbmSearch(&_cbmDisk, fileName, 0);
 	if (entry == NULL)
 	{
 		return false;
 	}
 
+	_logger->log("found it.\r\n");
 	_fileTrackBlock[0] = entry->dataBlock[0];
 	_fileTrackBlock[1] = entry->dataBlock[1];
 	return true;
@@ -42,13 +55,17 @@ bool D64DataSource::openDirectory(const char* dirName)
 }
 unsigned int D64DataSource::getNextFileBlock() 
 {
-	printf("reading block. %d %d\n", _fileTrackBlock[0], _fileTrackBlock[1]);
+	//printf("reading block. %d %d\n", _fileTrackBlock[0], _fileTrackBlock[1]);
+	char tmp[32];
+	sprintf(tmp, "next %d %d\r\n", _fileTrackBlock[0], _fileTrackBlock[1]);
+	_logger->log(tmp);
 	if (_fileTrackBlock[0] == 0)
 	{
 		return 0;
 	}
 
 	cbmReadBlock(_fileTrackBlock);
+	_logger->log("read the block.\r\n");
 	_fileTrackBlock[0] = _cbmBuffer[0];
 	_fileTrackBlock[1] = _cbmBuffer[1];
 
@@ -57,6 +74,7 @@ unsigned int D64DataSource::getNextFileBlock()
 		return _fileTrackBlock[1] - 1;
 	}
 
+	_logger->log("hhh\r\n");
 	return BLOCK_SIZE - 2;
 }
 
@@ -108,16 +126,22 @@ uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)
 uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 {
 	uint32_t loc = cbmBlockLocation(tb);
-	printf("cbmReadBlock %ld, (%d %d)\n", loc, tb[0], tb[1]);
+	char tmp[32];
+	sprintf(tmp, "crb %ld (%d %d)\r\n", loc, tb[0], tb[1]);
+	_logger->log(tmp);
+	//printf("cbmReadBlock %ld, (%d %d)\n", loc, tb[0], tb[1]);
 
 	// seek to the right place in datasource
-	_fileDataSource->seek(loc);
+	uint32_t actualPos = _fileDataSource->seek(loc);
+	uint32_t offset = loc - actualPos;
+
+	sprintf(tmp, "ap %ld o %ld\r\n", actualPos, offset);
+	_logger->log(tmp);
+
 	_fileDataSource->getNextFileBlock();
 
 	uint8_t* buf = _fileDataSource->getBuffer();
-	memcpy(_cbmBuffer, buf, BLOCK_SIZE);
-
-	printf("hey\n");
+	memcpy(_cbmBuffer, &buf[offset], BLOCK_SIZE);
 
 	return _cbmBuffer;
 }
@@ -125,12 +149,14 @@ uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 void D64DataSource::cbmPrintHeader(CBMDisk* disk)
 {
 	CBMHeader* header = &(disk->header);
-	printf("diskName: ");
+	_logger->log("diskName: ");
+	char tmp[8];
 	for (int i = 0; i < 16; i++)
 	{
-		printf("%c", header->diskName[i]);
+		sprintf(tmp, "%c", header->diskName[i]);
+		_logger->log(tmp);
 	}
-	printf("\n");
+	_logger->log("\r\n");
 }
 
 int D64DataSource::cbmLoadHeader(CBMDisk* disk)
@@ -154,16 +180,19 @@ void D64DataSource::cbmMount(CBMDisk* disk, char* name)
 	cbmPrintHeader(disk);
 }
 
-void cbmPrintFileEntry(CBMFile_Entry* entry)
+void D64DataSource::cbmPrintFileEntry(CBMFile_Entry* entry)
 {
-	printf("fname: ");
+	char tmp[32];
+	_logger->log("fname: ");
 	for (int i = 0; i < 16; i++)
 	{
-		printf("%c", entry->fileName[i]);
+		sprintf(tmp, "%c", entry->fileName[i]);
+		_logger->log(tmp);
 	}
-	printf(" \t\ttype: %X\n", entry->fileType);
-	printf("dataBlock %X %X\n", entry->dataBlock[0], entry->dataBlock[1]);
-	printf("\n");
+	sprintf(tmp, " \t\ttype: %X\r\ndataBlock %X %X\r\n", entry->fileType, entry->dataBlock[0], entry->dataBlock[1]);
+	_logger->log(tmp);
+	//printf("dataBlock %X %X\n", entry->dataBlock[0], entry->dataBlock[1]);
+	//printf("\n");
 }
 
 CBMFile_Entry* D64DataSource::cbmGetNextFileEntry()
@@ -216,6 +245,8 @@ CBMFile_Entry* D64DataSource::cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uin
 	uint8_t fileName[18];
 	uint8_t searchName[18];
 
+	char tmp[64];
+
 	cbmD64StringCString(searchName, searchNameA);
 	openCurrentDirectory();
 
@@ -224,6 +255,9 @@ CBMFile_Entry* D64DataSource::cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uin
 	{
 		cbmPrintFileEntry(entry);
 		cbmD64StringCString(fileName, entry->fileName);
+
+		sprintf(tmp, "cmp %s %s\r\n", searchName, fileName);
+		_logger->log(tmp);
 
 		if (strcmp((const char*)searchName, (const char*)fileName) == 0)
 		{

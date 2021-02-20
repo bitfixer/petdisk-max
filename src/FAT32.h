@@ -26,6 +26,7 @@
 #include "SD_routines.h"
 #include "SerialLogger.h"
 #include "DataSource.h"
+#include <stdint.h>
 
 //Structure to access Directory Entry in the FAT
 struct dir_Structure{
@@ -121,6 +122,9 @@ public:
     bool findFile(char* fileName);
     void deleteFile();
 
+    void indexFileForSeeking();
+    uint32_t seek(uint32_t pos);
+
     unsigned int writeBufferSize()
     {
         return 512;
@@ -134,6 +138,7 @@ private:
     file_position _filePosition;
     struct dir_Structure* _currentDirectoryEntry;
     bool _initialized;
+    unsigned long _fileClusterIndex[64];
 
     unsigned long _firstDataSector;
     unsigned long _rootCluster;
