@@ -632,14 +632,13 @@ void PETdisk::writeFile()
 {
     unsigned int numBytes;
     unsigned char rdchar;
-    unsigned char* dataBuffer = _dataSource->getBuffer();
     unsigned int writeBufferSize = _dataSource->writeBufferSize();
     
     numBytes = 0;
     do
     {
         rdchar = _ieee->get_byte_from_bus();
-        dataBuffer[numBytes++] = rdchar;
+        _dataSource->getBuffer()[numBytes++] = rdchar;
         
         if (numBytes >= writeBufferSize)
         {
@@ -993,11 +992,10 @@ void PETdisk::run()
         }
         else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
         {
-            unsigned char* dataBuffer = _dataSource->getBuffer();
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             if (of != NULL)
             {
-                dataBuffer[of->_fileBufferIndex++] = rdchar;
+                _dataSource->getBuffer()[of->_fileBufferIndex++] = rdchar;
                 if (of->_fileBufferIndex >= _dataSource->writeBufferSize())
                 {
                     _dataSource->writeBufferToFile(of->_fileBufferIndex);
@@ -1192,8 +1190,7 @@ void PETdisk::run()
                 bool found = false;
                 unsigned char temp = 0;
                 unsigned char result = 0;
-                unsigned char* dataBuffer = _dataSource->getBuffer();
-
+                
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
                 openFileInfo* of = getFileInfoForAddress(address);
 
@@ -1222,7 +1219,7 @@ void PETdisk::run()
                         }
                         else
                         {
-                            of->_remainderByte = dataBuffer[of->_fileBufferIndex];
+                            of->_remainderByte = _dataSource->getBuffer()[of->_fileBufferIndex];
                             of->_fileBufferIndex++;
                             of->_byteIndex++;
                         }
@@ -1265,7 +1262,7 @@ void PETdisk::run()
                             done = true;
                         }
 
-                        of->_nextByte = dataBuffer[of->_fileBufferIndex];
+                        of->_nextByte = _dataSource->getBuffer()[of->_fileBufferIndex];
                     }
                 }
             }

@@ -98,7 +98,6 @@ public:
 private:
 	DataSource* _fileDataSource;
     CBMDisk _cbmDisk;
-    //uint8_t _cbmBuffer[BLOCK_SIZE];
     uint8_t* _cbmBuffer;
     uint32_t* _cbmTrackLayout;
     uint8_t _dirTrackBlock[2];
