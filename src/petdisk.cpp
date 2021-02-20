@@ -188,6 +188,8 @@ void sd_test(DataSource* dataSource, Serial1* log)
 #define DEVICE_URL_BASE     3
 #define DEVICE_END          3
 
+#define FILENAME_MAX_LENGTH 20
+
 struct pd_config {
     uint8_t device_type[9];
     char urls[4][64];
@@ -227,7 +229,7 @@ typedef enum _filedir
 
 typedef struct _openFileInfo
 {
-    char _fileName[64];
+    char _fileName[FILENAME_MAX_LENGTH];
     filedir _fileDirection;
     int _fileBufferIndex;
     bool _useRemainderByte;
@@ -311,7 +313,7 @@ void PETdisk::init(
 
     // reset state variables
     _dataSource = 0;
-    progname = (unsigned char*)&_buffer[1024-64];
+    progname = (unsigned char*)&_buffer[1024-FILENAME_MAX_LENGTH];
     _filenamePosition = 0;
     _fileNotFound = 0;
     _bytesToSend = 0;
@@ -845,7 +847,7 @@ void PETdisk::resetFileInformation(unsigned char address)
 {
     openFileInfo* fileInfo = getFileInfoForAddress(address);
     
-    memset(fileInfo->_fileName, 0, 64);
+    memset(fileInfo->_fileName, 0, FILENAME_MAX_LENGTH);
     fileInfo->_fileDirection = FNONE;
     fileInfo->_fileBufferIndex = 0;
     fileInfo->_useRemainderByte = false;
@@ -866,7 +868,7 @@ void PETdisk::run()
             _currentState = IDLE;
             _fileNotFound = 0;
             _filenamePosition = 0;
-            memset(progname, 0, 64);
+            memset(progname, 0, FILENAME_MAX_LENGTH);
         }
 
         if (IEEE_CTL == 0x00)
@@ -1094,15 +1096,6 @@ void PETdisk::run()
             else if (_currentState == FILE_READ_OPENING ||
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                //strcpy(of->_fileName, (const char*)progname);
-
-                _logger->log("1\r\n");
-                if (_dataSource == NULL)
-                {
-                    _logger->log("null\r\n");
-                }
-
                 if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
@@ -1116,15 +1109,18 @@ void PETdisk::run()
                     if (_currentState == OPEN_FNAME_READ_DONE)
                     {
                         _fileNotFound = 0;
-                        of->_fileBufferIndex = 0;
-                        of->_useRemainderByte = false;
-                        of->_remainderByte = 0;
-                        of->_nextByte = _dataSource->getBuffer()[0];
+                        openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+                        if (of != NULL)
+                        {
+                            strcpy(of->_fileName, (const char*)progname);
+                            of->_fileBufferIndex = 0;
+                            of->_useRemainderByte = false;
+                            of->_remainderByte = 0;
+                            of->_nextByte = _dataSource->getBuffer()[0];
+                        }
                         _bufferFileIndex = _secondaryAddress;
                     }
                 }
-                _logger->log("2\r\n");
-
                 _currentState = IDLE;
             }
             else if (_currentState == OPEN_FNAME_READ_DONE_FOR_WRITING)
