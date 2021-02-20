@@ -121,8 +121,6 @@ public:
 
     bool findFile(char* fileName);
     void deleteFile();
-
-    void indexFileForSeeking();
     uint32_t seek(uint32_t pos);
 
     unsigned int writeBufferSize()
@@ -138,6 +136,8 @@ private:
     file_position _filePosition;
     struct dir_Structure* _currentDirectoryEntry;
     bool _initialized;
+
+    bool _indexed;
     unsigned long _fileClusterIndex[64];
 
     unsigned long _firstDataSector;
@@ -183,6 +183,7 @@ private:
     unsigned char numCharsToCompare(unsigned char *fileName, unsigned char maxChars);
 
     bool findFile(char* fileName, unsigned long firstCluster);
+    void indexFileForSeeking();
 
     void copyShortFilename();
 };

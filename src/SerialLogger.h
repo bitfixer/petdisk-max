@@ -2,7 +2,10 @@
 #define __serial_logger_h__
 
 #include "Serial.h"
+#include <stdio.h>
 #define LOG_BUFFER_SIZE 64
+
+static char _line[64];
 
 class Logger {
 public:
@@ -13,8 +16,14 @@ public:
     virtual void log(const char* str) = 0;
     virtual void log(unsigned char* data, int length) = 0;
     virtual void logF(const char* str) = 0;
+    virtual void printf(const char* format, ...)
+    {
+        va_list vl;
+        va_start(vl, format);
+        vsprintf(_line, format, vl);
+        log(_line);
+    }
     virtual void flush() {}
-
 };
 
 class SerialLogger : public Logger {

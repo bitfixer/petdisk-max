@@ -625,36 +625,41 @@ bool FAT32::openFileForReading(unsigned char *fileName)
     _filePosition.byteCounter = 0;
     _filePosition.sectorIndex = 0;
     _filePosition.dirStartCluster = _currentDirectoryCluster;
+
+    _indexed = false;
     
     return true;
 }
 
 uint32_t FAT32::seek(uint32_t pos)
 {
-    char tmp[16];
-    sprintf(tmp, "seek %ld\r\n", pos);
-    _logger->log(tmp);
+    //char tmp[32];
+    //sprintf(tmp, "seek %ld\r\n", pos);
+    //_logger->log(tmp);
+    //_logger->printf("sk %ld\r\n", pos);
     // given position, figure out which cluster and sector 
     // within the file this position represents.
 
+    if (!_indexed)
+    {
+        _logger->log("Index\r\n");
+        indexFileForSeeking();
+        _indexed = true;
+    }
+
+    _logger->printf("seek %ld\r\n", pos);
     // seeking is quantized to sector boundaries, for simplicity
     uint32_t q_pos = (pos / _bytesPerSector) * _bytesPerSector;
     unsigned int sectors = q_pos / _bytesPerSector;
     unsigned int clusters = sectors / _sectorPerCluster;
     unsigned int sectorInCluster = sectors - (clusters * _sectorPerCluster);
 
-    //char tmp[32];
-    //sprintf(tmp, "seek %ld qp %ld, sec %d cl %d\r\n", pos, q_pos, sectorInCluster, clusters);
-    //_logger->log(tmp);
-
     _filePosition.cluster = _fileClusterIndex[clusters];
     _filePosition.sectorIndex = sectorInCluster;
     _filePosition.byteCounter = q_pos;
 
-    //sprintf(tmp, "c %ld s %d b %ld\r\n", _filePosition.cluster, _filePosition.sectorIndex, _filePosition.byteCounter);
+    //sprintf(tmp, "qs %ld\r\n", q_pos);
     //_logger->log(tmp);
-    sprintf(tmp, "qs %ld\r\n", q_pos);
-    _logger->log(tmp);
 
     return q_pos;
 }
@@ -664,9 +669,10 @@ void FAT32::indexFileForSeeking()
     unsigned long sector;
     bool done = false;
 
-    char tmp[32];
     int clustersInFile = 0;
-    _fileClusterIndex[clustersInFile++] = _filePosition.cluster;
+    _fileClusterIndex[clustersInFile++] = _filePosition.startCluster;
+    _filePosition.sectorIndex = 0;
+    _filePosition.byteCounter = 0;
     while (!done)
     {   
         if (_filePosition.sectorIndex == _sectorPerCluster)
@@ -684,11 +690,6 @@ void FAT32::indexFileForSeeking()
             done = true;
         }
     }
-
-    
-    sprintf(tmp, "spc %d bps %d cif %d\r\n", _sectorPerCluster, _bytesPerSector, clustersInFile);
-    _logger->log(tmp);
-    seek(0);
 }
 
 unsigned int FAT32::getNextFileBlock()

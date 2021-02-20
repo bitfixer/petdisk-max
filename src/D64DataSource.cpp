@@ -16,7 +16,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
         return false;
     }
 
-    _fileDataSource->indexFileForSeeking();
+    //_fileDataSource->indexFileForSeeking();
     cbmMount(&_cbmDisk, (char*)fileName);
     return true;
 }
@@ -55,17 +55,12 @@ bool D64DataSource::openDirectory(const char* dirName)
 }
 unsigned int D64DataSource::getNextFileBlock() 
 {
-    //printf("reading block. %d %d\n", _fileTrackBlock[0], _fileTrackBlock[1]);
-    char tmp[32];
-    sprintf(tmp, "next %d %d\r\n", _fileTrackBlock[0], _fileTrackBlock[1]);
-    _logger->log(tmp);
     if (_fileTrackBlock[0] == 0)
     {
         return 0;
     }
 
     cbmReadBlock(_fileTrackBlock);
-    _logger->log("read the block.\r\n");
     _fileTrackBlock[0] = _cbmBuffer[0];
     _fileTrackBlock[1] = _cbmBuffer[1];
 
@@ -74,7 +69,6 @@ unsigned int D64DataSource::getNextFileBlock()
         return _fileTrackBlock[1] - 1;
     }
 
-    _logger->log("hhh\r\n");
     return BLOCK_SIZE - 2;
 }
 
@@ -126,17 +120,10 @@ uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)
 uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 {
     uint32_t loc = cbmBlockLocation(tb);
-    char tmp[32];
-    sprintf(tmp, "crb %ld (%d %d)\r\n", loc, tb[0], tb[1]);
-    _logger->log(tmp);
-    //printf("cbmReadBlock %ld, (%d %d)\n", loc, tb[0], tb[1]);
-
+    
     // seek to the right place in datasource
     uint32_t actualPos = _fileDataSource->seek(loc);
     uint32_t offset = loc - actualPos;
-
-    sprintf(tmp, "ap %ld o %ld\r\n", actualPos, offset);
-    _logger->log(tmp);
 
     _fileDataSource->getNextFileBlock();
 
@@ -144,7 +131,6 @@ uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
     
     // point to the buffer containing this block
     _cbmBuffer = &buf[offset];
-
     return _cbmBuffer;
 }
 
@@ -166,10 +152,12 @@ int D64DataSource::cbmLoadHeader(CBMDisk* disk)
     uint8_t tb[]={18,0};
     uint8_t *buffer;
 
+    //_logger->log("aa\r\n");
     buffer = cbmReadBlock(tb);
+    //_logger->log("bb\r\n");
     if (buffer != NULL)
     {
-        printf("reading header.\n");
+        //printf("reading header.\n");
         memcpy(&(disk->header), buffer, sizeof(CBMHeader));
     }
 
@@ -178,8 +166,8 @@ int D64DataSource::cbmLoadHeader(CBMDisk* disk)
 
 void D64DataSource::cbmMount(CBMDisk* disk, char* name)
 {
-    cbmLoadHeader(disk);
-    cbmPrintHeader(disk);
+	//cbmLoadHeader(disk);
+    //cbmPrintHeader(disk);
 }
 
 void D64DataSource::cbmPrintFileEntry(CBMFile_Entry* entry)

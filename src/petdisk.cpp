@@ -828,6 +828,8 @@ unsigned char PETdisk::wait_for_device_address()
 
         _ieee->accept_address();
     }
+
+    _logger->printf("a %X\r\n", ieee_address);
     return buscmd;
 }
 
@@ -905,6 +907,8 @@ void PETdisk::run()
             {
                 _currentState = OPEN_FNAME_READ;
                 _secondaryAddress = rdchar & PET_ADDRESS_MASK;
+
+                _logger->log("here\r\n");
                 
                 openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
                 of->_fileBufferIndex = -1;
@@ -1403,7 +1407,7 @@ int main(void)
     //d64DataSource.getNextFileBlock();
     //d64DataSource.getNextFileBlock();
 
-    petdisk.setDataSource(9, &d64DataSource);
+    petdisk.setDataSource(8, &d64DataSource);
 
     logger.log("back\r\n");
 
