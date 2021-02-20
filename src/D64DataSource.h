@@ -66,16 +66,16 @@ typedef struct
 class D64DataSource : public DataSource
 {
 public:
-	D64DataSource() {}
-	~D64DataSource() {}
+    D64DataSource() {}
+    ~D64DataSource() {}
 
-	bool init() 
+    bool init() 
     {
         _logger->log("d64init\r\n");
         return true;
     }
     
-	bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
+    bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
 
     void openFileForWriting(unsigned char* fileName);
     bool openFileForReading(unsigned char* fileName);
@@ -96,7 +96,7 @@ public:
     unsigned int readBufferSize();
 
 private:
-	DataSource* _fileDataSource;
+    DataSource* _fileDataSource;
     CBMDisk _cbmDisk;
     uint8_t* _cbmBuffer;
     uint32_t* _cbmTrackLayout;
