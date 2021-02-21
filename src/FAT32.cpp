@@ -633,16 +633,10 @@ bool FAT32::openFileForReading(unsigned char *fileName)
 
 uint32_t FAT32::seek(uint32_t pos)
 {
-    //char tmp[32];
-    //sprintf(tmp, "seek %ld\r\n", pos);
-    //_logger->log(tmp);
-    //_logger->printf("sk %ld\r\n", pos);
     // given position, figure out which cluster and sector 
     // within the file this position represents.
-
     if (!_indexed)
     {
-        _logger->log("Index\r\n");
         indexFileForSeeking();
         _indexed = true;
     }

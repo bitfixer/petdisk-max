@@ -98,6 +98,8 @@ public:
 private:
     DataSource* _fileDataSource;
     CBMDisk _cbmDisk;
+    CBMFile_Entry* _currentFileEntry;
+    uint8_t _fileName[20];
     uint8_t* _cbmBuffer;
     uint32_t* _cbmTrackLayout;
     uint8_t _dirTrackBlock[2];
@@ -113,7 +115,8 @@ private:
     void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();
     CBMFile_Entry* cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uint8_t fileType);
-
+    uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source);
+    uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source);
 };
 
 #endif

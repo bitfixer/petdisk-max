@@ -20,7 +20,6 @@ public:
     virtual void writeBufferToFile(unsigned int numBytes) = 0;
     virtual void closeFile() = 0;
     virtual void openCurrentDirectory() = 0;
-    //virtual void indexFileForSeeking() {}
     virtual uint32_t seek(uint32_t pos) { return 0; }
     bool isHidden() { return false; }
     bool isVolumeId() { return false; }

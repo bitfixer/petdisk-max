@@ -77,7 +77,13 @@ bool D64DataSource::isLastBlock()
 
 bool D64DataSource::getNextDirectoryEntry() 
 {
+    _currentFileEntry = cbmGetNextFileEntry();
+    if (_currentFileEntry == NULL)
+    {
+        return false;
+    }
 
+    return true;
 }
 
 bool D64DataSource::isInitialized() {}
@@ -94,8 +100,35 @@ void D64DataSource::openCurrentDirectory()
 
     _dirTrackBlock[0] = _cbmBuffer[0];
     _dirTrackBlock[1] = _cbmBuffer[1];
+    _currentFileEntry = NULL;
 }
-unsigned char* D64DataSource::getFilename() {}
+unsigned char* D64DataSource::getFilename() 
+{
+    if (_currentFileEntry)
+    {
+        memset(_fileName, 0, 17);
+        cbmCopyString(_fileName, _currentFileEntry->fileName);
+        int len = strlen((char*)_fileName);
+        if (_currentFileEntry->fileType == 0x81)
+        {
+            _fileName[len] = '.';
+            _fileName[len+1] = 'S';
+            _fileName[len+2] = 'E';
+            _fileName[len+3] = 'Q';
+        }
+        else
+        {
+            _fileName[len] = '.';
+            _fileName[len+1] = 'P';
+            _fileName[len+2] = 'R';
+            _fileName[len+3] = 'G';
+        }
+
+        //memcpy(_fileName, _currentFileEntry->fileName, 16);
+        //_logger->printf("g %s\r\n", _fileName);
+        return _fileName;
+    }
+}
 unsigned char* D64DataSource::getBuffer() 
 {
     return _cbmBuffer + 2;
@@ -203,7 +236,7 @@ CBMFile_Entry* D64DataSource::cbmGetNextFileEntry()
     return entry;
 }
 
-uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source)
+uint8_t* D64DataSource::cbmCopyString(uint8_t* dest, const uint8_t* source)
 {
     for (int c = 0; c < 17; c++)
     {
@@ -218,7 +251,7 @@ uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source)
     return dest;
 }
 
-uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source)
+uint8_t* D64DataSource::cbmD64StringCString(uint8_t* dest, const uint8_t* source)
 {
     memset(dest, ' ', 17);
     dest[17] = 0;

@@ -668,7 +668,6 @@ void PETdisk::listFiles()
     dir_start = 0x041f;
     unsigned int file = 0;
 
-    //log->transmitStringF(PSTR("open dir\r\n"));
     _dataSource->openCurrentDirectory();
 
     do
@@ -723,6 +722,18 @@ void PETdisk::listFiles()
                     if (toupper(fileName[fname_length-3]) == 'P' &&
                         toupper(fileName[fname_length-2]) == 'R' &&
                         toupper(fileName[fname_length-1]) == 'G')
+                    {
+                        valid_file = true;
+                    }
+                    else if (toupper(fileName[fname_length-3]) == 'S' &&
+                        toupper(fileName[fname_length-2]) == 'E' &&
+                        toupper(fileName[fname_length-1]) == 'Q')
+                    {
+                        valid_file = true;
+                    }
+                    else if (toupper(fileName[fname_length-3]) == 'D' &&
+                        toupper(fileName[fname_length-2]) == '6' &&
+                        toupper(fileName[fname_length-1]) == '4')
                     {
                         valid_file = true;
                     }
