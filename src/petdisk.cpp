@@ -254,7 +254,8 @@ public:
     ~PETdisk() {}
 
     void init(
-        FAT32* fat32, 
+        FAT32* fat32,
+        D64DataSource* d64,
         uint8_t* buffer, 
         uint16_t* bufferSize, 
         EspConn* espConn, 
@@ -275,6 +276,7 @@ private:
     EspHttp* _espHttp;
     IEEE488* _ieee;
     FAT32* _fat32;
+    D64DataSource* _d64;
     SerialLogger* _logger;
 
     openFileInfo _openFileInformation[8];
@@ -286,6 +288,7 @@ private:
     int _bytesToSend;
     pdstate _currentState;
     int _bufferFileIndex;
+    unsigned char _primaryAddress;
     unsigned char _secondaryAddress;
 
     bool configChanged(struct pd_config* pdcfg);
@@ -298,7 +301,8 @@ private:
 };
 
 void PETdisk::init(
-    FAT32* fat32, 
+    FAT32* fat32,
+    D64DataSource* d64,
     uint8_t* buffer, 
     uint16_t* bufferSize, 
     EspConn* espConn, 
@@ -308,6 +312,7 @@ void PETdisk::init(
     SerialLogger* logger)
 {
     _fat32 = fat32;
+    _d64 = d64;
     _ieee = ieee;
     _logger = logger;
 
@@ -837,6 +842,7 @@ unsigned char PETdisk::wait_for_device_address()
         }
 
         _ieee->accept_address();
+        _primaryAddress = ieee_address;
     }
 
     return buscmd;
@@ -1169,7 +1175,16 @@ void PETdisk::run()
                     if (progname[1] == ':')
                     {
                         // change directory command
-                        _dataSource->openDirectory((const char*)&progname[2]);
+
+                        // check for d64 file
+                        // temp
+                        // initialize d64 datasource
+                        _d64->initWithDataSource(_dataSource, "ushergam.d64", _logger);
+
+                        // TODO: use correct address
+                        setDataSource(_primaryAddress, _d64);
+                        _dataSource = _d64;
+                        //_dataSource->openDirectory((const char*)&progname[2]);
                     }
                     // write directory entries
                     listFiles();
@@ -1378,9 +1393,12 @@ int main(void)
     nds_array[2] = &nds2;
     nds_array[3] = &nds3;
 
+    D64DataSource d64DataSource;
+
     PETdisk petdisk;
     petdisk.init(
         &fat32,
+        &d64DataSource,
         _buffer, 
         &_bufferSize, 
         &espConn, 
@@ -1403,14 +1421,14 @@ int main(void)
     fat32.seek(100000);
     */
 
-    D64DataSource d64DataSource;
-    d64DataSource.initWithDataSource(&fat32, "ushergam.d64", &logger);
+    //D64DataSource d64DataSource;
+    //d64DataSource.initWithDataSource(&fat32, "ushergam.d64", &logger);
     //d64DataSource.openFileForReading((unsigned char*)"USHER.PRG");
 
     //d64DataSource.getNextFileBlock();
     //d64DataSource.getNextFileBlock();
 
-    petdisk.setDataSource(8, &d64DataSource);
+    //petdisk.setDataSource(8, &d64DataSource);
 
     logger.log("back\r\n");
 

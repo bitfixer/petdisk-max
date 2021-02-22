@@ -87,6 +87,14 @@ bool NetworkDataSource::fetchBlock(int start, int end)
      return true;
 }
 
+uint32_t NetworkDataSource::seek(uint32_t pos)
+{
+    // round to closest block
+    uint32_t q_pos = (pos / readBufferSize()) * readBufferSize();
+    _currentOutputByte = q_pos;
+    return _currentOutputByte;
+}
+
 unsigned int NetworkDataSource::getNextFileBlock()
 {
     if (_currentOutputByte < _currentBlockByte)

@@ -59,6 +59,13 @@ public:
     unsigned char* getFilename();
     unsigned char* getBuffer();
 
+    uint32_t seek(uint32_t pos);
+
+    unsigned int readBufferSize()
+    {
+        return 512;
+    }
+
     unsigned int writeBufferSize()
     {
         return 512;
