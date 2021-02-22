@@ -188,7 +188,7 @@ void sd_test(DataSource* dataSource, Serial1* log)
 #define DEVICE_URL_BASE     3
 #define DEVICE_END          3
 
-#define FILENAME_MAX_LENGTH 20
+#define FILENAME_MAX_LENGTH 21
 
 struct pd_config {
     uint8_t device_type[9];
@@ -298,6 +298,7 @@ private:
     unsigned char wait_for_device_address();
     openFileInfo* getFileInfoForAddress(unsigned char address);
     void resetFileInformation(unsigned char address);
+    bool isD64(const char* fileName);
 };
 
 void PETdisk::init(
@@ -874,6 +875,26 @@ void PETdisk::resetFileInformation(unsigned char address)
     fileInfo->_opened = false;
 }
 
+bool PETdisk::isD64(const char* fileName)
+{
+    int len = strlen(fileName);
+    
+    _logger->printf("isd64 %s %s\r\n", fileName, &fileName[len-4]);
+    if (len <= 4)
+    {
+        return false;
+    }
+
+    if (strcmp(".D64", &fileName[len - 4]) == 0)
+    {
+        _logger->log("yes\r\n");
+        return true;
+    }
+
+    _logger->log("no\r\n");
+    return false;
+}
+
 void PETdisk::run()
 {
     // start main loop
@@ -1175,16 +1196,33 @@ void PETdisk::run()
                     if (progname[1] == ':')
                     {
                         // change directory command
-
-                        // check for d64 file
-                        // temp
-                        // initialize d64 datasource
-                        _d64->initWithDataSource(_dataSource, "ushergam.d64", _logger);
-
-                        // TODO: use correct address
-                        setDataSource(_primaryAddress, _d64);
-                        _dataSource = _d64;
-                        //_dataSource->openDirectory((const char*)&progname[2]);
+                        // this can be either a directory name, or a d64 file
+                        if (isD64((const char*)&progname[2]))
+                        {
+                            _logger->printf("d64: %s\r\n", &progname[2]);
+                            // this is a d64 file, mount as a datasource
+                            // initialize d64 datasource
+                            _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
+                            setDataSource(_primaryAddress, _d64);
+                            _dataSource = _d64;
+                        }
+                        else
+                        {
+                            if (_dataSource == _d64)
+                            {
+                                if (progname[2] == '.' && progname[3] == '.')
+                                {
+                                    // unmount this d64 image and return to previous datasource
+                                    _dataSource = _d64->getFileDataSource();
+                                    setDataSource(_primaryAddress, _dataSource);
+                                }
+                            }
+                            else
+                            {
+                                // change directory
+                                _dataSource->openDirectory((const char*)&progname[2]);
+                            }
+                        }
                     }
                     // write directory entries
                     listFiles();

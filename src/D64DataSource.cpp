@@ -283,3 +283,8 @@ CBMFile_Entry* D64DataSource::cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uin
 
     return NULL;
 }
+
+DataSource* D64DataSource::getFileDataSource()
+{
+    return _fileDataSource;
+}

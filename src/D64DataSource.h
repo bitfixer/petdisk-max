@@ -95,6 +95,8 @@ public:
     unsigned int writeBufferSize();
     unsigned int readBufferSize();
 
+    DataSource* getFileDataSource();
+
 private:
     DataSource* _fileDataSource;
     CBMDisk _cbmDisk;
