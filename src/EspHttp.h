@@ -3,7 +3,7 @@
 
 #include "EspConn.h"
 #include <stdint.h>
-#include "Serial.h"
+#include "SerialLogger.h"
 
 struct urlInfo {
     char host[64];
@@ -17,7 +17,7 @@ struct urlInfo {
 class EspHttp 
 {
 public:
-    EspHttp(EspConn* espConn, Serial1* log) 
+    EspHttp(EspConn* espConn, Logger* log) 
     : _espConn(espConn)
     , _log(log)
     {}
@@ -33,7 +33,7 @@ public:
 
 private:
     EspConn* _espConn;
-    Serial1* _log;
+    Logger* _log;
 };
 
 #endif

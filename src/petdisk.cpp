@@ -1409,7 +1409,7 @@ int main(void)
     blink_led(1, 300, 50);
 
     EspConn espConn(_buffer, &_bufferSize, &serial, &logSerial);
-    EspHttp espHttp(&espConn, &logSerial);
+    EspHttp espHttp(&espConn, &logger);
     reset_esp();
     for (int i = 0; i < 50; i++)
     {

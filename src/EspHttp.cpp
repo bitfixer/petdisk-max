@@ -6,14 +6,14 @@
 bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes)
 {
     char temp[16];
-    _log->transmitString(params);
-    _log->transmitStringF(PSTR("\r\n"));
+    //_log->transmitString(params);
+    //_log->transmitStringF(PSTR("\r\n"));
     // prepare url
     urlInfo* info = (urlInfo*)buffer;
     sprintf_P(info->urlstring, PSTR("PUT %s%s HTTP/1.0\r\nHost: %s\r\nContent-Length: %d\r\n\r\n"), url, params, host, numBytes);
 
-    _log->transmitString(info->urlstring);
-    _log->transmitStringF(PSTR("\r\n"));
+    //_log->transmitString(info->urlstring);
+    //_log->transmitStringF(PSTR("\r\n"));
 
     // move url string to immediately behind payload data
     int url_strlen = strlen(info->urlstring);
@@ -38,11 +38,10 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
 
     sprintf_P(data, PSTR("GET %s%s HTTP/1.0\r\nHost: %s\r\n\r\n"), url, params, host);
     _espConn->startClient(host, 80, 0, TCP_MODE);
-    _log->transmitString(data);
-    int bytes = _espConn->sendData(0, (unsigned char*)data, strlen(data));
+    _log->log(data);
+    _espConn->sendData(0, (unsigned char*)data, strlen(data));
     int bufSize = *bufferSize;
-    //_espConn->stopClient(0);
-
+    
     // parse data from serial buffer
     // find beginning of HTTP message
     uint8_t* httpStart = (uint8_t*)memmem(buffer, bufSize, "HTTP", 4);
@@ -52,8 +51,10 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
         return 0;
     }
 
+    int httpSize = bufSize - (httpStart - buffer);
+
     // find blank newline to signify beginning of payload data
-    uint8_t* datastart = (uint8_t*)memmem(httpStart, bytes, "\r\n\r\n", 4);
+    uint8_t* datastart = (uint8_t*)memmem(httpStart, httpSize, "\r\n\r\n", 4);
 
     if (datastart == 0)
     {
@@ -80,7 +81,7 @@ uint8_t* EspHttp::getRange(const char* host, const char* url, int start, int end
 {
     char params[25];
     sprintf_P(params, PSTR("&s=%d&e=%d"), start, end);
-    _log->transmitString(params);
-    _log->transmitStringF(PSTR("\r\n"));
+    //_log->transmitString(params);
+    //_log->transmitStringF(PSTR("\r\n"));
     return makeRequest(host, url, (const char*)params, buffer, bufferSize, size);
 }

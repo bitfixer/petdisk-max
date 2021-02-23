@@ -36,7 +36,7 @@ public:
     bool startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode);
     void stopClient(uint8_t sock);
 
-    int sendData(uint8_t sock, unsigned char* data, int len);
+    void sendData(uint8_t sock, unsigned char* data, int len);
     int readUntil(const char* tag, bool findTags, bool end, int timeout);
     bool sendCmd(const char* cmd, int timeout=30000);
     void reset();

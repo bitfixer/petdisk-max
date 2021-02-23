@@ -155,7 +155,7 @@ int contains(const char* big, const char* small, size_t size)
     return -1;
 }
 
-int EspConn::sendData(uint8_t sock, unsigned char* data, int len)
+void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
 {
     char* cmd = (char*)&_serialBuffer[64];
     sprintf_P(cmd, PSTR("AT+CIPSEND=%d,%d\r\n"), sock, len);
@@ -201,20 +201,12 @@ int EspConn::sendData(uint8_t sock, unsigned char* data, int len)
                 memmove(&_serialBuffer[start], &_serialBuffer[start+end+1], current_buffer_size - start);
             }
         } while (start >= 0);
-
-        for (int i = 0; i < current_buffer_size; i++)
-        {
-            _logSerial->transmitByte(_serialBuffer[i]);
-        }
-
-        sprintf_P(temp, "\r\nDONE\r\n");
-        _logSerial->transmitString(temp);
     }
     else
     {
         readUntil(0, true, true, 5000);
         _serial->disable_interrupt();
-        return -1;
+        //return -1;
     }
 }
 
