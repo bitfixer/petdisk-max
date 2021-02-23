@@ -26,8 +26,8 @@ public:
 
     bool postBlock(char* host, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes);
     uint8_t* makeRequest(const char* host, const char* url, const char* params, uint8_t* buffer, uint16_t* bufferSize, int* size);
-    int getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize);
-    uint8_t* getRange(const char* host, const char* url, int start, int end, uint8_t* buffer, uint16_t* bufferSize, int* size);
+    uint32_t getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize);
+    uint8_t* getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size);
 
     int getSizeE(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize);
 

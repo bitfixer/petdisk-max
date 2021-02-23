@@ -67,20 +67,21 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
     return datastart;
 }
 
-int EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize)
+uint32_t EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize)
 {
     uint8_t* datastart;
-    int fileSize;
+    uint32_t fileSize;
     int size;
     datastart = makeRequest(host, url, "&l=1", buffer, bufferSize, &size);
-    sscanf((const char*)datastart, "%d\r\n", &fileSize);
+    sscanf((const char*)datastart, "%ld\r\n", &fileSize);
+    _log->printf("got size %ld\r\n", fileSize);
     return fileSize;
 }
 
-uint8_t* EspHttp::getRange(const char* host, const char* url, int start, int end, uint8_t* buffer, uint16_t* bufferSize, int* size)
+uint8_t* EspHttp::getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size)
 {
     char params[25];
-    sprintf_P(params, PSTR("&s=%d&e=%d"), start, end);
+    sprintf_P(params, PSTR("&s=%ld&e=%ld"), start, end);
     //_log->transmitString(params);
     //_log->transmitStringF(PSTR("\r\n"));
     return makeRequest(host, url, (const char*)params, buffer, bufferSize, size);

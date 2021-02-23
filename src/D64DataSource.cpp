@@ -158,6 +158,8 @@ uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
     uint32_t actualPos = _fileDataSource->seek(loc);
     uint32_t offset = loc - actualPos;
 
+    _logger->printf("d64 seek %ld ap %ld o %ld\r\n", loc, actualPos, offset);
+
     _fileDataSource->getNextFileBlock();
     uint8_t* buf = _fileDataSource->getBuffer();
     

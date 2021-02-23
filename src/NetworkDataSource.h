@@ -3,7 +3,7 @@
 
 #include "DataSource.h"
 #include "EspHttp.h"
-#include "Serial.h"
+#include "SerialLogger.h"
 
 struct urlData
 {
@@ -16,7 +16,7 @@ struct urlData
 class NetworkDataSource : public DataSource
 {
 public:
-    NetworkDataSource(EspHttp* http, uint8_t* buffer, uint16_t* bufferSize, Serial1* log) 
+    NetworkDataSource(EspHttp* http, uint8_t* buffer, uint16_t* bufferSize, Logger* log) 
     : _http(http)
     , _fileSize(0)
     , _currentBlockByte(0)
@@ -73,9 +73,9 @@ public:
 
 private:
     EspHttp* _http;
-    int _fileSize;
-    int _currentBlockByte;
-    int _currentOutputByte;
+    uint32_t _fileSize;
+    uint32_t _currentBlockByte;
+    uint32_t _currentOutputByte;
     int _currentDirectoryPage;
     uint8_t* _blockData;
     uint8_t* _dataBuffer;
@@ -83,11 +83,11 @@ private:
     //char _fileName[100];
     char* _fileName;
     uint8_t* _dirPtr;
-    Serial1* _log;
+    Logger* _log;
     bool _firstBlockWritten;
     urlData _urlData;
     
-    bool fetchBlock(int start, int end);
+    bool fetchBlock(uint32_t start, uint32_t end);
     void getHost(char* host);
     void getUrl(char* url);
 };

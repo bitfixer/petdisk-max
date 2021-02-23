@@ -1420,10 +1420,10 @@ int main(void)
     ieee.unlisten();
 
     // init 4 possible network datasources
-    NetworkDataSource nds0(&espHttp, _buffer, &_bufferSize, &logSerial);
-    NetworkDataSource nds1(&espHttp, _buffer, &_bufferSize, &logSerial);
-    NetworkDataSource nds2(&espHttp, _buffer, &_bufferSize, &logSerial);
-    NetworkDataSource nds3(&espHttp, _buffer, &_bufferSize, &logSerial);
+    NetworkDataSource nds0(&espHttp, _buffer, &_bufferSize, &logger);
+    NetworkDataSource nds1(&espHttp, _buffer, &_bufferSize, &logger);
+    NetworkDataSource nds2(&espHttp, _buffer, &_bufferSize, &logger);
+    NetworkDataSource nds3(&espHttp, _buffer, &_bufferSize, &logger);
 
     NetworkDataSource* nds_array[4];
     nds_array[0] = &nds0;

@@ -37,14 +37,15 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     eeprom_read_block(recvBuffer->receiveUrl, _urlData.eepromUrl, _urlData.eepromUrlLength);
     sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), fileName);
 
-    _log->transmitString(recvBuffer->receiveUrl);
-    _log->transmitStringF(PSTR("\r\n"));
+    //_log->transmitString(recvBuffer->receiveUrl);
+    //_log->transmitStringF(PSTR("\r\n"));
 
     urlInfo* info = (urlInfo*)_dataBuffer;
     eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
     info->host[_urlData.eepromHostLength] = 0;
 
     _fileSize = _http->getSize((const char*)info->host, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
+    _log->printf("filesize %ld\r\n", _fileSize);
     _currentBlockByte = 0;
     _currentOutputByte = 0;
     _blockData = 0;
@@ -60,7 +61,7 @@ bool NetworkDataSource::openDirectory(const char* dirName)
     return true;
 }
 
-bool NetworkDataSource::fetchBlock(int start, int end)
+bool NetworkDataSource::fetchBlock(uint32_t start, uint32_t end)
 {
     int rangeSize = 0;
     char temp[128];
@@ -71,9 +72,9 @@ bool NetworkDataSource::fetchBlock(int start, int end)
 
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
 
-    _log->transmitString(recvBuffer->receiveUrl);
-    sprintf_P(temp, PSTR("\r\nhost: %s\r\n"), info->host);
-    _log->transmitString(temp);
+    //_log->transmitString(recvBuffer->receiveUrl);
+    //sprintf_P(temp, PSTR("\r\nhost: %s\r\n"), info->host);
+    //_log->transmitString(temp);
 
     _blockData = _http->getRange(
         (const char*)info->host, 
@@ -90,8 +91,10 @@ bool NetworkDataSource::fetchBlock(int start, int end)
 uint32_t NetworkDataSource::seek(uint32_t pos)
 {
     // round to closest block
-    uint32_t q_pos = (pos / readBufferSize()) * readBufferSize();
+    uint32_t q_pos = (pos / (uint32_t)readBufferSize()) * (uint32_t)readBufferSize();
     _currentOutputByte = q_pos;
+    _currentBlockByte = 0;
+    _log->printf("p %ld cob %ld\r\n", pos, _currentOutputByte);
     return _currentOutputByte;
 }
 
@@ -99,18 +102,23 @@ unsigned int NetworkDataSource::getNextFileBlock()
 {
     if (_currentOutputByte < _currentBlockByte)
     {
+        _log->printf("cob %d cbb %d\r\n", _currentOutputByte, _currentBlockByte);
         unsigned int bytes = _currentBlockByte - _currentOutputByte;
         _currentOutputByte = _currentBlockByte;
         return bytes;
     }
 
     // retrieve range from server
-    int start = _currentOutputByte;
-    int end = start + 512;
+    uint32_t start = _currentOutputByte;
+    uint32_t end = start + 512;
+    _log->printf("start1 %ld end1 %ld\r\n", start, end);
+
     if (end > _fileSize + 1)
     {
         end = _fileSize + 1;
     }
+
+    _log->printf("start %ld end %ld\r\n", start, end);
 
     fetchBlock(start, end);
 
@@ -183,8 +191,8 @@ void NetworkDataSource::writeBufferToFile(unsigned int numBytes)
     // specify url parameters
     getHost(info->host);
     getUrl(info->url);
-    _log->transmitString(info->url);
-    _log->transmitStringF(PSTR("\r\n"));
+    //_log->transmitString(info->url);
+    //_log->transmitStringF(PSTR("\r\n"));
 
     if (_firstBlockWritten == false)
     {
