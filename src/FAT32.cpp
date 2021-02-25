@@ -245,10 +245,6 @@ unsigned long FAT32::getSetNextCluster (unsigned long clusterNumber,
     //get the offset address in that sector number
     FATEntryOffset = (unsigned int) ((clusterNumber * 4) % _bytesPerSector);
 
-    char tmp[32];
-    sprintf(tmp, "feo %d, cn %d\r\n", FATEntryOffset, clusterNumber);
-    _logger->log(tmp);
-
     //read the sector into a buffer
     while(retry < 10)
     { 
@@ -660,7 +656,6 @@ uint32_t FAT32::seek(uint32_t pos)
 
 void FAT32::indexFileForSeeking()
 {
-    unsigned long sector;
     bool done = false;
 
     int clustersInFile = 0;

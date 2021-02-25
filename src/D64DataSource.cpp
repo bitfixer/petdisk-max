@@ -44,6 +44,7 @@ bool D64DataSource::openDirectory(const char* dirName)
     _dirIndexInBuffer = 0;
 
     cbmReadBlock(_dirTrackBlock);
+    return true;
 }
 unsigned int D64DataSource::getNextFileBlock() 
 {
@@ -87,7 +88,10 @@ bool D64DataSource::getNextDirectoryEntry()
     return true;
 }
 
-bool D64DataSource::isInitialized() {}
+bool D64DataSource::isInitialized() 
+{
+    return true;
+}
 
 void D64DataSource::writeBufferToFile(unsigned int numBytes) {}
 void D64DataSource::closeFile() {}
@@ -125,10 +129,9 @@ unsigned char* D64DataSource::getFilename()
             _fileName[len+3] = 'G';
         }
 
-        //memcpy(_fileName, _currentFileEntry->fileName, 16);
-        //_logger->printf("g %s\r\n", _fileName);
         return _fileName;
     }
+    return NULL;
 }
 unsigned char* D64DataSource::getBuffer() 
 {

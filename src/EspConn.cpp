@@ -56,6 +56,8 @@ bool EspConn::init() {
     {
         return false;
     }
+
+    return true;
 }
 
 void EspConn::scanNetworks() {
@@ -186,7 +188,6 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
             current_buffer_size = *_serialBufferSize;
         }
 
-        char temp[32];
         // remove IPD messages
         int start = 0;
         do {

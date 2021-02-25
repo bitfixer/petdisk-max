@@ -370,7 +370,6 @@ void IEEE488::end_output()
 
 unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
 {
-    unsigned char temp, temp2;
     unsigned char result = 0;
     // put the byte on the data lines
     DATA_PORT = ~byte;
@@ -389,6 +388,7 @@ unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
     }
 
     lower_dav();
+    return 0;
 }
 
 void IEEE488::lower_dav()

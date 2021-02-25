@@ -720,6 +720,10 @@ void PETdisk::listFiles()
 
                 int fname_length = 0;
                 unsigned char* fileName = _dataSource->getFilename();
+                if (fileName == NULL)
+                {
+                    continue;
+                }
                 fname_length = strlen((char*)fileName);
                 bool valid_file = false;
                 // check for correct extension
@@ -1034,7 +1038,7 @@ void PETdisk::run()
             if (of != NULL)
             {
                 _dataSource->getBuffer()[of->_fileBufferIndex++] = rdchar;
-                if (of->_fileBufferIndex >= _dataSource->writeBufferSize())
+                if (of->_fileBufferIndex >= (int)_dataSource->writeBufferSize())
                 {
                     _dataSource->writeBufferToFile(of->_fileBufferIndex);
                     of->_fileBufferIndex = 0;
@@ -1251,8 +1255,6 @@ void PETdisk::run()
             else if (_currentState == OPEN_DATA_READ)
             {
                 bool done = false;
-                bool found = false;
-                unsigned char temp = 0;
                 unsigned char result = 0;
                 
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
@@ -1301,7 +1303,7 @@ void PETdisk::run()
                             _bufferFileIndex = address;
                         }
 
-                        if (of->_fileBufferIndex >= _dataSource->readBufferSize())
+                        if (of->_fileBufferIndex >= (int)_dataSource->readBufferSize())
                         {
                             // get next buffer block
                             _bytesToSend = _dataSource->getNextFileBlock();
