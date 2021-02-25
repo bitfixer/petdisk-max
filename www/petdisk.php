@@ -1,5 +1,8 @@
 <?php
 
+// Set for readonly mode
+$PETDISK_READ_ONLY = true;
+
 function fileExists($fileName, $caseSensitive = true) 
 {
     if (file_exists($fileName)) 
@@ -50,7 +53,6 @@ if ($verb == "GET")
         {
             // directory
             // check for the index of the page requested.
-
             $page = -1;
             if (array_key_exists('p', $_GET))
             {
@@ -67,7 +69,8 @@ if ($verb == "GET")
             foreach ($files as $file)
             {
                 $file_parts = pathinfo($file);
-                if (strtolower($file_parts['extension']) == "prg")
+                $ext = strtolower($file_parts['extension'])
+                if ($ext == "prg" || $ext == "seq" || $ext == "d64")
                 {
                     $newentry = strtoupper($file)."\n";
                     if ($page >= 0 && $pagesize + strlen($newentry) >= $max_page_size)
@@ -106,6 +109,7 @@ if ($verb == "GET")
         }
         else
         {
+            // requesting a range of bytes
             $start = $_GET['s'];
             $end = $_GET['e'];
             $fp = fopen($file, "r");
@@ -125,6 +129,11 @@ if ($verb == "GET")
 }
 else if ($verb == "PUT")
 {
+    if ($PETDISK_READ_ONLY == true)
+    {
+        // ignore writes for read only mode
+        return;
+    }
     $fname = $_GET['f'];
     $new = $_GET['n'];
 
@@ -160,7 +169,6 @@ else if ($verb == "PUT")
     $file_contents = $file_contents . $putdata;
     // rewrite file
     file_put_contents($full_fname, $file_contents);
-    
 }
 
 

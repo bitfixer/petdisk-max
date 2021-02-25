@@ -15,6 +15,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     {
         return false;
     }
+    _fileDataSource->requestReadBufferSize(BLOCK_SIZE);
 
     cbmMount(&_cbmDisk, (char*)fileName);
     return true;

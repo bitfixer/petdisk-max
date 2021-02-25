@@ -28,6 +28,7 @@ public:
     , _dirPtr(0)
     , _log(log)
     , _firstBlockWritten(false)
+    , _readBufferSize(512)
     {
         struct urlInfo* urlInfo = (struct urlInfo*)_dataBuffer;
         _fileName = urlInfo->fileName;
@@ -63,13 +64,15 @@ public:
 
     unsigned int readBufferSize()
     {
-        return 512;
+        return _readBufferSize;
     }
 
     unsigned int writeBufferSize()
     {
         return 512;
     }
+
+    unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize);
 
 private:
     EspHttp* _http;
@@ -86,6 +89,7 @@ private:
     Logger* _log;
     bool _firstBlockWritten;
     urlData _urlData;
+    unsigned int _readBufferSize;
     
     bool fetchBlock(uint32_t start, uint32_t end);
     void getHost(char* host);

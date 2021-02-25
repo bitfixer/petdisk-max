@@ -28,6 +28,10 @@ public:
     virtual unsigned char* getBuffer() = 0;
     virtual unsigned int writeBufferSize() = 0;
     virtual unsigned int readBufferSize() { return 512; }
+    virtual unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize) {
+        // default to not changing read buffer size
+        return 512;
+    }
 };
 
 #endif

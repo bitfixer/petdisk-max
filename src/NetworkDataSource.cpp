@@ -50,9 +50,11 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     _currentOutputByte = 0;
     _blockData = 0;
 
+    _readBufferSize = 512;
+
     // get first block
-    fetchBlock(_currentBlockByte, _currentBlockByte + 512);
-    _currentBlockByte += 512;
+    fetchBlock(_currentBlockByte, _currentBlockByte + _readBufferSize);
+    _currentBlockByte += _readBufferSize;
     return true;
 }
 
@@ -61,20 +63,22 @@ bool NetworkDataSource::openDirectory(const char* dirName)
     return true;
 }
 
+unsigned int NetworkDataSource::requestReadBufferSize(unsigned int requestedReadBufferSize)
+{
+    _log->printf("request buffer %d\r\n", requestedReadBufferSize);
+    _readBufferSize = requestedReadBufferSize;
+    return _readBufferSize;
+}
+
 bool NetworkDataSource::fetchBlock(uint32_t start, uint32_t end)
 {
     int rangeSize = 0;
-    char temp[128];
 
     urlInfo* info = (urlInfo*)_dataBuffer;
     eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
     info->host[_urlData.eepromHostLength] = 0;
 
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
-
-    //_log->transmitString(recvBuffer->receiveUrl);
-    //sprintf_P(temp, PSTR("\r\nhost: %s\r\n"), info->host);
-    //_log->transmitString(temp);
 
     _blockData = _http->getRange(
         (const char*)info->host, 
@@ -110,7 +114,7 @@ unsigned int NetworkDataSource::getNextFileBlock()
 
     // retrieve range from server
     uint32_t start = _currentOutputByte;
-    uint32_t end = start + 512;
+    uint32_t end = start + _readBufferSize;
     _log->printf("start1 %ld end1 %ld\r\n", start, end);
 
     if (end > _fileSize + 1)
