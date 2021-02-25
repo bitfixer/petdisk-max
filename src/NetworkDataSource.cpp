@@ -37,9 +37,6 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     eeprom_read_block(recvBuffer->receiveUrl, _urlData.eepromUrl, _urlData.eepromUrlLength);
     sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), fileName);
 
-    //_log->transmitString(recvBuffer->receiveUrl);
-    //_log->transmitStringF(PSTR("\r\n"));
-
     urlInfo* info = (urlInfo*)_dataBuffer;
     eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
     info->host[_urlData.eepromHostLength] = 0;
@@ -65,7 +62,6 @@ bool NetworkDataSource::openDirectory(const char* dirName)
 
 unsigned int NetworkDataSource::requestReadBufferSize(unsigned int requestedReadBufferSize)
 {
-    _log->printf("request buffer %d\r\n", requestedReadBufferSize);
     _readBufferSize = requestedReadBufferSize;
     return _readBufferSize;
 }
@@ -98,7 +94,6 @@ uint32_t NetworkDataSource::seek(uint32_t pos)
     uint32_t q_pos = (pos / (uint32_t)readBufferSize()) * (uint32_t)readBufferSize();
     _currentOutputByte = q_pos;
     _currentBlockByte = 0;
-    _log->printf("p %ld cob %ld\r\n", pos, _currentOutputByte);
     return _currentOutputByte;
 }
 
@@ -106,7 +101,6 @@ unsigned int NetworkDataSource::getNextFileBlock()
 {
     if (_currentOutputByte < _currentBlockByte)
     {
-        _log->printf("cob %d cbb %d\r\n", _currentOutputByte, _currentBlockByte);
         unsigned int bytes = _currentBlockByte - _currentOutputByte;
         _currentOutputByte = _currentBlockByte;
         return bytes;
@@ -115,14 +109,11 @@ unsigned int NetworkDataSource::getNextFileBlock()
     // retrieve range from server
     uint32_t start = _currentOutputByte;
     uint32_t end = start + _readBufferSize;
-    _log->printf("start1 %ld end1 %ld\r\n", start, end);
-
+    
     if (end > _fileSize + 1)
     {
         end = _fileSize + 1;
     }
-
-    _log->printf("start %ld end %ld\r\n", start, end);
 
     fetchBlock(start, end);
 
@@ -195,9 +186,7 @@ void NetworkDataSource::writeBufferToFile(unsigned int numBytes)
     // specify url parameters
     getHost(info->host);
     getUrl(info->url);
-    //_log->transmitString(info->url);
-    //_log->transmitStringF(PSTR("\r\n"));
-
+    
     if (_firstBlockWritten == false)
     {
         sprintf_P(info->params, PSTR("?f=%s&n=1"), _fileName);

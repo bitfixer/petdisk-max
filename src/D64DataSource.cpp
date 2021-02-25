@@ -79,11 +79,15 @@ bool D64DataSource::isLastBlock()
 
 bool D64DataSource::getNextDirectoryEntry() 
 {
-    _currentFileEntry = cbmGetNextFileEntry();
-    if (_currentFileEntry == NULL)
+    do 
     {
-        return false;
-    }
+        _currentFileEntry = cbmGetNextFileEntry();
+        if (_currentFileEntry == NULL)
+        {
+            return false;
+        }
+    } 
+    while (_currentFileEntry->fileType == 0x80); // skip deleted
 
     return true;
 }
@@ -121,12 +125,26 @@ unsigned char* D64DataSource::getFilename()
             _fileName[len+2] = 'E';
             _fileName[len+3] = 'Q';
         }
-        else
+        else if (_currentFileEntry->fileType == 0x82)
         {
             _fileName[len] = '.';
             _fileName[len+1] = 'P';
             _fileName[len+2] = 'R';
             _fileName[len+3] = 'G';
+        }
+        else if (_currentFileEntry->fileType == 0x83)
+        {
+            _fileName[len] = '.';
+            _fileName[len+1] = 'U';
+            _fileName[len+2] = 'S';
+            _fileName[len+3] = 'R';
+        }
+        else if (_currentFileEntry->fileType == 0x84)
+        {
+            _fileName[len] = '.';
+            _fileName[len+1] = 'R';
+            _fileName[len+2] = 'E';
+            _fileName[len+3] = 'L';
         }
 
         return _fileName;
@@ -161,8 +179,6 @@ uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
     // seek to the right place in datasource
     uint32_t actualPos = _fileDataSource->seek(loc);
     uint32_t offset = loc - actualPos;
-
-    _logger->printf("d64 seek %ld ap %ld o %ld\r\n", loc, actualPos, offset);
 
     _fileDataSource->getNextFileBlock();
     uint8_t* buf = _fileDataSource->getBuffer();
@@ -216,8 +232,6 @@ void D64DataSource::cbmPrintFileEntry(CBMFile_Entry* entry)
     }
     sprintf(tmp, " \t\ttype: %X\r\ndataBlock %X %X\r\n", entry->fileType, entry->dataBlock[0], entry->dataBlock[1]);
     _logger->log(tmp);
-    //printf("dataBlock %X %X\n", entry->dataBlock[0], entry->dataBlock[1]);
-    //printf("\n");
 }
 
 CBMFile_Entry* D64DataSource::cbmGetNextFileEntry()
