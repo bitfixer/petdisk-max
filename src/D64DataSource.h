@@ -12,6 +12,7 @@
 #define BLOCK_SIZE 256
 #define BAM_SIZE 4*35
 #define DISK_TRACKS 40
+#define MAX_TRACKS 35
 
 typedef struct CBMHeader
 {
@@ -72,6 +73,7 @@ public:
     bool init() 
     {
         _logger->log("d64init\r\n");
+        memset(_sectors, 0, MAX_TRACKS+1);
         return true;
     }
     
@@ -99,24 +101,29 @@ public:
 
 private:
     DataSource* _fileDataSource;
-    CBMDisk _cbmDisk;
+    //CBMDisk _cbmDisk;
     CBMFile_Entry* _currentFileEntry;
-    uint8_t _fileName[20];
+    uint8_t _fileName[21];
     uint8_t* _cbmBuffer;
     uint32_t* _cbmTrackLayout;
     uint8_t _dirTrackBlock[2];
     uint8_t _fileTrackBlock[2];
     uint8_t _dirIndexInBuffer;
+    uint8_t _sectors[MAX_TRACKS+1];
+    uint8_t _cbmBAM[BAM_SIZE];
     Logger* _logger;
 
-    void cbmMount(CBMDisk* disk, char* name);
+    void cbmMount();
     void cbmPrintHeader(CBMDisk* disk);
-    int cbmLoadHeader(CBMDisk* disk);
+    CBMHeader* cbmLoadHeader();
     uint32_t cbmBlockLocation(uint8_t* tb);
     uint8_t* cbmReadBlock(uint8_t* tb);
+    uint8_t* cbmWriteBlock(uint8_t* data, uint8_t* tb);
+    uint8_t* cbmEmptyBlockChain(CBMDisk* disk);
     void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();
     CBMFile_Entry* cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uint8_t fileType);
+    bool cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data);
     uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source);
     uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source);
 };

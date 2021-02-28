@@ -182,7 +182,7 @@ void sd_test(DataSource* dataSource, Serial1* log)
 // define a configuration structure
 // this will be written to eeprom
 
-#define DEVICE_NONE         0
+#define DEVICE_NONE         0  
 #define DEVICE_SD0          1
 #define DEVICE_SD1          2
 #define DEVICE_URL_BASE     3
