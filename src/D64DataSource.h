@@ -2,8 +2,9 @@
 #define __d64_datasource_h__
 
 #include <stdint.h>
+#include <string.h>
 #include "DataSource.h"
-#include "SerialLogger.h"
+#include "ConsoleLogger.h"
 
 // need to mount a file as a d64 filesystem
 // the file will be served from another datasource
@@ -64,6 +65,15 @@ typedef struct
         CBMDirectory    directory;
 } CBMDisk;
 
+// ERROR CODES
+#define FILE_ERROR      -1
+#define OUT_OF_MEMORY   -2
+#define OUT_OF_RANGE    -3
+#define FILE_NOT_FOUND  -4
+#define ERROR           -5
+#define FILE_NOT_OPEN   -6./
+#define FILE_EXISTS     -7
+
 class D64DataSource : public DataSource
 {
 public:
@@ -77,11 +87,11 @@ public:
         return true;
     }
     
-    bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
+    bool initWithDataSource(DataSource* dataSource, const char* fileName, ConsoleLogger* logger);
 
     void openFileForWriting(unsigned char* fileName);
     bool openFileForReading(unsigned char* fileName);
-    void seek(unsigned int position);
+    uint32_t seek(unsigned int position);
 
     bool openDirectory(const char* dirName);
     unsigned int getNextFileBlock();
@@ -111,7 +121,7 @@ private:
     uint8_t _dirIndexInBuffer;
     uint8_t _sectors[MAX_TRACKS+1];
     uint8_t _cbmBAM[BAM_SIZE];
-    Logger* _logger;
+    ConsoleLogger* _logger;
 
     void cbmMount();
     void cbmPrintHeader(CBMDisk* disk);
@@ -122,10 +132,14 @@ private:
     uint8_t* cbmEmptyBlockChain(CBMDisk* disk);
     void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();
-    CBMFile_Entry* cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uint8_t fileType);
-    bool cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data);
+    CBMFile_Entry* cbmSearch(uint8_t* searchNameA, uint8_t fileType);
+    //bool cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data);
     uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source);
     uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source);
+    bool cbmFindEmptyBlock(uint8_t* tb);
+    uint8_t* cbmSectorsPerTrack(void);
+    bool cbmIsBlockFree(uint8_t* tb);
+    int cbmBAM(uint8_t *tb, char s);
 };
 
 #endif

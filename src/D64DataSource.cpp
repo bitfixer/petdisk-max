@@ -3,7 +3,7 @@
 #include "D64DataSource.h"
 #include "cbmlayout.h"
 
-bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger)
+bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName, ConsoleLogger* logger)
 {
     _fileDataSource = dataSource;
     _logger = logger;
@@ -23,13 +23,17 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
 
 void D64DataSource::openFileForWriting(unsigned char* fileName) 
 {
+    printf("open file for writing\n");
     memcpy(_fileName, fileName, 21);
+    printf("h\n");
     _cbmBuffer = _fileDataSource->getBuffer();
+    _fileTrackBlock[0] = 1;
+    _fileTrackBlock[1] = 0;
 }
 
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
 {
-    CBMFile_Entry* entry = cbmSearch(&_cbmDisk, fileName, 0);
+    CBMFile_Entry* entry = cbmSearch(fileName, 0);
     if (entry == NULL)
     {
         return false;
@@ -41,7 +45,11 @@ bool D64DataSource::openFileForReading(unsigned char* fileName)
 }
 
 
-void D64DataSource::seek(unsigned int pos) {}
+uint32_t D64DataSource::seek(unsigned int pos) 
+{
+    return 0; 
+}
+
 bool D64DataSource::openDirectory(const char* dirName) 
 {
     _dirTrackBlock[0] = 18;
@@ -108,16 +116,34 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
     // data will be in bytes 2->BLOCK_SIZE
     // write track and block into first 2 bytes
 
-    char tb[2];
-    if (!cbmFindEmptyBlock(&tb))
+    //uint8_t tb[2];
+    printf("writeBufferToFile %d\n", numBytes);
+    if (!cbmFindEmptyBlock(_fileTrackBlock))
     {
+        printf("no\n");
         return;
     }
 
+    cbmBAM(_fileTrackBlock, 'a');
+    if (numBytes < writeBufferSize())
+    {
+        _cbmBuffer[0] = 0;
+        _cbmBuffer[1] = numBytes -1; // TODO: fix this value
+    }
+    else
+    {
+        _cbmBuffer[0] = _fileTrackBlock[0];
+        _cbmBuffer[1] = _fileTrackBlock[1];
+    }
+
+    cbmWriteBlock();
+}
+
+void D64DataSource::closeFile()
+{
 
 }
 
-void D64DataSource::closeFile() {}
 void D64DataSource::openCurrentDirectory() 
 {
     _dirTrackBlock[0] = 18;
@@ -193,15 +219,20 @@ uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)
 
 void D64DataSource::cbmMount()
 {
+    printf("load header\n");
     CBMHeader* header = cbmLoadHeader();
+    printf("done load header\n");
     // copy the bam
     memcpy(_cbmBAM, header->bam, BAM_SIZE);
+    printf("done mount\n");
 }
 
 uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 {
+
     uint32_t loc = cbmBlockLocation(tb);
-    
+    printf("cbmReadBlock %d %d %ld\n", tb[0], tb[1], loc);
+
     // seek to the right place in datasource
     uint32_t actualPos = _fileDataSource->seek(loc);
     uint32_t offset = loc - actualPos;
@@ -299,7 +330,7 @@ uint8_t* D64DataSource::cbmD64StringCString(uint8_t* dest, const uint8_t* source
     return cbmCopyString(dest, source);
 }
 
-CBMFile_Entry* D64DataSource::cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uint8_t fileType)
+CBMFile_Entry* D64DataSource::cbmSearch(uint8_t* searchNameA, uint8_t fileType)
 {
     uint8_t fileName[18];
     uint8_t searchName[18];
@@ -326,13 +357,15 @@ CBMFile_Entry* D64DataSource::cbmSearch(CBMDisk* disk, uint8_t* searchNameA, uin
 
 //uint8_t* D64DataSource::cbmEmptyBlockC
 
+/*
 bool D64DataSource::cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data)
 {
     // search for existing file
 
     uint8_t* tb;
-    cbmWriteBlockChain(data);
+    //cbmWriteBlockChain(data);
 }
+*/
 
 bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
 {
@@ -368,14 +401,14 @@ bool D64DataSource::cbmIsBlockFree(uint8_t* tb)
     return cbmBAM(tb, 'r');
 }
 
-uint8_t* D64DataSource::cbmSectorsPerTrack(void)
+uint8_t* D64DataSource::cbmSectorsPerTrack()
 {
-    int b = 21;
-
-    if (sectors[1] != 0)
+    if (_sectors[1] != 0)
     {
-        return sectors;
+        return _sectors;
     }
+
+    int b = 21;
 
     for (int a = 1; a <= MAX_TRACKS; a++)
     {
@@ -394,14 +427,14 @@ uint8_t* D64DataSource::cbmSectorsPerTrack(void)
             b--;
         }
 
-        sectors[a] = b;
+        _sectors[a] = b;
     }
 
-    return sectors;
+    return _sectors;
 }
 
 // Allocation routines
-int D64DataSource::cbmBAM(byte *tb, char s)
+int D64DataSource::cbmBAM(uint8_t *tb, char s)
 {
         // Three purpose function:
         // Check if a sector has been allocateded in the BAM.
@@ -456,18 +489,20 @@ int D64DataSource::cbmBAM(byte *tb, char s)
 
         b = 1 << lshift;
 
-        if('a' == s)              // 'a' allocates a sector in BAM.
+        if ('a' == s)              // 'a' allocates a sector in BAM.
         {
-            if(freeSectors[0] > 0){
+            if (freeSectors[0] > 0)
+            {
                 b ^= 0xFF;
                 bam[0] &= b;
                 freeSectors[0]--;
             }
         }
-        if('f'==s)  // 'f' frees a sector in BAM
+        if ('f'==s)  // 'f' frees a sector in BAM
         {              
-            if(freeSectors[0]<0xFF){
-                bam[0]|=b;
+            if (freeSectors[0] < 0xFF)
+            {
+                bam[0] |= b;
                 freeSectors[0]++;
             }
         }                                
