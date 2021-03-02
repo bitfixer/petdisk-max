@@ -111,7 +111,6 @@ public:
 
 private:
     DataSource* _fileDataSource;
-    //CBMDisk _cbmDisk;
     CBMFile_Entry* _currentFileEntry;
     uint8_t _fileName[21];
     uint8_t* _cbmBuffer;
@@ -128,7 +127,7 @@ private:
     CBMHeader* cbmLoadHeader();
     uint32_t cbmBlockLocation(uint8_t* tb);
     uint8_t* cbmReadBlock(uint8_t* tb);
-    uint8_t* cbmWriteBlock(uint8_t* data, uint8_t* tb);
+    void cbmWriteBlock(uint8_t* tb);
     uint8_t* cbmEmptyBlockChain(CBMDisk* disk);
     void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();

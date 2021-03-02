@@ -29,6 +29,8 @@ void D64DataSource::openFileForWriting(unsigned char* fileName)
     _cbmBuffer = _fileDataSource->getBuffer();
     _fileTrackBlock[0] = 1;
     _fileTrackBlock[1] = 0;
+
+    cbmFindEmptyBlock(_fileTrackBlock);
 }
 
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
@@ -117,31 +119,46 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
     // write track and block into first 2 bytes
 
     //uint8_t tb[2];
-    printf("writeBufferToFile %d\n", numBytes);
-    if (!cbmFindEmptyBlock(_fileTrackBlock))
-    {
-        printf("no\n");
-        return;
-    }
+    uint8_t tb[2];
+    tb[0] = _fileTrackBlock[0];
+    tb[1] = _fileTrackBlock[1];
 
-    cbmBAM(_fileTrackBlock, 'a');
+    printf("writeBufferToFile %d t %d b %d\n", numBytes, tb[0], tb[1]);
+    cbmBAM(tb, 'a');
     if (numBytes < writeBufferSize())
     {
         _cbmBuffer[0] = 0;
-        _cbmBuffer[1] = numBytes -1; // TODO: fix this value
+        _cbmBuffer[1] = numBytes - 1; // TODO: fix this value
     }
     else
     {
+        // find the next empty block
+        if (!cbmFindEmptyBlock(_fileTrackBlock))
+        {
+            printf("no\n");
+            return;
+        }
+
+        // point to the next block
         _cbmBuffer[0] = _fileTrackBlock[0];
         _cbmBuffer[1] = _fileTrackBlock[1];
     }
 
-    cbmWriteBlock();
+    cbmWriteBlock(tb);
+}
+
+void D64DataSource::cbmWriteBlock(uint8_t* tb)
+{
+    uint32_t loc = cbmBlockLocation(tb);
+    uint32_t pos = _fileDataSource->seek(loc);
+
+    printf("writing %d %d, loc %d\n", tb[0], tb[1], loc);
+    _fileDataSource->writeBufferToFile(BLOCK_SIZE);
 }
 
 void D64DataSource::closeFile()
 {
-
+    printf("closeFile\n");
 }
 
 void D64DataSource::openCurrentDirectory() 
@@ -374,6 +391,7 @@ bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
     {
         if (cbmIsBlockFree(tb))
         {
+            printf("block is free: %d %d\n", tb[0], tb[1]);
             return true;
         }
 

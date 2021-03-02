@@ -12,7 +12,7 @@ bool fsDataSource::openFileForReading(unsigned char* fileName)
     printf("fsDataSource openFile %s\n", (char*)fileName);
     strcpy(_fileName, (const char*)fileName);
     printf("!\n");
-    _fp = fopen(_fileName, "rb");
+    _fp = fopen(_fileName, "rb+");
     printf("@\n");
 
     return true;
@@ -39,7 +39,15 @@ bool fsDataSource::isLastBlock()
 bool fsDataSource::getNextDirectoryEntry() {}
 bool fsDataSource::isInitialized() {}
 
-void fsDataSource::writeBufferToFile(unsigned int numBytes) {}
+void fsDataSource::writeBufferToFile(unsigned int numBytes) 
+{
+    for (int i = 0; i < 32; i++)
+    {
+        printf("%d: %X\n", i, _buffer[i]);
+    }
+
+    fwrite(_buffer, 1, numBytes, _fp);
+}
 void fsDataSource::closeFile() 
 {
 
