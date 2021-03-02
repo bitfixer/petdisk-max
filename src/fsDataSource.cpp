@@ -41,10 +41,12 @@ bool fsDataSource::isInitialized() {}
 
 void fsDataSource::writeBufferToFile(unsigned int numBytes) 
 {
+    /*
     for (int i = 0; i < 32; i++)
     {
         printf("%d: %X\n", i, _buffer[i]);
     }
+    */
 
     fwrite(_buffer, 1, numBytes, _fp);
 }

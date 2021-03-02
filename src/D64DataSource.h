@@ -71,7 +71,7 @@ typedef struct
 #define OUT_OF_RANGE    -3
 #define FILE_NOT_FOUND  -4
 #define ERROR           -5
-#define FILE_NOT_OPEN   -6./
+#define FILE_NOT_OPEN   -6
 #define FILE_EXISTS     -7
 
 class D64DataSource : public DataSource
@@ -117,9 +117,11 @@ private:
     uint32_t* _cbmTrackLayout;
     uint8_t _dirTrackBlock[2];
     uint8_t _fileTrackBlock[2];
+    uint8_t _fileFirstTrackBlock[2];
     uint8_t _dirIndexInBuffer;
     uint8_t _sectors[MAX_TRACKS+1];
     uint8_t _cbmBAM[BAM_SIZE];
+    uint16_t _blocksInFile;
     ConsoleLogger* _logger;
 
     void cbmMount();
@@ -139,6 +141,7 @@ private:
     uint8_t* cbmSectorsPerTrack(void);
     bool cbmIsBlockFree(uint8_t* tb);
     int cbmBAM(uint8_t *tb, char s);
+    void cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint16_t blocksInFile);
 };
 
 #endif

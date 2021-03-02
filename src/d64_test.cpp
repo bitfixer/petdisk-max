@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 
     fsds.init();
     d64ds.initWithDataSource(&fsds, "test.d64", &logger);
-    d64ds.openFileForWriting((unsigned char*)"BLAH");
+    d64ds.openFileForWriting((unsigned char*)"BORKMORK");
 
     uint8_t data[1024];
     uint8_t* dptr = data;
@@ -32,5 +32,15 @@ int main(int argc, char** argv)
         d64ds.writeBufferToFile(bytesToSend);
     }
 
-    printf("hey\n");
+    d64ds.closeFile();
+
+    /*
+    d64ds.openCurrentDirectory();
+    while (d64ds.getNextDirectoryEntry())
+    {
+        printf("f: %s\n", d64ds.getFilename());
+    }
+    */
+
+    //printf("hey\n");
 }
