@@ -24,10 +24,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
 void D64DataSource::openFileForWriting(unsigned char* fileName) 
 {
     printf("open file for writing\n");
-    //memcpy(_fileName, fileName, 21);
-
-    memset(_fileName, 0xA0, 21);
-    cbmCopyString(_fileName, fileName);
+    memcpy(_fileName, fileName, 21);
 
     printf("h\n");
     _cbmBuffer = _fileDataSource->getBuffer();
@@ -39,26 +36,6 @@ void D64DataSource::openFileForWriting(unsigned char* fileName)
     _fileFirstTrackBlock[0] = _fileTrackBlock[0];
     _fileFirstTrackBlock[1] = _fileTrackBlock[1];
 }
-
-/*
-uint8_t* D64DataSource::cbmCopyString(uint8_t* dest, const uint8_t* src)
-{
-    uint8_t* destptr = dest;
-    uint8_t* srcptr = src;
-
-    for (int i = 0; i < 17; i++)
-    {
-        if (*srcptr == 0 || *srcptr == 0xA0)
-        {
-            break;
-        }
-
-        *destptr++ = *srcptr++;
-    }
-
-    return dest;
-}
-*/
 
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
 {
@@ -186,10 +163,28 @@ void D64DataSource::cbmWriteBlock(uint8_t* tb)
 
 void D64DataSource::closeFile()
 {
-    printf("closeFile\n");
+    // determine type of file
+    // this can be PRG, SEQ, REL, USR
+    uint8_t openFileType = 0x00;
+    if (strstr((char*)_fileName, ".PRG"))
+    {
+        openFileType = PRG_TYPE;
+    }
+    else if (strstr((char*)_fileName, ".SEQ"))
+    {
+        openFileType = SEQ_TYPE;
+    }
+    else if (strstr((char*)_fileName, ".REL"))
+    {
+        openFileType == REL_TYPE;
+    }
+    else if (strstr((char*)_fileName, ".USR"))
+    {
+        openFileType == USR_TYPE;
+    }
 
     // create the directory entry
-    cbmCreateFileEntry(_fileName, 0x81, _blocksInFile);
+    cbmCreateFileEntry(_fileName, openFileType, _blocksInFile);
 }
 
 void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint16_t blocksInFile)
@@ -234,7 +229,11 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     // fill entry
     entry->fileType = fileType;
     memcpy(entry->dataBlock, _fileFirstTrackBlock, 2);
-    memcpy(entry->fileName, fileName, 16);
+
+    // copy filename, convert to cbm style first
+    memset(entry->fileName, 0xA0, 16);
+    cbmCopyString(entry->fileName, fileName);
+
     entry->fileSize[0] = (uint8_t)(blocksInFile & 0xFF);
     entry->fileSize[1] = (uint8_t)(blocksInFile >> 8);
 

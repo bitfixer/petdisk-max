@@ -15,6 +15,12 @@
 #define DISK_TRACKS 40
 #define MAX_TRACKS 35
 
+#define DEL_TYPE 0x80
+#define SEQ_TYPE 0x81
+#define PRG_TYPE 0x82
+#define USR_TYPE 0x83
+#define REL_TYPE 0x84
+
 typedef struct CBMHeader
 {
         uint8_t            nextBlock[2];
@@ -118,6 +124,7 @@ private:
     uint8_t _dirTrackBlock[2];
     uint8_t _fileTrackBlock[2];
     uint8_t _fileFirstTrackBlock[2];
+    //uint8_t _openFileType;
     uint8_t _dirIndexInBuffer;
     uint8_t _sectors[MAX_TRACKS+1];
     uint8_t _cbmBAM[BAM_SIZE];

@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 
     fsds.init();
     d64ds.initWithDataSource(&fsds, "test.d64", &logger);
-    d64ds.openFileForWriting((unsigned char*)"BORKMORK");
+    d64ds.openFileForWriting((unsigned char*)"BORKMORK.PRG");
 
     uint8_t data[1024];
     uint8_t* dptr = data;
