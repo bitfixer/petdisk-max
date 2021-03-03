@@ -10,13 +10,12 @@ static char _line[LOG_BUFFER_SIZE];
 class Logger {
 public:
     Logger() {}
-    virtual ~Logger() {}
+    ~Logger() {}
 
-    virtual void init() = 0;
-    virtual void log(const char* str) {};
-    /*
-    virtual void log(unsigned char* data, int length) = 0;
-    virtual void logF(const char* str) = 0;
+    virtual void init() {}
+    virtual void log(const char* str) {}
+    virtual void log(unsigned char* data, int length) {}
+    virtual void logF(const char* str) {}
     virtual void printf(const char* format, ...)
     {
         va_list vl;
@@ -25,7 +24,6 @@ public:
         log(_line);
     }
     virtual void flush() {}
-    */
 };
 
 #endif

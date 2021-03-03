@@ -1,13 +1,15 @@
-#include "D64DataSource.h"
-#include "fsDataSource.h"
+//#include "D64DataSource.h"
+//#include "fsDataSource.h"
 #include "ConsoleLogger.h"
 
 int main(int argc, char** argv)
 {
-    D64DataSource d64ds;
-    fsDataSource fsds;
+    //D64DataSource d64ds;
+    //fsDataSource fsds;
     ConsoleLogger logger;
+    logger.log("test\n");
 
+/*
     fsds.init();
     d64ds.initWithDataSource(&fsds, "test.d64", &logger);
 
@@ -35,6 +37,7 @@ int main(int argc, char** argv)
 
     d64ds.closeFile();
 
+*/
     /*
     d64ds.openCurrentDirectory();
     while (d64ds.getNextDirectoryEntry())
@@ -42,7 +45,6 @@ int main(int argc, char** argv)
         printf("f: %s\n", d64ds.getFilename());
     }
     */
-    
 
-    //printf("hey\n");
+    logger.log("1234\n");
 }
