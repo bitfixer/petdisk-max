@@ -9,8 +9,6 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     _logger = logger;
     _cbmTrackLayout = (uint32_t*)LAYOUT_CBM;
 
-    memset(_sectors, 0, MAX_TRACKS+1);
-
     // mount the file as a D64 drive
     bool success = _fileDataSource->openFileForReading((unsigned char*)fileName);
     if (!success)
@@ -669,7 +667,7 @@ int D64DataSource::cbmBAM(uint8_t *tb, char s)
         // If track sent to funtion is out of range, return out of range error.
         if (tb[0] > MAX_TRACKS)
         {
-            return OUT_OF_RANGE;
+            return D64_OUT_OF_RANGE;
         }
 
         // Multiply (track-1) by 4 to find start of track information in BAM
@@ -707,7 +705,6 @@ int D64DataSource::cbmBAM(uint8_t *tb, char s)
 
         if ('a' == s)              // 'a' allocates a sector in BAM.
         {
-            printf("marking %d %d\n", tb[0], tb[1]);
             if (freeSectors[0] > 0)
             {
                 b ^= 0xFF;

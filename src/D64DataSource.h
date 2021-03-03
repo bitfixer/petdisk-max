@@ -72,13 +72,13 @@ typedef struct
 } CBMDisk;
 
 // ERROR CODES
-#define FILE_ERROR      -1
-#define OUT_OF_MEMORY   -2
-#define OUT_OF_RANGE    -3
-#define FILE_NOT_FOUND  -4
-#define ERROR           -5
-#define FILE_NOT_OPEN   -6
-#define FILE_EXISTS     -7
+#define D64_FILE_ERROR      -1
+#define D64_OUT_OF_MEMORY   -2
+#define D64_OUT_OF_RANGE    -3
+#define D64_FILE_NOT_FOUND  -4
+#define D64_ERROR           -5
+#define D64_FILE_NOT_OPEN   -6
+#define D64_FILE_EXISTS     -7
 
 class D64DataSource : public DataSource
 {
@@ -88,8 +88,6 @@ public:
 
     bool init() 
     {
-        _logger->log("d64init\r\n");
-        memset(_sectors, 0, MAX_TRACKS+1);
         return true;
     }
     
@@ -125,7 +123,6 @@ private:
     uint8_t _fileTrackBlock[2];
     uint8_t _fileFirstTrackBlock[2];
     uint8_t _dirIndexInBuffer;
-    uint8_t _sectors[MAX_TRACKS+1];
     uint8_t _cbmBAM[BAM_SIZE];
     uint16_t _blocksInFile;
     Logger* _logger;
