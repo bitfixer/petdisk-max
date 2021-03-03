@@ -21,6 +21,7 @@ public:
     bool isInitialized();
 
     void writeBufferToFile(unsigned int numBytes);
+    void updateBlock();
     void closeFile();
     void openCurrentDirectory();
     unsigned char* getFilename();

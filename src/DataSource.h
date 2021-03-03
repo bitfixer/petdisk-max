@@ -18,6 +18,7 @@ public:
     virtual bool getNextDirectoryEntry() = 0;
     virtual bool isInitialized() = 0;
     virtual void writeBufferToFile(unsigned int numBytes) = 0;
+    virtual void updateBlock() {}
     virtual void closeFile() = 0;
     virtual void openCurrentDirectory() = 0;
     virtual uint32_t seek(uint32_t pos) { return 0; }

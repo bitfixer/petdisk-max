@@ -838,6 +838,13 @@ void FAT32::writeBufferToFile(unsigned int bytesToWrite)
     }
 }
 
+void FAT32::updateBlock()
+{
+    // write a block to current file
+    sector = getFirstSector(_filePosition.cluster) + _filePosition.sectorIndex;
+    _sd->writeSingleBlock(sector, _FatBuffer);
+}
+
 void FAT32::closeFile()
 {
     unsigned char fileCreatedFlag = 0;

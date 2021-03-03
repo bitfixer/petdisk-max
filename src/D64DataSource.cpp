@@ -3,7 +3,7 @@
 #include "D64DataSource.h"
 #include "cbmlayout.h"
 
-bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName, ConsoleLogger* logger)
+bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger)
 {
     _fileDataSource = dataSource;
     _logger = logger;
@@ -25,11 +25,9 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
 
 void D64DataSource::openFileForWriting(unsigned char* fileName) 
 {
-    printf("open file for writing\n");
     memcpy(_fileName, fileName, 21);
 
-    printf("h\n");
-    _cbmBuffer = _fileDataSource->getBuffer();
+    //_cbmBuffer = _fileDataSource->getBuffer();
     _fileTrackBlock[0] = 1;
     _fileTrackBlock[1] = 0;
     _blocksInFile = 0;
@@ -37,6 +35,27 @@ void D64DataSource::openFileForWriting(unsigned char* fileName)
 
     _fileFirstTrackBlock[0] = _fileTrackBlock[0];
     _fileFirstTrackBlock[1] = _fileTrackBlock[1];
+
+    prepareNextBlockForWriting();
+}
+
+void D64DataSource::prepareNextBlockForWriting()
+{
+    uint32_t loc = cbmBlockLocation(_fileTrackBlock);
+    uint32_t actualPos = _fileDataSource->seek(loc);
+
+    uint32_t offset = loc - actualPos;
+    uint8_t* buf = _fileDataSource->getBuffer();
+    _cbmBuffer = &buf[offset];
+
+    if (_fileDataSource->writeBufferSize() != BLOCK_SIZE)
+    {
+        // the blocks written by the datasource are a different size than 
+        // one block on the d64
+        // we need to read a block first, so the correct data will be written back 
+        // to the remainder
+        _fileDataSource->getNextFileBlock();
+    }
 }
 
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
@@ -129,7 +148,6 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
     tb[0] = _fileTrackBlock[0];
     tb[1] = _fileTrackBlock[1];
 
-    printf("writeBufferToFile %d t %d b %d\n", numBytes, tb[0], tb[1]);
     cbmBAM(tb, 'a');
     if (numBytes < writeBufferSize())
     {
@@ -141,7 +159,6 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
         // find the next empty block
         if (!cbmFindEmptyBlock(_fileTrackBlock))
         {
-            printf("NNNNNNNNNNNNNNNNNNOOOOOOOOOOOOOOOOOOOo\n");
             return;
         }
 
@@ -151,6 +168,10 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
     }
 
     cbmWriteBlock(tb);
+
+    // buffer is written, prepare next block for writing if needed
+    prepareNextBlockForWriting();
+
     _blocksInFile++;
 }
 
@@ -158,9 +179,7 @@ void D64DataSource::cbmWriteBlock(uint8_t* tb)
 {
     uint32_t loc = cbmBlockLocation(tb);
     uint32_t pos = _fileDataSource->seek(loc);
-
-    printf("writing %d %d, loc %d\n", tb[0], tb[1], loc);
-    _fileDataSource->writeBufferToFile(BLOCK_SIZE);
+    _fileDataSource->updateBlock();
 }
 
 void D64DataSource::closeFile()
@@ -199,14 +218,7 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     bool done = false;
     while (!done)
     {
-        //printf("reading file entry %d\n", i++);
         entry = cbmGetNextFileEntry();
-
-        if (entry)
-        {
-            //printf("good entry %X\n", entry->fileType);
-        }
-
         if (entry)
         {
             if (entry->fileType == 0)
@@ -220,11 +232,8 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
         }
     } 
 
-    // TODO: check if we need another directory block
-
     if (entry == NULL)
     {
-        printf("here\n");
         // allocate a new directory
         uint8_t tb[2];
         if (!createNewDirectoryBlock(tb))
@@ -232,7 +241,6 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
             return;
         }
 
-        printf("created new dir block.\n");
         // point current directory block to the new one
         entry = cbmGetNextFileEntry();
         if (entry == NULL)
@@ -253,13 +261,7 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     entry->fileSize[0] = (uint8_t)(blocksInFile & 0xFF);
     entry->fileSize[1] = (uint8_t)(blocksInFile >> 8);
 
-    printf("dir tb %d %d\n", _dirTrackBlock[0], _dirTrackBlock[1]);
-
-    // save this block back to disk
-    //uint32_t loc = cbmBlockLocation(_dirTrackBlock);
-    //_fileDataSource->seek(loc);
-    //_fileDataSource->writeBufferToFile(BLOCK_SIZE);
-
+    _logger->printf("dir tb %d %d\n", _dirTrackBlock[0], _dirTrackBlock[1]);
 
     cbmWriteBlock(_dirTrackBlock);
     cbmSaveHeader();
@@ -268,11 +270,11 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
 
 bool D64DataSource::findEmptyDirectoryBlock(uint8_t* tb)
 {
-    uint8_t* sectors = cbmSectorsPerTrack();
     tb[0] = 18;
     tb[1] = 1;
 
-    for (tb[1] = 1; tb[1] < sectors[tb[0]]; tb[1]++)
+    uint8_t sectorsPerTrack = cbmSectorsPerTrack(tb[0]);
+    for (tb[1] = 1; tb[1] < sectorsPerTrack; tb[1]++)
     {
         if (cbmIsBlockFree(tb))
         {
@@ -291,15 +293,11 @@ bool D64DataSource::createNewDirectoryBlock(uint8_t* tb)
     }
 
     // point previous directory block here
-    printf("reading previous block: %d %d\n", _dirTrackBlock[0], _dirTrackBlock[1]);
     cbmReadBlock(_dirTrackBlock);
     CBMFile_Entry* entry = (CBMFile_Entry*)_cbmBuffer;
-    printf("prev: %d %d\n", entry->nextBlock[0], entry->nextBlock[1]);
-    printf("pp %d %d\n", _cbmBuffer[0], _cbmBuffer[1]);
-
+    
     entry->nextBlock[0] = tb[0];
     entry->nextBlock[1] = tb[1];
-     printf("pp %d %d\n", _cbmBuffer[0], _cbmBuffer[1]);
     cbmWriteBlock(_dirTrackBlock);
 
     cbmReadBlock(tb);
@@ -388,12 +386,9 @@ uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)
 
 void D64DataSource::cbmMount()
 {
-    printf("load header\n");
     CBMHeader* header = cbmLoadHeader();
-    printf("done load header\n");
     // copy the bam
     memcpy(_cbmBAM, header->bam, BAM_SIZE);
-    printf("done mount\n");
 }
 
 uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
@@ -557,19 +552,15 @@ bool D64DataSource::cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data)
 
 bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
 {
-    uint8_t* sectors = cbmSectorsPerTrack();
-    printf("finding empty block from %d %d\n", tb[0], tb[1]);
     while (tb[0] <= MAX_TRACKS)
     {
         if (cbmIsBlockFree(tb))
         {
-            printf("block is free: %d %d\n", tb[0], tb[1]);
             return true;
         }
 
         tb[1]++;
-        printf("sec %d, max %d\n", tb[1], sectors[tb[0]]);
-        if (tb[1] == sectors[tb[0]])
+        if (tb[1] == cbmSectorsPerTrack(tb[0]))
         {
             if (tb[0] == 17)
             {
@@ -592,8 +583,9 @@ bool D64DataSource::cbmIsBlockFree(uint8_t* tb)
     return cbmBAM(tb, 'r');
 }
 
-uint8_t* D64DataSource::cbmSectorsPerTrack()
+uint8_t D64DataSource::cbmSectorsPerTrack(uint8_t track)
 {
+    /*
     if (_sectors[1] != 0)
     {
         return _sectors;
@@ -627,6 +619,34 @@ uint8_t* D64DataSource::cbmSectorsPerTrack()
     }
 
     return _sectors;
+    */
+
+    if (track == 0)
+    {
+        return 0;
+    }
+
+    if (track <= 17)
+    {
+        return 21;
+    }
+
+    if (track <= 24)
+    {
+        return 19;
+    }
+
+    if (track <= 30)
+    {
+        return 17;
+    }
+
+    if (track <= 34)
+    {
+        return 17;
+    }
+
+    return 0;
 }
 
 // Allocation routines

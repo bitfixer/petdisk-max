@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "DataSource.h"
-#include "ConsoleLogger.h"
+#include "Logger.h"
 
 // need to mount a file as a d64 filesystem
 // the file will be served from another datasource
@@ -93,7 +93,7 @@ public:
         return true;
     }
     
-    bool initWithDataSource(DataSource* dataSource, const char* fileName, ConsoleLogger* logger);
+    bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
 
     void openFileForWriting(unsigned char* fileName);
     bool openFileForReading(unsigned char* fileName);
@@ -124,12 +124,13 @@ private:
     uint8_t _dirTrackBlock[2];
     uint8_t _fileTrackBlock[2];
     uint8_t _fileFirstTrackBlock[2];
-    //uint8_t _openFileType;
     uint8_t _dirIndexInBuffer;
     uint8_t _sectors[MAX_TRACKS+1];
     uint8_t _cbmBAM[BAM_SIZE];
     uint16_t _blocksInFile;
-    ConsoleLogger* _logger;
+    Logger* _logger;
+
+    void prepareNextBlockForWriting();
 
     void cbmMount();
     void cbmPrintHeader(CBMDisk* disk);
@@ -145,7 +146,7 @@ private:
     uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source);
     uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source);
     bool cbmFindEmptyBlock(uint8_t* tb);
-    uint8_t* cbmSectorsPerTrack(void);
+    uint8_t cbmSectorsPerTrack(uint8_t track);
     bool cbmIsBlockFree(uint8_t* tb);
     int cbmBAM(uint8_t *tb, char s);
     void cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint16_t blocksInFile);

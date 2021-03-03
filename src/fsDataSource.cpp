@@ -20,36 +20,38 @@ bool fsDataSource::openFileForReading(unsigned char* fileName)
 
 uint32_t fsDataSource::seek(unsigned int pos) 
 {
-    printf("seek to %d\n", pos);
-    fseek(_fp, pos, SEEK_SET);
-    return pos;
+    uint32_t q_pos = (pos / readBufferSize()) * readBufferSize();
+    printf("seek to %d, q %d\n", pos, q_pos);
+    fseek(_fp, q_pos, SEEK_SET);
+    return q_pos;
 }
 bool fsDataSource::openDirectory(const char* dirName) {}
 unsigned int fsDataSource::getNextFileBlock() 
 {
-    //printf("read block.\n");
-    _bytesInBlock = (int)fread(_buffer, 1, 512, _fp);
+    printf("reading at %d\n", ftell(_fp));
+    _bytesInBlock = (int)fread(_buffer, 1, readBufferSize(), _fp);
 
     return _bytesInBlock;
 }
 bool fsDataSource::isLastBlock() 
 {
-    return (_bytesInBlock < 512); 
+    return (_bytesInBlock < readBufferSize()); 
 }
 bool fsDataSource::getNextDirectoryEntry() {}
 bool fsDataSource::isInitialized() {}
 
 void fsDataSource::writeBufferToFile(unsigned int numBytes) 
 {
-    /*
-    for (int i = 0; i < 32; i++)
-    {
-        printf("%d: %X\n", i, _buffer[i]);
-    }
-    */
-
-    fwrite(_buffer, 1, numBytes, _fp);
+    printf("fs write to file %d\n", numBytes);
+    fwrite(_buffer, 1, writeBufferSize(), _fp);
 }
+
+void fsDataSource::updateBlock()
+{
+    printf("update block, writing at %d\n", ftell(_fp));
+    fwrite(_buffer, 1, writeBufferSize(), _fp);
+}
+
 void fsDataSource::closeFile() 
 {
 

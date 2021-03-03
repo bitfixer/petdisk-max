@@ -109,6 +109,7 @@ public:
 
     void openFileForWriting(unsigned char *fileName);
     void writeBufferToFile(unsigned int bytesToWrite);
+    void updateBlock();
     void closeFile();
     bool isLongFilename();
     bool isHidden();
