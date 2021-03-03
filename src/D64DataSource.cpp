@@ -9,6 +9,8 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     _logger = logger;
     _cbmTrackLayout = (uint32_t*)LAYOUT_CBM;
 
+    memset(_sectors, 0, MAX_TRACKS+1);
+
     // mount the file as a D64 drive
     bool success = _fileDataSource->openFileForReading((unsigned char*)fileName);
     if (!success)
@@ -139,7 +141,7 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
         // find the next empty block
         if (!cbmFindEmptyBlock(_fileTrackBlock))
         {
-            printf("no\n");
+            printf("NNNNNNNNNNNNNNNNNNOOOOOOOOOOOOOOOOOOOo\n");
             return;
         }
 
@@ -197,12 +199,12 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     bool done = false;
     while (!done)
     {
-        printf("reading file entry %d\n", i++);
+        //printf("reading file entry %d\n", i++);
         entry = cbmGetNextFileEntry();
 
         if (entry)
         {
-            printf("good entry %X\n", entry->fileType);
+            //printf("good entry %X\n", entry->fileType);
         }
 
         if (entry)
@@ -223,7 +225,21 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     if (entry == NULL)
     {
         printf("here\n");
-        // allocate a new directory block
+        // allocate a new directory
+        uint8_t tb[2];
+        if (!createNewDirectoryBlock(tb))
+        {
+            return;
+        }
+
+        printf("created new dir block.\n");
+        // point current directory block to the new one
+        entry = cbmGetNextFileEntry();
+        if (entry == NULL)
+        {
+            // should not get here, we just created a directory block
+            return;
+        }
     }
     
     // fill entry
@@ -240,9 +256,61 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     printf("dir tb %d %d\n", _dirTrackBlock[0], _dirTrackBlock[1]);
 
     // save this block back to disk
-    uint32_t loc = cbmBlockLocation(_dirTrackBlock);
-    _fileDataSource->seek(loc);
-    _fileDataSource->writeBufferToFile(BLOCK_SIZE);
+    //uint32_t loc = cbmBlockLocation(_dirTrackBlock);
+    //_fileDataSource->seek(loc);
+    //_fileDataSource->writeBufferToFile(BLOCK_SIZE);
+
+
+    cbmWriteBlock(_dirTrackBlock);
+    cbmSaveHeader();
+}
+
+
+bool D64DataSource::findEmptyDirectoryBlock(uint8_t* tb)
+{
+    uint8_t* sectors = cbmSectorsPerTrack();
+    tb[0] = 18;
+    tb[1] = 1;
+
+    for (tb[1] = 1; tb[1] < sectors[tb[0]]; tb[1]++)
+    {
+        if (cbmIsBlockFree(tb))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool D64DataSource::createNewDirectoryBlock(uint8_t* tb)
+{
+    if (!findEmptyDirectoryBlock(tb))
+    {
+        return false;
+    }
+
+    // point previous directory block here
+    printf("reading previous block: %d %d\n", _dirTrackBlock[0], _dirTrackBlock[1]);
+    cbmReadBlock(_dirTrackBlock);
+    CBMFile_Entry* entry = (CBMFile_Entry*)_cbmBuffer;
+    printf("prev: %d %d\n", entry->nextBlock[0], entry->nextBlock[1]);
+    printf("pp %d %d\n", _cbmBuffer[0], _cbmBuffer[1]);
+
+    entry->nextBlock[0] = tb[0];
+    entry->nextBlock[1] = tb[1];
+     printf("pp %d %d\n", _cbmBuffer[0], _cbmBuffer[1]);
+    cbmWriteBlock(_dirTrackBlock);
+
+    cbmReadBlock(tb);
+    memset(_cbmBuffer, 0, BLOCK_SIZE);
+    _dirIndexInBuffer = 0;
+    _dirTrackBlock[0] = tb[0];
+    _dirTrackBlock[1] = tb[1];
+
+    // mark new block as allocated
+    cbmBAM(_dirTrackBlock, 'a');
+    return true;
 }
 
 void D64DataSource::openCurrentDirectory() 
@@ -332,7 +400,7 @@ uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 {
 
     uint32_t loc = cbmBlockLocation(tb);
-    printf("cbmReadBlock %d %d %ld\n", tb[0], tb[1], loc);
+    //printf("cbmReadBlock %d %d %ld\n", tb[0], tb[1], loc);
 
     // seek to the right place in datasource
     uint32_t actualPos = _fileDataSource->seek(loc);
@@ -373,6 +441,17 @@ CBMHeader* D64DataSource::cbmLoadHeader()
     return NULL;
 }
 
+void D64DataSource::cbmSaveHeader()
+{
+    CBMHeader* header = cbmLoadHeader();
+    // copy bam
+    memcpy(header->bam, _cbmBAM, BAM_SIZE);
+    uint8_t tb[2];
+    tb[0] = 18;
+    tb[1] = 0;
+    cbmWriteBlock(tb);
+}
+
 void D64DataSource::cbmPrintFileEntry(CBMFile_Entry* entry)
 {
     char tmp[32];
@@ -389,15 +468,19 @@ void D64DataSource::cbmPrintFileEntry(CBMFile_Entry* entry)
 CBMFile_Entry* D64DataSource::cbmGetNextFileEntry()
 {
     int numEntriesInBlock = BLOCK_SIZE / sizeof(CBMFile_Entry);
+
+    //printf("next block: %d %d\n", _cbmBuffer[0], _cbmBuffer[1]);
     if (_dirIndexInBuffer >= numEntriesInBlock)
     {
-        if (_dirTrackBlock[0] == 0)
+        // read next block
+        if (_cbmBuffer[0] == 0)
         {
+            //printf("no more entries\n");
             return NULL;
         }
-        // read next block
         _dirTrackBlock[0] = _cbmBuffer[0];
         _dirTrackBlock[1] = _cbmBuffer[1];
+
         cbmReadBlock(_dirTrackBlock);
         //_dirTrackBlock[0] = _cbmBuffer[0];
         //_dirTrackBlock[1] = _cbmBuffer[1];
@@ -475,6 +558,7 @@ bool D64DataSource::cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data)
 bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
 {
     uint8_t* sectors = cbmSectorsPerTrack();
+    printf("finding empty block from %d %d\n", tb[0], tb[1]);
     while (tb[0] <= MAX_TRACKS)
     {
         if (cbmIsBlockFree(tb))
@@ -484,6 +568,7 @@ bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
         }
 
         tb[1]++;
+        printf("sec %d, max %d\n", tb[1], sectors[tb[0]]);
         if (tb[1] == sectors[tb[0]])
         {
             if (tb[0] == 17)
@@ -534,6 +619,11 @@ uint8_t* D64DataSource::cbmSectorsPerTrack()
         }
 
         _sectors[a] = b;
+    }
+
+    for (int t = 0; t < MAX_TRACKS; t++)
+    {
+        printf("TRACK %d SEC %d\n", t, _sectors[t]);
     }
 
     return _sectors;
@@ -597,6 +687,7 @@ int D64DataSource::cbmBAM(uint8_t *tb, char s)
 
         if ('a' == s)              // 'a' allocates a sector in BAM.
         {
+            printf("marking %d %d\n", tb[0], tb[1]);
             if (freeSectors[0] > 0)
             {
                 b ^= 0xFF;

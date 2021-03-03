@@ -134,6 +134,7 @@ private:
     void cbmMount();
     void cbmPrintHeader(CBMDisk* disk);
     CBMHeader* cbmLoadHeader();
+    void cbmSaveHeader();
     uint32_t cbmBlockLocation(uint8_t* tb);
     uint8_t* cbmReadBlock(uint8_t* tb);
     void cbmWriteBlock(uint8_t* tb);
@@ -141,7 +142,6 @@ private:
     void cbmPrintFileEntry(CBMFile_Entry* entry);
     CBMFile_Entry* cbmGetNextFileEntry();
     CBMFile_Entry* cbmSearch(uint8_t* searchNameA, uint8_t fileType);
-    //bool cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data);
     uint8_t* cbmD64StringCString(uint8_t* dest, const uint8_t* source);
     uint8_t* cbmCopyString(uint8_t* dest, const uint8_t* source);
     bool cbmFindEmptyBlock(uint8_t* tb);
@@ -149,6 +149,9 @@ private:
     bool cbmIsBlockFree(uint8_t* tb);
     int cbmBAM(uint8_t *tb, char s);
     void cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint16_t blocksInFile);
+    bool findEmptyDirectoryBlock(uint8_t* tb);
+    bool createNewDirectoryBlock(uint8_t* tb);
+    
 };
 
 #endif

@@ -27,7 +27,7 @@ uint32_t fsDataSource::seek(unsigned int pos)
 bool fsDataSource::openDirectory(const char* dirName) {}
 unsigned int fsDataSource::getNextFileBlock() 
 {
-    printf("read block.\n");
+    //printf("read block.\n");
     _bytesInBlock = (int)fread(_buffer, 1, 512, _fp);
 
     return _bytesInBlock;
