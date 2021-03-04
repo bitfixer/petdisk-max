@@ -33,6 +33,9 @@ public:
         // default to not changing read buffer size
         return 512;
     }
+    virtual unsigned int requestWriteBufferSize(unsigned int requestedWriteBufferSize) {
+        return 512;
+    }
 };
 
 #endif

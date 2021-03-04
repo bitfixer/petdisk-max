@@ -73,6 +73,7 @@ public:
     }
 
     unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize);
+    unsigned int requestWriteBufferSize(unsigned int requestedWriteBufferSize);
 
 private:
     EspHttp* _http;
@@ -90,6 +91,7 @@ private:
     bool _firstBlockWritten;
     urlData _urlData;
     unsigned int _readBufferSize;
+    unsigned int _writeBufferSize;
     
     bool fetchBlock(uint32_t start, uint32_t end);
     void getHost(char* host);

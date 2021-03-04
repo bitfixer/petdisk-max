@@ -66,6 +66,12 @@ unsigned int NetworkDataSource::requestReadBufferSize(unsigned int requestedRead
     return _readBufferSize;
 }
 
+unsigned int NetworkDataSource::requestWriteBufferSize(unsigned int requestedWriteBufferSize)
+{
+    _writeBufferSize = requestedWriteBufferSize;
+    return _writeBufferSize;
+}
+
 bool NetworkDataSource::fetchBlock(uint32_t start, uint32_t end)
 {
     int rangeSize = 0;
