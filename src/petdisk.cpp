@@ -21,6 +21,8 @@
 #include "D64DataSource.h"
 #include "githash.h"
 
+//#ifdef TESTING 1
+
 #define ESP_CONTROL     DDRD
 #define ESP_PORT        PORTD
 #define ESP_CH_PD       PD4
@@ -1469,6 +1471,14 @@ int main(void)
     //d64DataSource.getNextFileBlock();
 
     //petdisk.setDataSource(8, &d64DataSource);
+
+    #ifdef TESTING
+
+    D64DataSource d64DataSource;
+    d64DataSource.initWithDataSource(nds_array[0], "ushergam.d64", &logger);
+    
+    #endif
+
 
     logger.log("back\r\n");
 

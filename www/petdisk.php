@@ -3,6 +3,16 @@
 // Set for readonly mode
 $PETDISK_READ_ONLY = false;
 
+function getParam($paramname)
+{
+    if (isset($_GET[$paramname]))
+    {
+        return $_GET[$paramname];
+    }
+
+    return false;
+}
+
 function fileExists($fileName, $caseSensitive = true) 
 {
     if (file_exists($fileName)) 
@@ -34,22 +44,29 @@ header_remove("X-Powered-By");
 $verb = $_SERVER['REQUEST_METHOD'];
 if ($verb == "GET")
 {
-    $fname = "./".$_GET['file'];
-    $file = fileExists($fname, false);
+    $file = "./";
+    if (isset($_GET['file']))
+    {
+        $fname = "./".$_GET['file'];
+        $file = fileExists($fname, false);
+    }
+
     if ($file)
     {
-        $len = $_GET['l'];
-        if ($len == 1)
+        if (isset($_GET['l']))
         {
-            $fs = filesize($file);
-            $resp = $fs."\r\n";
-            header('Content-Length: '.strlen($resp));
-            header('Content-Type: application/octet-stream');
-            echo $resp;
-            flush();
+            if ($_GET['l'] == 1)
+            {
+                $fs = filesize($file);
+                $resp = $fs."\r\n";
+                header('Content-Length: '.strlen($resp));
+                header('Content-Type: application/octet-stream');
+                echo $resp;
+                flush();
+            }
         }
         // directory request
-        else if ($_GET['d'] == 1)
+        else if (getParam('d') == 1)
         {
             // directory
             // check for the index of the page requested.
@@ -135,7 +152,7 @@ else if ($verb == "PUT")
         return;
     }
     $fname = $_GET['f'];
-    $new = $_GET['n'];
+    $new = getParam('n');
 
     // read put data
     $putdata = file_get_contents("php://input");
@@ -165,11 +182,20 @@ else if ($verb == "PUT")
         $start = $_GET['s'];
         $end = $_GET['e'];
 
+        error_log("update block start " . $start . " end " . $end . "\n");
         // check to see if file is large enough
-        $fp = fopen("ushergam.d64", "r+");
-        fseek($fp, $start);
-        fwrite($fp, $putdata, $end-$start);
-        fclose($fp);
+        $foundFname = fileExists($fname);
+        if ($foundFname != false)
+        {
+            $fp = fopen($foundFname, "r+");
+            fseek($fp, $start);
+            fwrite($fp, $putdata, $end-$start);
+            fclose($fp);
+        }
+        else
+        {
+            error_log("file not found: " . $fname);
+        }
     }
     else // append block to end of file
     {
