@@ -44,11 +44,12 @@ void D64DataSource::prepareNextBlockForWriting()
     uint32_t actualPos = _fileDataSource->seek(loc);
 
     uint32_t offset = loc - actualPos;
-    uint8_t* buf = _fileDataSource->getWriteBuffer();
+    uint8_t* buf = _fileDataSource->getBuffer();
     _cbmBuffer = &buf[offset];
 
     if (_fileDataSource->writeBufferSize() != BLOCK_SIZE)
     {
+        _logger->printf("mm %d %d\r\n", _fileDataSource->writeBufferSize(), BLOCK_SIZE);
         // the blocks written by the datasource are a different size than 
         // one block on the d64
         // we need to read a block first, so the correct data will be written back 

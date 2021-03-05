@@ -182,7 +182,6 @@ else if ($verb == "PUT")
         $start = $_GET['s'];
         $end = $_GET['e'];
 
-        error_log("update block start " . $start . " end " . $end . "\n");
         // check to see if file is large enough
         $foundFname = fileExists($fname);
         if ($foundFname != false)

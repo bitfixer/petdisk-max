@@ -27,7 +27,6 @@ public:
     bool isDirectory() { return false; }
     virtual unsigned char* getFilename() = 0;
     virtual unsigned char* getBuffer() = 0;
-    virtual unsigned char* getWriteBuffer() { return getBuffer(); }
     virtual unsigned int writeBufferSize() = 0;
     virtual unsigned int readBufferSize() { return 512; }
     virtual unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize) {

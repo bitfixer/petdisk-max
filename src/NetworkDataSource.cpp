@@ -103,7 +103,6 @@ uint32_t NetworkDataSource::seek(uint32_t pos)
 {
     // round to closest block
     uint32_t q_pos = (pos / (uint32_t)readBufferSize()) * (uint32_t)readBufferSize();
-    _log->printf("nds seek %ld a %ld\r\n", pos, q_pos);
     _currentOutputByte = q_pos;
     _currentBlockByte = 0;
     return _currentOutputByte;
@@ -280,13 +279,6 @@ unsigned char* NetworkDataSource::getFilename()
 unsigned char* NetworkDataSource::getBuffer()
 {
     return _blockData;
-}
-
-unsigned char* NetworkDataSource::getWriteBuffer()
-{
-    return _blockData;
-     //urlInfo* info = (urlInfo*)_dataBuffer;
-     //return (unsigned char*)info->blockData;
 }
 
 void NetworkDataSource::getHost(char* host)

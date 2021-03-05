@@ -61,7 +61,6 @@ public:
     bool isDirectory() { return false; }
     unsigned char* getFilename();
     unsigned char* getBuffer();
-    unsigned char* getWriteBuffer();
 
     uint32_t seek(uint32_t pos);
 
@@ -72,7 +71,7 @@ public:
 
     unsigned int writeBufferSize()
     {
-        return 512;
+        return _writeBufferSize;
     }
 
     unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize);
@@ -87,7 +86,6 @@ private:
     uint8_t* _blockData;
     uint8_t* _dataBuffer;
     uint16_t* _dataBufferSize;
-    //char _fileName[100];
     char* _fileName;
     uint8_t* _dirPtr;
     Logger* _log;
