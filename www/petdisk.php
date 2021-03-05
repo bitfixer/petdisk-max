@@ -1,7 +1,7 @@
 <?php
 
 // Set for readonly mode
-$PETDISK_READ_ONLY = true;
+$PETDISK_READ_ONLY = false;
 
 function fileExists($fileName, $caseSensitive = true) 
 {
@@ -69,7 +69,7 @@ if ($verb == "GET")
             foreach ($files as $file)
             {
                 $file_parts = pathinfo($file);
-                $ext = strtolower($file_parts['extension'])
+                $ext = strtolower($file_parts['extension']);
                 if ($ext == "prg" || $ext == "seq" || $ext == "d64")
                 {
                     $newentry = strtoupper($file)."\n";
@@ -139,7 +139,7 @@ else if ($verb == "PUT")
 
     // read put data
     $putdata = file_get_contents("php://input");
-    
+
     $full_fname = "";
     if ($fname)
     {
@@ -165,10 +165,29 @@ else if ($verb == "PUT")
         $file_contents = file_get_contents($full_fname);
     }
 
-    // append new data
-    $file_contents = $file_contents . $putdata;
-    // rewrite file
-    file_put_contents($full_fname, $file_contents);
+    if ($_GET['u'] == 1) // update specific block
+    {
+        $start = $_GET['s'];
+        $end = $_GET['e'];
+
+        // check to see if file is large enough
+        //$length = strlen($file_contents);
+
+        $fp = fopen($full_fname, "r+");
+        fseek($fp, $start);
+        fwrite($fp, $putdata, $end-$start);
+        fclose($fp);
+
+        //echo "start " . $start . " end " . $end . "\r\n";
+        //flush();
+    }
+    else
+    {
+        // append new data
+        $file_contents = $file_contents . $putdata;
+        // rewrite file
+        file_put_contents($full_fname, $file_contents);
+    }
 }
 
 

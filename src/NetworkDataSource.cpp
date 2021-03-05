@@ -212,6 +212,11 @@ void NetworkDataSource::writeBufferToFile(unsigned int numBytes)
         numBytes);
 }
 
+void NetworkDataSource::updateBlock()
+{
+    // write specific block to file
+}
+
 void NetworkDataSource::closeFile()
 {
     // close the file,

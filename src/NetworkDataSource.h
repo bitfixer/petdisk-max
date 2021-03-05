@@ -54,6 +54,7 @@ public:
     bool getNextDirectoryEntry();
 
     void writeBufferToFile(unsigned int numBytes);
+    void updateBlock();
     void closeFile();
     void openCurrentDirectory();
     bool isDirectory() { return false; }
