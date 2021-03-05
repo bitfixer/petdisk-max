@@ -158,11 +158,6 @@ else if ($verb == "PUT")
     {
         unlink($file);
         $exists = false;
-    } 
-    
-    if ($exists == true) 
-    {
-        $file_contents = file_get_contents($full_fname);
     }
 
     if ($_GET['u'] == 1) // update specific block
@@ -171,18 +166,18 @@ else if ($verb == "PUT")
         $end = $_GET['e'];
 
         // check to see if file is large enough
-        //$length = strlen($file_contents);
-
-        $fp = fopen($full_fname, "r+");
+        $fp = fopen("ushergam.d64", "r+");
         fseek($fp, $start);
         fwrite($fp, $putdata, $end-$start);
         fclose($fp);
-
-        //echo "start " . $start . " end " . $end . "\r\n";
-        //flush();
     }
-    else
+    else // append block to end of file
     {
+        if ($exists == true) 
+        {
+            $file_contents = file_get_contents($full_fname);
+        }
+
         // append new data
         $file_contents = $file_contents . $putdata;
         // rewrite file

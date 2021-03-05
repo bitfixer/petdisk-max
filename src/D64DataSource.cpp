@@ -44,7 +44,7 @@ void D64DataSource::prepareNextBlockForWriting()
     uint32_t actualPos = _fileDataSource->seek(loc);
 
     uint32_t offset = loc - actualPos;
-    uint8_t* buf = _fileDataSource->getBuffer();
+    uint8_t* buf = _fileDataSource->getWriteBuffer();
     _cbmBuffer = &buf[offset];
 
     if (_fileDataSource->writeBufferSize() != BLOCK_SIZE)
@@ -177,7 +177,7 @@ void D64DataSource::writeBufferToFile(unsigned int numBytes)
 void D64DataSource::cbmWriteBlock(uint8_t* tb)
 {
     uint32_t loc = cbmBlockLocation(tb);
-    uint32_t pos = _fileDataSource->seek(loc);
+    _fileDataSource->seek(loc);
     _fileDataSource->updateBlock();
 }
 
@@ -196,11 +196,11 @@ void D64DataSource::closeFile()
     }
     else if (strstr((char*)_fileName, ".REL"))
     {
-        openFileType == REL_TYPE;
+        openFileType = REL_TYPE;
     }
     else if (strstr((char*)_fileName, ".USR"))
     {
-        openFileType == USR_TYPE;
+        openFileType = USR_TYPE;
     }
 
     // create the directory entry
@@ -213,7 +213,6 @@ void D64DataSource::cbmCreateFileEntry(uint8_t* fileName, uint8_t fileType, uint
     CBMFile_Entry* entry = NULL;
     openCurrentDirectory();
 
-    int i = 0;
     bool done = false;
     while (!done)
     {
@@ -536,18 +535,6 @@ CBMFile_Entry* D64DataSource::cbmSearch(uint8_t* searchNameA, uint8_t fileType)
 
     return NULL;
 }
-
-//uint8_t* D64DataSource::cbmEmptyBlockC
-
-/*
-bool D64DataSource::cbmSave(uint8_t* fileName, uint8_t fileType, CBMData* data)
-{
-    // search for existing file
-
-    uint8_t* tb;
-    //cbmWriteBlockChain(data);
-}
-*/
 
 bool D64DataSource::cbmFindEmptyBlock(uint8_t* tb)
 {

@@ -29,6 +29,7 @@ public:
     , _log(log)
     , _firstBlockWritten(false)
     , _readBufferSize(512)
+    , _writeBufferSize(512)
     {
         struct urlInfo* urlInfo = (struct urlInfo*)_dataBuffer;
         _fileName = urlInfo->fileName;
@@ -60,6 +61,7 @@ public:
     bool isDirectory() { return false; }
     unsigned char* getFilename();
     unsigned char* getBuffer();
+    unsigned char* getWriteBuffer();
 
     uint32_t seek(uint32_t pos);
 

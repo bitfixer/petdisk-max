@@ -11,8 +11,7 @@ bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, ui
     urlInfo* info = (urlInfo*)buffer;
     sprintf_P(info->urlstring, PSTR("PUT %s%s HTTP/1.0\r\nHost: %s\r\nContent-Length: %d\r\n\r\n"), url, params, host, numBytes);
 
-    //_log->transmitString(info->urlstring);
-    //_log->transmitStringF(PSTR("\r\n"));
+    _log->log(info->urlstring);
 
     // move url string to immediately behind payload data
     int url_strlen = strlen(info->urlstring);

@@ -28,11 +28,15 @@ void NetworkDataSource::openFileForWriting(unsigned char* fileName)
     _firstBlockWritten = false;
     urlInfo* info = (urlInfo*)_dataBuffer;
     _blockData = (uint8_t*)info->blockData;
+
+    _readBufferSize = 512;
+    _writeBufferSize = 512;
 }
 
 bool NetworkDataSource::openFileForReading(unsigned char* fileName)
 {
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
+    strcpy(recvBuffer->fileName, (const char*)fileName);
 
     eeprom_read_block(recvBuffer->receiveUrl, _urlData.eepromUrl, _urlData.eepromUrlLength);
     sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), fileName);
@@ -48,6 +52,7 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     _blockData = 0;
 
     _readBufferSize = 512;
+    _writeBufferSize = 512;
 
     // get first block
     fetchBlock(_currentBlockByte, _currentBlockByte + _readBufferSize);
@@ -215,6 +220,31 @@ void NetworkDataSource::writeBufferToFile(unsigned int numBytes)
 void NetworkDataSource::updateBlock()
 {
     // write specific block to file
+    // data is located in _dataBuffer
+    // make request, parameters
+    // prepare address
+    urlInfo* info = (urlInfo*)_dataBuffer;
+
+    // specify url parameters
+    getHost(info->host);
+    getUrl(info->url);
+
+    uint32_t endByte = _currentOutputByte + _writeBufferSize;
+    struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
+    sprintf_P(info->params, PSTR("?f=%s&u=1&s=%ld&e=%ld"), recvBuffer->fileName, _currentOutputByte, endByte);
+
+    for (int i = 0; i < 10; i++)
+    {
+        _log->printf("B %d %X\r\n", i, info->blockData[i]);
+    }
+
+    _http->postBlock(
+        info->host,
+        info->url,
+        info->params,
+        _dataBuffer,
+        _dataBufferSize,
+        _writeBufferSize);
 }
 
 void NetworkDataSource::closeFile()
@@ -248,6 +278,12 @@ unsigned char* NetworkDataSource::getFilename()
 unsigned char* NetworkDataSource::getBuffer()
 {
     return _blockData;
+}
+
+unsigned char* NetworkDataSource::getWriteBuffer()
+{
+     urlInfo* info = (urlInfo*)_dataBuffer;
+     return (unsigned char*)info->blockData;
 }
 
 void NetworkDataSource::getHost(char* host)
