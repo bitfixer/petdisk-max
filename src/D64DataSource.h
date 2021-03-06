@@ -110,7 +110,7 @@ public:
     unsigned char* getBuffer();
     unsigned int writeBufferSize();
     unsigned int readBufferSize();
-    void processCommandString();
+    void processCommandString(int* address);
 
     DataSource* getFileDataSource();
 

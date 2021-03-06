@@ -37,7 +37,7 @@ public:
         return 512;
     }
 
-    virtual void processCommandString() {} // default no action
+    virtual void processCommandString(int* address) {} // default no action
 };
 
 #endif

@@ -62,6 +62,17 @@ void D64DataSource::prepareNextBlockForWriting()
 
 bool D64DataSource::openFileForReading(unsigned char* fileName) 
 {
+    // is this a block access?
+    if (fileName[0] == '#')
+    {
+        _logger->printf("##\r\n");
+        _directBlockAccess = true;
+        // don't know the block address yet
+        _fileTrackBlock[0] = 0;
+        _fileTrackBlock[1] = 0;
+        return true;
+    }
+
     CBMFile_Entry* entry = cbmSearch(fileName, 0);
     if (entry == NULL)
     {
@@ -91,6 +102,12 @@ bool D64DataSource::openDirectory(const char* dirName)
 }
 unsigned int D64DataSource::getNextFileBlock() 
 {
+    // for direct block access, don't do anything here
+    if (_directBlockAccess == true)
+    {
+        return BLOCK_SIZE;
+    }
+
     if (_fileTrackBlock[0] == 0)
     {
         return 0;
@@ -389,29 +406,26 @@ unsigned int D64DataSource::readBufferSize()
     return BLOCK_SIZE - 2;
 }
 
-void D64DataSource::processCommandString()
+void D64DataSource::processCommandString(int* address)
 {
     // process the command string currently in the buffer
-    _logger->printf("PCS %s\r\n", getBuffer());
-
     // handle commands
     char* buf = (char*)getBuffer();
     if (strstr(buf, "U1:") == buf)
     {
-        _logger->printf("U1 command\r\n");
-
         // seek to track and block
         buf += 3;
+        /*
         // skip channel
         buf = strstr(buf, ",");
         buf++;
         buf = strstr(buf, ",");
         buf++;
+        */
 
-        _logger->printf("b %s\r\n", buf);
-        int track,block;
-        sscanf(buf, "%d,%d", &track, &block);
-        _logger->printf("t %d b %d\r\n", track, block);
+        int driveNumber,track,block;
+        sscanf(buf, "%d,%d,%d,%d", address, &driveNumber, &track, &block);
+        //_logger->printf("t %d b %d\r\n", track, block);
 
         _fileTrackBlock[0] = track;
         _fileTrackBlock[1] = block;

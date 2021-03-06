@@ -997,11 +997,7 @@ void PETdisk::run()
                 {
                     if (_currentState == BUS_LISTEN)
                     {
-                        if (_secondaryAddress == 15)
-                        {
-                            _logger->printf("CMD\r\n");
-                        }
-                        else if (of->_fileBufferIndex == -1)
+                        if (!of->_command && of->_fileBufferIndex == -1)
                         {
                             _dataSource->openFileForWriting((unsigned char*)of->_fileName);
                             of->_fileBufferIndex = 0;
@@ -1012,7 +1008,6 @@ void PETdisk::run()
                     else
                     {
                         // file read
-                        _logger->printf("RE %d\r\n", _secondaryAddress);
                         if (_fileNotFound == 1)
                         {
                             resetFileInformation(_secondaryAddress);
@@ -1033,7 +1028,6 @@ void PETdisk::run()
             else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_CLOSE_FILE)
             {
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
-                _logger->printf("close %d\r\n", address);
                 openFileInfo* of = getFileInfoForAddress(address);
                 if (of != NULL)
                 {
@@ -1087,7 +1081,6 @@ void PETdisk::run()
                 {
                     // process filename, remove drive indicators and file type
                     bool write;
-                    _logger->printf("SA %d\r\n", _secondaryAddress);
                     _filenamePosition = processFilename(progname, _filenamePosition, &write);
 
                     // TODO: figure out at this point if this is a read or write using modifiers in filename
@@ -1156,25 +1149,14 @@ void PETdisk::run()
                      _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
             {
                 // check for direct access command
-                if (progname[0] == '#' || (progname[0] == 'I' && progname[1] == '0'))
+                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+                if (of != NULL && of->_command == true)
                 {
-                    _logger->printf("%s\r\n", progname);
-                    _fileNotFound = 0;
-                    openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                    if (of != NULL)
-                    {
-                        strcpy(of->_fileName, (const char*)progname);
-                        of->_fileBufferIndex = 0;
-                        of->_useRemainderByte = false;
-                        of->_remainderByte = 0;
-                        of->_nextByte = _dataSource->getBuffer()[0];
-                    }
-                    _bufferFileIndex = _secondaryAddress;
+                    _logger->printf("CMD: %s\r\n", progname);
                 }
                 else if (!_dataSource->openFileForReading(progname))
                 {
                     // file not found
-                    _logger->printf("not found %s\r\n", progname);
                     _fileNotFound = 1;
                 }
                 else
@@ -1185,7 +1167,7 @@ void PETdisk::run()
                     if (_currentState == OPEN_FNAME_READ_DONE)
                     {
                         _fileNotFound = 0;
-                        openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+                        
                         if (of != NULL)
                         {
                             strcpy(of->_fileName, (const char*)progname);
@@ -1210,19 +1192,18 @@ void PETdisk::run()
 
         if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
         {
-            if (_secondaryAddress == 15)
+            openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+            if (of != NULL && of->_command == true)
             {
-                //_logger->printf("UNL\r\n");
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
                 _dataSource->getBuffer()[of->_fileBufferIndex] = 0;
-                _logger->printf("UNL %s\r\n");
-
-                _dataSource->processCommandString();
-
-                // TEMP
-                of = getFileInfoForAddress(8);
-                of->_nextByte = _dataSource->getBuffer()[0];
-                of->_fileBufferIndex = 0;
+                // retrieve the address from parsing command string
+                _dataSource->processCommandString(&_bufferFileIndex);
+                of = getFileInfoForAddress(_bufferFileIndex);
+                if (of != NULL)
+                {
+                    of->_nextByte = _dataSource->getBuffer()[0];
+                    of->_fileBufferIndex = 0;
+                }
 
                 resetFileInformation(_secondaryAddress);
             }
@@ -1313,8 +1294,6 @@ void PETdisk::run()
                 unsigned char address = rdchar & PET_ADDRESS_MASK;
                 openFileInfo* of = getFileInfoForAddress(address);
 
-                _logger->printf("rf %d bfi %d\r\n", address, _bufferFileIndex);
-
                 while (!done)
                 {
                     if (of->_useRemainderByte == true)
@@ -1327,8 +1306,6 @@ void PETdisk::run()
                     }
 
                     result = _ieee->wait_for_ndac_high_or_atn_low();
-
-                    _logger->printf("%X\r\n", of->_nextByte);
 
                     if (result == ATN_MASK)
                     {
