@@ -234,11 +234,6 @@ void NetworkDataSource::updateBlock()
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
     sprintf_P(info->params, PSTR("?f=%s&u=1&s=%ld&e=%ld"), recvBuffer->fileName, _currentOutputByte, endByte);
 
-    for (int i = 0; i < 10; i++)
-    {
-        _log->printf("B %d %X\r\n", i, info->blockData[i]);
-    }
-
     _http->postBlock(
         info->host,
         info->url,

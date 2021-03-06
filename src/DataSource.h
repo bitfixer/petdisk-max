@@ -36,6 +36,8 @@ public:
     virtual unsigned int requestWriteBufferSize(unsigned int requestedWriteBufferSize) {
         return 512;
     }
+
+    virtual void processCommandString() {} // default no action
 };
 
 #endif

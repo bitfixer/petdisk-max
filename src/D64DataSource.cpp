@@ -17,6 +17,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     }
     _fileDataSource->requestReadBufferSize(BLOCK_SIZE);
     _fileDataSource->requestWriteBufferSize(BLOCK_SIZE);
+    _directBlockAccess = false;
 
     cbmMount();
     return true;
@@ -34,6 +35,7 @@ void D64DataSource::openFileForWriting(unsigned char* fileName)
 
     _fileFirstTrackBlock[0] = _fileTrackBlock[0];
     _fileFirstTrackBlock[1] = _fileTrackBlock[1];
+    _directBlockAccess = false;
 
     prepareNextBlockForWriting();
 }
@@ -68,6 +70,7 @@ bool D64DataSource::openFileForReading(unsigned char* fileName)
 
     _fileTrackBlock[0] = entry->dataBlock[0];
     _fileTrackBlock[1] = entry->dataBlock[1];
+    _directBlockAccess = false;
     return true;
 }
 
@@ -364,6 +367,11 @@ unsigned char* D64DataSource::getFilename()
 }
 unsigned char* D64DataSource::getBuffer() 
 {
+    if (_directBlockAccess)
+    {
+        return _cbmBuffer;
+    }
+    
     return _cbmBuffer + 2;
 }
 unsigned int D64DataSource::writeBufferSize() 
@@ -373,7 +381,48 @@ unsigned int D64DataSource::writeBufferSize()
 
 unsigned int D64DataSource::readBufferSize() 
 {
+    if (_directBlockAccess)
+    {
+        return BLOCK_SIZE;
+    }
+
     return BLOCK_SIZE - 2;
+}
+
+void D64DataSource::processCommandString()
+{
+    // process the command string currently in the buffer
+    _logger->printf("PCS %s\r\n", getBuffer());
+
+    // handle commands
+    char* buf = (char*)getBuffer();
+    if (strstr(buf, "U1:") == buf)
+    {
+        _logger->printf("U1 command\r\n");
+
+        // seek to track and block
+        buf += 3;
+        // skip channel
+        buf = strstr(buf, ",");
+        buf++;
+        buf = strstr(buf, ",");
+        buf++;
+
+        _logger->printf("b %s\r\n", buf);
+        int track,block;
+        sscanf(buf, "%d,%d", &track, &block);
+        _logger->printf("t %d b %d\r\n", track, block);
+
+        _fileTrackBlock[0] = track;
+        _fileTrackBlock[1] = block;
+
+        cbmReadBlock(_fileTrackBlock);
+        _directBlockAccess = true;
+    }
+    else
+    {
+        _logger->printf("other command\r\n");
+    }
 }
 
 uint32_t D64DataSource::cbmBlockLocation(uint8_t* tb)

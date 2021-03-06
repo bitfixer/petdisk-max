@@ -11,7 +11,7 @@ bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, ui
     urlInfo* info = (urlInfo*)buffer;
     sprintf_P(info->urlstring, PSTR("PUT %s%s HTTP/1.0\r\nHost: %s\r\nContent-Length: %d\r\n\r\n"), url, params, host, numBytes);
 
-    _log->log(info->urlstring);
+    //_log->log(info->urlstring);
 
     // move url string to immediately behind payload data
     int url_strlen = strlen(info->urlstring);
@@ -36,7 +36,7 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
 
     sprintf_P(data, PSTR("GET %s%s HTTP/1.0\r\nHost: %s\r\n\r\n"), url, params, host);
     _espConn->startClient(host, 80, 0, TCP_MODE);
-    _log->log(data);
+    //_log->log(data);
     _espConn->sendData(0, (unsigned char*)data, strlen(data));
     int bufSize = *bufferSize;
     

@@ -110,6 +110,7 @@ public:
     unsigned char* getBuffer();
     unsigned int writeBufferSize();
     unsigned int readBufferSize();
+    void processCommandString();
 
     DataSource* getFileDataSource();
 
@@ -125,6 +126,7 @@ private:
     uint8_t _dirIndexInBuffer;
     uint8_t _cbmBAM[BAM_SIZE];
     uint16_t _blocksInFile;
+    bool _directBlockAccess;
     Logger* _logger;
 
     void prepareNextBlockForWriting();
