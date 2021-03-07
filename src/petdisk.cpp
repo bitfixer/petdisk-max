@@ -282,7 +282,7 @@ private:
     D64DataSource* _d64;
     SerialLogger* _logger;
 
-    openFileInfo _openFileInformation[8];
+    openFileInfo _openFileInformation[14];
 
     DataSource* _dataSource;
     unsigned char* progname;
@@ -858,9 +858,9 @@ unsigned char PETdisk::wait_for_device_address()
 
 openFileInfo* PETdisk::getFileInfoForAddress(unsigned char address)
 {
-    if (address >= 8 && address < 16)
+    if (address >= 2 && address < 16)
     {
-        return &_openFileInformation[address - 8];
+        return &_openFileInformation[address - 2];
     }
     else
     {
@@ -944,6 +944,7 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
+            //_logger->printf("A %X\r\n", rdchar);
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -1176,6 +1177,7 @@ void PETdisk::run()
                             of->_remainderByte = 0;
                             of->_nextByte = _dataSource->getBuffer()[0];
                         }
+                        
                         _bufferFileIndex = _secondaryAddress;
                     }
                 }

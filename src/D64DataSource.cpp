@@ -65,7 +65,7 @@ bool D64DataSource::openFileForReading(unsigned char* fileName)
     // is this a block access?
     if (fileName[0] == '#')
     {
-        _logger->printf("##\r\n");
+        //_logger->printf("##\r\n");
         _directBlockAccess = true;
         // don't know the block address yet
         _fileTrackBlock[0] = 0;
@@ -586,7 +586,7 @@ CBMFile_Entry* D64DataSource::cbmSearch(uint8_t* searchNameA, uint8_t fileType)
     CBMFile_Entry* entry = cbmGetNextFileEntry();
     while (entry != NULL)
     {
-        cbmPrintFileEntry(entry);
+        //cbmPrintFileEntry(entry);
         cbmD64StringCString(fileName, entry->fileName);
 
         if (strcmp((const char*)searchName, (const char*)fileName) == 0)
