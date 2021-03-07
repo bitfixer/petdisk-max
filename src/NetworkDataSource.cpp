@@ -28,6 +28,7 @@ void NetworkDataSource::openFileForWriting(unsigned char* fileName)
     _firstBlockWritten = false;
     urlInfo* info = (urlInfo*)_dataBuffer;
     _blockData = (uint8_t*)info->blockData;
+    strcpy((char*)_fileName, (char*)fileName);
 
     _readBufferSize = 512;
     _writeBufferSize = 512;

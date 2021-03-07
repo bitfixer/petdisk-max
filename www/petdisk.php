@@ -177,7 +177,7 @@ else if ($verb == "PUT")
         $exists = false;
     }
 
-    if ($_GET['u'] == 1) // update specific block
+    if (getParam('u') == 1) // update specific block
     {
         $start = $_GET['s'];
         $end = $_GET['e'];
