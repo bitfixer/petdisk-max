@@ -97,6 +97,7 @@ private:
     bool fetchBlock(uint32_t start, uint32_t end);
     void getHost(char* host);
     void getUrl(char* url);
+    void copyUrlEscapedString(char* dest, char* src);
 };
 
 #endif

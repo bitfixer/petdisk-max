@@ -895,7 +895,6 @@ bool PETdisk::isD64(const char* fileName)
 {
     int len = strlen(fileName);
     
-    _logger->printf("isd64 %s %s\r\n", fileName, &fileName[len-4]);
     if (len <= 4)
     {
         return false;
@@ -903,11 +902,9 @@ bool PETdisk::isD64(const char* fileName)
 
     if (strcmp(".D64", &fileName[len - 4]) == 0)
     {
-        _logger->log("yes\r\n");
         return true;
     }
 
-    _logger->log("no\r\n");
     return false;
 }
 
@@ -1242,9 +1239,16 @@ void PETdisk::run()
                             _logger->printf("d64: %s\r\n", &progname[2]);
                             // this is a d64 file, mount as a datasource
                             // initialize d64 datasource
-                            _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
-                            setDataSource(_primaryAddress, _d64);
-                            _dataSource = _d64;
+                            bool success = _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
+                            if (success)
+                            {
+                                setDataSource(_primaryAddress, _d64);
+                                _dataSource = _d64;
+                            }
+                            else
+                            {
+                                _logger->printf("not found %s\n", progname);
+                            }
                         }
                         else
                         {

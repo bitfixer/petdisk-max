@@ -1,6 +1,7 @@
 #include "NetworkDataSource.h"
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 
@@ -20,6 +21,27 @@ bool NetworkDataSource::isInitialized()
     return true;
 }
 
+void NetworkDataSource::copyUrlEscapedString(char* dest, char* src)
+{
+    int srcLen = strlen(src);
+    char* destptr = dest;
+
+    for (int i = 0; i < srcLen; i++)
+    {
+        char c = src[i];
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+        {
+            *destptr++ = c;
+        }
+        else
+        {
+            sprintf(destptr, "%%%X", c);
+            destptr += 3;
+        }
+    }
+    destptr = 0x00;
+}
+
 void NetworkDataSource::openFileForWriting(unsigned char* fileName)
 {
     // open file for writing
@@ -28,7 +50,7 @@ void NetworkDataSource::openFileForWriting(unsigned char* fileName)
     _firstBlockWritten = false;
     urlInfo* info = (urlInfo*)_dataBuffer;
     _blockData = (uint8_t*)info->blockData;
-    strcpy((char*)_fileName, (char*)fileName);
+    copyUrlEscapedString(_fileName, (char*)fileName);
 
     _readBufferSize = 512;
     _writeBufferSize = 512;
@@ -37,10 +59,10 @@ void NetworkDataSource::openFileForWriting(unsigned char* fileName)
 bool NetworkDataSource::openFileForReading(unsigned char* fileName)
 {
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
-    strcpy(recvBuffer->fileName, (const char*)fileName);
+    copyUrlEscapedString(recvBuffer->fileName, (char*)fileName);
 
     eeprom_read_block(recvBuffer->receiveUrl, _urlData.eepromUrl, _urlData.eepromUrlLength);
-    sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), fileName);
+    sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), recvBuffer->fileName);
 
     urlInfo* info = (urlInfo*)_dataBuffer;
     eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
@@ -54,6 +76,11 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
 
     _readBufferSize = 512;
     _writeBufferSize = 512;
+
+    if (_fileSize <= 0)
+    {
+        return false;
+    }
 
     // get first block
     fetchBlock(_currentBlockByte, _currentBlockByte + _readBufferSize);
