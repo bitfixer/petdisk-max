@@ -3,7 +3,11 @@ Firmware and schematics for the PETdisk MAX storage device for Commodore PET
 
 Configuration
 
-The default configuration of the PETdisk MAX uses the built-in sd card as device 8. 
+The default configuration of the PETdisk MAX uses the built-in sd card as device 8.
+You can change this device number as well as setting up a maximum of 4 network drives by editing this file:
+
+Copy the edited file onto the root directory of your SD card. On the next power up, the new configuration will be read.
+
 
 Subdirectories
 
