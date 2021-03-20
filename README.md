@@ -60,6 +60,8 @@ LOAD"PROGRAM",devicenumber
 or save with
 SAVE"PROGRAM",devicenumber
 
+The DLOAD command also works.
+
 ## Subdirectories
 
 To change directories on a FAT32 volume, use
@@ -94,10 +96,10 @@ At the end of the directory listing the git commit id will be listed, so you can
 ## Coming Soon
 
 Things known to currently not work (but working on it):
-Support for BASIC 1 ROM (i.e. non-upgraded original PET 2001)
-DIRECTORY command
-REL files
-U2 (block write) drive command
+1. Support for BASIC 1 ROM (i.e. non-upgraded original PET 2001)
+2. DIRECTORY command
+3. REL files
+4. U2 (block write) drive command
 
 Please let me know if you discover any bugs or have feature requests.
 bitfixer at (removeforantispam) bitfixer dot com
