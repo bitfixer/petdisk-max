@@ -1,7 +1,9 @@
 # petdisk-max
 Firmware and schematics for the PETdisk MAX storage device for Commodore PET
 
-Configuration
+## Installation
+
+## Configuration
 
 The default configuration of the PETdisk MAX uses the built-in sd card as device 8.
 You can change this device number as well as setting up a maximum of 4 network drives by editing this file:
@@ -26,4 +28,15 @@ This will mount the D64 file as the disk for the specified device number. It wil
 
 To unmount the D64 file and return to the original device, use
 LOAD"$:..",devicenumber
+
+Things known to currently not work (but working on it):
+Support for BASIC 1 ROM (i.e. non-upgraded original PET 2001)
+DIRECTORY command
+REL files
+U2 (block write) drive command
+
+Please let me know if you discover any bugs or have feature requests.
+bitfixer at (removeforantispam) bitfixer dot com
+
+
 
