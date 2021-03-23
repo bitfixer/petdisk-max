@@ -1524,6 +1524,8 @@ int main(void)
 
     logger.log("back\r\n");
 
+    set_led(true);
+
     // execute run loop
     petdisk.run();
 
