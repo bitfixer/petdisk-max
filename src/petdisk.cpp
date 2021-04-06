@@ -295,6 +295,7 @@ private:
     unsigned char _primaryAddress;
     unsigned char _secondaryAddress;
 
+    bool _directoryFinished;
     uint8_t _directoryEntryIndex;
     uint8_t _directoryEntryByteIndex;
     uint8_t _directoryEntry[32];
@@ -308,6 +309,9 @@ private:
     openFileInfo* getFileInfoForAddress(unsigned char address);
     void resetFileInformation(unsigned char address);
     bool isD64(const char* fileName);
+
+    void openDirectory();
+    bool getDirectoryEntry();
 };
 
 void PETdisk::init(
@@ -776,7 +780,7 @@ bool PETdisk::getDirectoryEntry()
 
                 _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
                 _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-                _directoryEntry[startline+2] = file+1;
+                _directoryEntry[startline+2] = _directoryEntryIndex+1;
                 _directoryEntry[startline+3] = 0x00;
                 _directoryEntry[startline+4] = 0x20;
                 _directoryEntry[startline+5] = 0x20;
@@ -1118,7 +1122,7 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
-            //_logger->printf("A %X\r\n", rdchar);
+            _logger->printf("A %X\r\n", rdchar);
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -1408,13 +1412,12 @@ void PETdisk::run()
                     // need to handle both standard load"$" command and DIRECTORY/CATALOG here
                     // on each byte sent, we should check for ATN asserted.
                     // if ATN is asserted, we exit and wait for further commands
-
                     bool done = false;
                     uint8_t result;
                     while (!done)
                     {
                         // send one header byte
-                        _ieee->sendIEEEByteCheckForATN(&_buffer[_directoryEntryByteIndex], 1, 0);
+                        result = _ieee->sendIEEEByteCheckForATN(_buffer[_directoryEntryByteIndex]);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
 
                         if (result == ATN_MASK)
@@ -1425,6 +1428,7 @@ void PETdisk::run()
                         {
                             _directoryEntryByteIndex++;
                             _ieee->raise_dav_and_eoi();
+                            /*
                             result = _ieee->wait_for_ndac_low_or_atn_low();
 
                             if (result == ATN_MASK)
@@ -1432,13 +1436,12 @@ void PETdisk::run()
                                 done = true;
                                 _directoryEntryByteIndex--;
                             }
+                            */
                         }
                     }
 
                     _ieee->end_output();
                     _currentState = IDLE;
-
-
 
                     // OLD directory routine
                     /*
