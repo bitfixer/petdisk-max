@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdint.h>
 #include "Serial.h"
 #include "SerialLogger.h"
 #include "EspHttp.h"
@@ -293,6 +294,11 @@ private:
     int _bufferFileIndex;
     unsigned char _primaryAddress;
     unsigned char _secondaryAddress;
+
+    uint8_t _directoryEntryIndex;
+    uint8_t _directoryEntryByteIndex;
+    uint8_t _directoryEntry[32];
+    uint16_t _directoryEntryAddress;
 
     bool configChanged(struct pd_config* pdcfg);
     unsigned char processFilename(unsigned char* filename, unsigned char length, bool* write);
@@ -666,6 +672,177 @@ void PETdisk::writeFile()
     }
     
     _dataSource->closeFile();
+}
+
+void PETdisk::openDirectory()
+{
+    _dataSource->openCurrentDirectory();
+    _directoryEntryIndex = 0;
+    _directoryEntryAddress = 0x041f;
+    _directoryEntryByteIndex = 0;
+
+    // copy header into directory entry buffer
+
+}
+
+bool PETdisk::getDirectoryEntry()
+{
+    bool gotDir;
+    unsigned char startline;
+    
+    if (_directoryFinished)
+    {
+        startline = 0;
+        _directoryEntryAddress += 0x001e;
+        _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
+        _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+        _directoryEntry[startline+2] = 0xff;
+        _directoryEntry[startline+3] = 0xff;
+        sprintf_P((char *)&_directoryEntry[startline+4], PSTR("BLOCKS FREE.             "));
+        _directoryEntry[startline+29] = 0x00;
+        _directoryEntry[startline+30] = 0x00;
+        _directoryEntry[startline+31] = 0x00;
+        return true;
+    }
+
+    do
+    {
+        // get next directory entry
+        gotDir = _dataSource->getNextDirectoryEntry();
+        if (gotDir == false)
+        {
+            _directoryEntryAddress += 0x0020;
+            startline = 0;
+            memset(_directoryEntry, ' ', 32);
+            _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
+            _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+            _directoryEntry[startline+2] = _directoryEntryIndex+1;
+            _directoryEntry[startline+3] = 0x00;
+            _directoryEntry[startline+4] = 0x20;
+            _directoryEntry[startline+5] = 0x20;
+            pgm_memcpy(&_directoryEntry[startline+6], (unsigned char*)_firmwareString, 6);
+            pgm_memcpy(&_directoryEntry[startline+6+6], (unsigned char*)_hash, 7);
+            _directoryEntry[startline+31] = 0x00;
+            _directoryEntryIndex++;
+            _directoryFinished = true;
+            return false;
+        }
+        else
+        {
+            if (!_dataSource->isHidden() && !_dataSource->isVolumeId())
+            {
+                // check if this is a file that can be used by petdisk
+                // currently .PRG and .SEQ, soon .REL
+
+                int fname_length = 0;
+                unsigned char* fileName = _dataSource->getFilename();
+                if (fileName == NULL)
+                {
+                    continue;
+                }
+                fname_length = strlen((char*)fileName);
+                bool valid_file = false;
+                // check for correct extension
+                if (fname_length > 4)
+                {
+                    if (toupper(fileName[fname_length-3]) == 'P' &&
+                        toupper(fileName[fname_length-2]) == 'R' &&
+                        toupper(fileName[fname_length-1]) == 'G')
+                    {
+                        valid_file = true;
+                    }
+                    else if (toupper(fileName[fname_length-3]) == 'S' &&
+                        toupper(fileName[fname_length-2]) == 'E' &&
+                        toupper(fileName[fname_length-1]) == 'Q')
+                    {
+                        valid_file = true;
+                    }
+                    else if (toupper(fileName[fname_length-3]) == 'D' &&
+                        toupper(fileName[fname_length-2]) == '6' &&
+                        toupper(fileName[fname_length-1]) == '4')
+                    {
+                        valid_file = true;
+                    }
+                }
+
+                if (!valid_file)
+                {
+                    // skip this file, continue to next
+                    continue;
+                }
+
+                _directoryEntryAddress += 0x0020;
+                startline = 0;
+
+                _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
+                _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+                _directoryEntry[startline+2] = file+1;
+                _directoryEntry[startline+3] = 0x00;
+                _directoryEntry[startline+4] = 0x20;
+                _directoryEntry[startline+5] = 0x20;
+                _directoryEntry[startline+6] = 0x22;
+
+                int extensionPos = -1;
+                if (fname_length > 5)
+                {
+                    if (fileName[fname_length-4] == '.')
+                    {
+                        extensionPos = fname_length-3;
+                        fname_length = fname_length-4;
+                    }
+                }
+                
+                if (fname_length >= 17)
+                {
+                    fname_length = 17;
+                }
+                
+                for (int f = 0; f < fname_length; f++)
+                {
+                    // make sure filename is upper case
+                    _directoryEntry[startline+7+f] = toupper(fileName[f]);
+                }
+
+                _directoryEntry[startline+7+fname_length] = 0x22;
+                for (int f = 0; f < (17 - fname_length); f++)
+                {
+                    _directoryEntry[startline+7+fname_length+f+1] = ' ';
+                }
+
+                if (_dataSource->isDirectory())
+                {
+                    _directoryEntry[startline+25] = 'D';
+                    _directoryEntry[startline+26] = 'I';
+                    _directoryEntry[startline+27] = 'R';
+                }
+                else
+                {
+                    if (extensionPos > 0)
+                    {
+                        // make sure extension is upper case
+                        _directoryEntry[startline+25] = toupper(fileName[extensionPos]);
+                        _directoryEntry[startline+26] = toupper(fileName[extensionPos+1]);
+                        _directoryEntry[startline+27] = toupper(fileName[extensionPos+2]);
+                    }
+                    else
+                    {
+                        _directoryEntry[startline+25] = ' ';
+                        _directoryEntry[startline+26] = ' ';
+                        _directoryEntry[startline+27] = ' ';
+                    }
+                }
+
+                _directoryEntry[startline+28] = ' ';
+                _directoryEntry[startline+29] = ' ';
+                _directoryEntry[startline+30] = ' ';
+                _directoryEntry[startline+31] = 0x00;
+                _directoryEntryIndex++;
+
+                return false;
+            }
+        }
+    }
+    while (gotDir == true);
 }
 
 void PETdisk::listFiles()
@@ -1227,6 +1404,15 @@ void PETdisk::run()
                 if (progname[0] == '$')
                 {
                     // reading a directory
+                    // need to handle both standard load"$" command and DIRECTORY/CATALOG here
+                    // on each byte sent, we should check for ATN asserted.
+                    // if ATN is asserted, we exit and wait for further commands
+
+
+
+
+                    // OLD directory routine
+                    /*
                     _ieee->sendIEEEBytes((unsigned char *)_buffer, 32, 0);
 
                     // this is a change directory command
@@ -1270,6 +1456,7 @@ void PETdisk::run()
                     }
                     // write directory entries
                     listFiles();
+                    */
                 }
                 else // read from file
                 {
