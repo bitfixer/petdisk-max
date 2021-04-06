@@ -1251,6 +1251,7 @@ void PETdisk::run()
                 {
                     _filenamePosition = 0;
                     _currentState = DIR_READ;
+                    _directoryEntryByteIndex = 0;
                 }
                 else
                 {
@@ -1408,6 +1409,34 @@ void PETdisk::run()
                     // on each byte sent, we should check for ATN asserted.
                     // if ATN is asserted, we exit and wait for further commands
 
+                    bool done = false;
+                    uint8_t result;
+                    while (!done)
+                    {
+                        // send one header byte
+                        _ieee->sendIEEEByteCheckForATN(&_buffer[_directoryEntryByteIndex], 1, 0);
+                        result = _ieee->wait_for_ndac_high_or_atn_low();
+
+                        if (result == ATN_MASK)
+                        {
+                            done = true;
+                        }
+                        else
+                        {
+                            _directoryEntryByteIndex++;
+                            _ieee->raise_dav_and_eoi();
+                            result = _ieee->wait_for_ndac_low_or_atn_low();
+
+                            if (result == ATN_MASK)
+                            {
+                                done = true;
+                                _directoryEntryByteIndex--;
+                            }
+                        }
+                    }
+
+                    _ieee->end_output();
+                    _currentState = IDLE;
 
 
 
