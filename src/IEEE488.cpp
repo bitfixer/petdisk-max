@@ -246,7 +246,7 @@ unsigned char IEEE488::get_device_address(unsigned char* dir)
     unsigned char primary_address;
     // wait for atn signal
     wait_for_atn_low();
-    
+
     // lower NDAC to respond
     IEEE_PORT = NOT_NDAC_MASK;
     //IEEE_PORT = IEEE_PORT & NOT_NDAC_MASK;
@@ -264,6 +264,7 @@ unsigned char IEEE488::get_device_address(unsigned char* dir)
     
     // read data
     recv_byte(&primary_address);
+    _logger->printf("%X\r\n", primary_address);
 
     *dir = primary_address & 0xF0;
     primary_address = primary_address & 0x0F;

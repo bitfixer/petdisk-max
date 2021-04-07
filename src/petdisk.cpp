@@ -1108,6 +1108,7 @@ void PETdisk::run()
         {
             // if we are in an unlisten state,
             // wait for my address
+            //_logger->log("y\r\n");
             unsigned char buscmd = wait_for_device_address();
             if (buscmd == LISTEN)
             {

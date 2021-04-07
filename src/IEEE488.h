@@ -85,6 +85,9 @@ public:
     unsigned char wait_for_ndac_low_or_atn_low();
     unsigned char wait_for_ndac_high_or_atn_low();
     unsigned char wait_for_nrfd_high_or_atn_low();
+    void wait_for_atn_low();
+    void wait_for_dav_low();
+    void recv_byte(unsigned char *byte);
 
     unsigned char get_device_address(unsigned char* dir);
     void accept_address();
@@ -99,10 +102,9 @@ private:
     void raise_dav();
 
     void wait_for_atn_high();
-    void wait_for_dav_low();
     void wait_for_dav_high();
 
-    void wait_for_atn_low();
+    
     void wait_for_nrfd_high();
     void wait_for_ndac_high();
     void wait_for_ndac_low();
@@ -114,7 +116,7 @@ private:
     void set_data_output();
     void set_data_input();
 
-    void recv_byte(unsigned char *byte);
+    
 
     void lower_ndac();
     void raise_ndac();
