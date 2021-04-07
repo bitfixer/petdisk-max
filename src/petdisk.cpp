@@ -1430,7 +1430,13 @@ void PETdisk::run()
                         {
                             //done = true;
                             // ATN asserted 
+                            
+                            // HACK - do the bus signaling here to save time
                             break;
+
+
+
+
                             /*
                             _ieee->end_output();
                             unsigned char buscmd = wait_for_device_address();

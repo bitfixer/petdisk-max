@@ -366,7 +366,7 @@ void IEEE488::end_output()
 
     set_data_input();
     lower_ndac();
-    unlisten();
+    //unlisten();
 }
 
 unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
