@@ -296,6 +296,7 @@ private:
     unsigned char _secondaryAddress;
 
     bool _directoryFinished;
+    bool _directoryOpened;
     uint8_t _directoryEntryIndex;
     uint8_t _directoryEntryByteIndex;
     uint8_t _directoryEntry[32];
@@ -1155,12 +1156,16 @@ void PETdisk::run()
                     // open file for reading
                     if (progname[0] == '$')
                     {
-                        // copy the directory header
-                        pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
+                        if (!_directoryOpened)
+                        {
+                            // copy the directory header
+                            pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
 
-                        // print directory title
-                        pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
-                        _buffer[31] = 0x00;
+                            // print directory title
+                            pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
+                            _buffer[31] = 0x00;
+                            _directoryOpened = true;
+                        }
                     }
                 }
             }
@@ -1256,6 +1261,7 @@ void PETdisk::run()
                     _filenamePosition = 0;
                     _currentState = DIR_READ;
                     _directoryEntryByteIndex = 0;
+                    _directoryOpened = false;
                 }
                 else
                 {
@@ -1417,17 +1423,38 @@ void PETdisk::run()
                     while (!done)
                     {
                         // send one header byte
-                        result = _ieee->sendIEEEByteCheckForATN(_buffer[_directoryEntryByteIndex]);
+                        result = _ieee->sendIEEEByteCheckForATN2(_buffer[_directoryEntryByteIndex]);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
-
                         if (result == ATN_MASK)
                         {
-                            done = true;
+                            //done = true;
+                            // ATN asserted 
+                            _ieee->end_output();
+                            unsigned char buscmd = wait_for_device_address();
+                            unsigned char rdchar = _ieee->get_byte_from_bus();
+                            _logger->printf("-%X\r\n", rdchar);
+                            _ieee->acknowledge_bus_byte();
+                            _logger->printf(".\r\n", rdchar);
+                            _ieee->signal_ready_for_data();
+                            _ieee->begin_output();
                         }
                         else
                         {
+                            //_logger->printf("%X\r\n", _directoryEntryByteIndex);
                             _directoryEntryByteIndex++;
                             _ieee->raise_dav_and_eoi();
+
+                            /*
+                            if (_directoryEntryByteIndex == 3)
+                            {
+                                break;
+                                for (int x = 0; x < 10; x++)
+                                {
+                                    _logger->printf("%X\r\n", IEEE_PIN);
+                                }
+                            }
+                            */
+                            
                             /*
                             result = _ieee->wait_for_ndac_low_or_atn_low();
 
@@ -1437,6 +1464,7 @@ void PETdisk::run()
                                 _directoryEntryByteIndex--;
                             }
                             */
+                            
                         }
                     }
 

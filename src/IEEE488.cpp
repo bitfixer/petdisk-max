@@ -391,6 +391,29 @@ unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
     return 0;
 }
 
+unsigned char IEEE488::sendIEEEByteCheckForATN2(unsigned char byte)
+{
+    unsigned char result = 0;
+    // put the byte on the data lines
+    
+    result = wait_for_ndac_low_or_atn_low();
+    if (result == ATN_MASK)
+    {
+        return result;
+    }
+
+    // wait for NRFD high
+    result = wait_for_nrfd_high_or_atn_low();
+    if (result == ATN_MASK)
+    {
+        return result;
+    }
+
+    DATA_PORT = ~byte;
+    lower_dav();
+    return 0;
+}
+
 void IEEE488::lower_dav()
 {
     unsigned char temp = IEEE_PORT;
