@@ -391,7 +391,7 @@ unsigned char IEEE488::sendIEEEByteCheckForATN(unsigned char byte)
     return 0;
 }
 
-unsigned char IEEE488::sendIEEEByteCheckForATN2(unsigned char byte)
+unsigned char IEEE488::sendIEEEByteCheckForATN2(unsigned char byte, bool last)
 {
     unsigned char result = 0;
     // put the byte on the data lines
@@ -410,7 +410,17 @@ unsigned char IEEE488::sendIEEEByteCheckForATN2(unsigned char byte)
     }
 
     DATA_PORT = ~byte;
-    lower_dav();
+    if (last == true)
+    {
+        unsigned char temp, temp2;
+        temp = DAV_MASK;
+        temp2 = EOI_MASK;
+        IEEE_PORT = (~temp) & (~temp2);
+    }
+    else
+    {
+        lower_dav();
+    }
     return 0;
 }
 

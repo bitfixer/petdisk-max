@@ -1423,7 +1423,7 @@ void PETdisk::run()
                     while (!done)
                     {
                         // send one header byte
-                        result = _ieee->sendIEEEByteCheckForATN2(_buffer[_directoryEntryByteIndex]);
+                        result = _ieee->sendIEEEByteCheckForATN2(_buffer[_directoryEntryByteIndex], _directoryEntryByteIndex == 32);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
                         if (result == ATN_MASK)
                         {
@@ -1468,6 +1468,7 @@ void PETdisk::run()
                         }
                     }
 
+                    _logger->log("#\r\n");
                     _ieee->end_output();
                     _currentState = IDLE;
 
