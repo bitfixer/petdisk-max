@@ -296,6 +296,7 @@ private:
     unsigned char _secondaryAddress;
 
     bool _directoryFinished;
+    bool _lastDirectoryBlock;
     bool _directoryOpened;
     uint8_t _directoryEntryIndex;
     uint8_t _directoryEntryByteIndex;
@@ -692,6 +693,8 @@ void PETdisk::openDirectory()
     // print directory title
     pgm_memcpy((unsigned char *)&_directoryEntry[7], (unsigned char *)_versionString, 24);
     _directoryEntry[31] = 0x00;
+    _directoryFinished = false;
+    _lastDirectoryBlock = false;
     _directoryOpened = true;
 }
 
@@ -712,6 +715,7 @@ bool PETdisk::getDirectoryEntry()
         _directoryEntry[startline+29] = 0x00;
         _directoryEntry[startline+30] = 0x00;
         _directoryEntry[startline+31] = 0x00;
+        _lastDirectoryBlock = true;
         return true;
     }
 
@@ -1434,7 +1438,7 @@ void PETdisk::run()
                     while (!done)
                     {
                         // send one header byte
-                        result = _ieee->sendIEEEByteCheckForATN2(_directoryEntry[_directoryEntryByteIndex], _directoryFinished && _directoryEntryByteIndex == 31);
+                        result = _ieee->sendIEEEByteCheckForATN2(_directoryEntry[_directoryEntryByteIndex], _lastDirectoryBlock && _directoryEntryByteIndex == 31);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
                         if (result == ATN_MASK)
                         {
@@ -1448,7 +1452,6 @@ void PETdisk::run()
                             if (_directoryEntryByteIndex >= 32)
                             {
                                 getDirectoryEntry();
-                                //_logger->printf("entry %d\r\n", _directoryEntryIndex);
                                 _directoryEntryByteIndex = 0;
                             }
 
