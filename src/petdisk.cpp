@@ -58,23 +58,7 @@ const unsigned char _dirHeader[] PROGMEM =
     0x12
 };
 
-/*
-const unsigned char _dirHeader[] PROGMEM =
-{
-    0x01,
-    0x04,
-    0x1F,
-    0x04,
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x12,
-};
-*/
-
 const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
-//const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"    ";
 const unsigned char _firmwareString[] PROGMEM = "BUILD ";
 const unsigned char _fileExtension[] PROGMEM =
 {
@@ -331,6 +315,7 @@ private:
 
     void openDirectory();
     bool getDirectoryEntry();
+    void makeCatalogHeader();
 };
 
 void PETdisk::init(
@@ -716,6 +701,13 @@ void PETdisk::openDirectory()
     _directoryOpened = true;
 }
 
+void PETdisk::makeCatalogHeader()
+{
+    pgm_memcpy((unsigned char*)&_directoryEntry[6], (unsigned char*)&_dirHeader[4], 3);
+    pgm_memcpy((unsigned char*)&_directoryEntry[9], (unsigned char*)_versionString, 22);
+    _directoryEntry[31] = 0x00;
+}
+
 bool PETdisk::getDirectoryEntry()
 {
     bool gotDir;
@@ -731,7 +723,6 @@ bool PETdisk::getDirectoryEntry()
         _directoryEntry[startline+3] = 0xff;
         _directoryEntry[startline+4] = 0xff;
         sprintf_P((char *)&_directoryEntry[startline+5], PSTR("BLOCKS FREE.             "));
-        //_directoryEntry[startline+29] = 0x00;
         _directoryEntry[startline+30] = 0x00;
         _directoryEntry[startline+31] = 0x00;
         _lastDirectoryBlock = true;
@@ -753,7 +744,6 @@ bool PETdisk::getDirectoryEntry()
             _directoryEntry[startline+3] = _directoryEntryIndex+1;
             _directoryEntry[startline+4] = 0x00;
             _directoryEntry[startline+5] = 0x20;
-            //_directoryEntry[startline+5] = 0x20;
             pgm_memcpy(&_directoryEntry[startline+6], (unsigned char*)_firmwareString, 6);
             pgm_memcpy(&_directoryEntry[startline+6+6], (unsigned char*)_hash, 7);
             _directoryEntry[startline+31] = 0x00;
@@ -813,7 +803,6 @@ bool PETdisk::getDirectoryEntry()
                 _directoryEntry[startline+2] = 0x00;
                 _directoryEntry[startline+3] = _directoryEntryIndex+1;
                 _directoryEntry[startline+4] = 0x00;
-                //_directoryEntry[startline+4] = 0x20;
                 _directoryEntry[startline+5] = 0x20;
                 _directoryEntry[startline+6] = 0x22;
 
@@ -1467,7 +1456,8 @@ void PETdisk::run()
                                 // this is the first entry on a catalog command
                                 // we need to insert extra bytes into the header to prevent the wrong line numbers from showing up
                                 // TODO: figure out exactly why this works!
-                                memmove(&_directoryEntry[6], &_directoryEntry[4], 24);
+                                //memmove(&_directoryEntry[6], &_directoryEntry[4], 24);
+                                makeCatalogHeader();
                             }
                             else if (_directoryEntryByteIndex >= 32)
                             {
@@ -1535,57 +1525,6 @@ void PETdisk::run()
                             }
                         }
                     }
-
-                    //_logger->log("#\r\n");
-                    //_ieee->end_output();
-                    //_currentState = IDLE;
-
-                    // OLD directory routine
-                    /*
-                    _ieee->sendIEEEBytes((unsigned char *)_buffer, 32, 0);
-
-                    // this is a change directory command
-                    if (progname[1] == ':')
-                    {
-                        // change directory command
-                        // this can be either a directory name, or a d64 file
-                        if (isD64((const char*)&progname[2]))
-                        {
-                            _logger->printf("d64: %s\r\n", &progname[2]);
-                            // this is a d64 file, mount as a datasource
-                            // initialize d64 datasource
-                            bool success = _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
-                            if (success)
-                            {
-                                setDataSource(_primaryAddress, _d64);
-                                _dataSource = _d64;
-                            }
-                            else
-                            {
-                                _logger->printf("not found %s\n", progname);
-                            }
-                        }
-                        else
-                        {
-                            if (_dataSource == _d64)
-                            {
-                                if (progname[2] == '.' && progname[3] == '.')
-                                {
-                                    // unmount this d64 image and return to previous datasource
-                                    _dataSource = _d64->getFileDataSource();
-                                    setDataSource(_primaryAddress, _dataSource);
-                                }
-                            }
-                            else
-                            {
-                                // change directory
-                                _dataSource->openDirectory((const char*)&progname[2]);
-                            }
-                        }
-                    }
-                    // write directory entries
-                    listFiles();
-                    */
                 }
                 else // read from file
                 {
