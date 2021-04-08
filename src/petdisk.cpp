@@ -296,6 +296,7 @@ private:
     unsigned char _secondaryAddress;
 
     bool _directoryFinished;
+    bool _directoryIsCatalog;
     bool _lastDirectoryBlock;
     bool _directoryOpened;
     uint8_t _directoryEntryIndex;
@@ -686,6 +687,7 @@ void PETdisk::openDirectory()
     _directoryEntryIndex = 0;
     _directoryEntryAddress = 0x041f;
     _directoryEntryByteIndex = 0;
+    _directoryIsCatalog = false;
 
     // copy the directory header
     pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 7);
@@ -1138,7 +1140,7 @@ void PETdisk::run()
 
         if (_ieee->atn_is_low()) // check for bus command
         {
-            _logger->printf("A %X\r\n", rdchar);
+            //_logger->printf("A %X\r\n", rdchar);
             if (rdchar == PET_LOAD_FNAME_ADDR)
             {
                 _currentState = LOAD_FNAME_READ;
@@ -1173,15 +1175,6 @@ void PETdisk::run()
                     {
                         if (!_directoryOpened)
                         {
-                            /*
-                            // copy the directory header
-                            pgm_memcpy((unsigned char *)_buffer, (unsigned char *)_dirHeader, 7);
-
-                            // print directory title
-                            pgm_memcpy((unsigned char *)&_buffer[7], (unsigned char *)_versionString, 24);
-                            _buffer[31] = 0x00;
-                            _directoryOpened = true;
-                            */
                             openDirectory();
                         }
                     }
@@ -1446,6 +1439,7 @@ void PETdisk::run()
                         if (result == ATN_MASK)
                         {
                             // ATN asserted, break out of directory listing
+                            _directoryIsCatalog = true;
                             break;
                         }
                         else
@@ -1454,8 +1448,58 @@ void PETdisk::run()
                             // read new byte if needed
                             if (_directoryEntryByteIndex >= 32)
                             {
-                                getDirectoryEntry();
-                                _directoryEntryByteIndex = 0;
+                                if (_directoryEntryIndex == 0 && !_directoryIsCatalog)
+                                {
+                                    // do original dir load routine
+                                    // this is a change directory command
+                                    if (progname[1] == ':')
+                                    {
+                                        // change directory command
+                                        // this can be either a directory name, or a d64 file
+                                        if (isD64((const char*)&progname[2]))
+                                        {
+                                            _logger->printf("d64: %s\r\n", &progname[2]);
+                                            // this is a d64 file, mount as a datasource
+                                            // initialize d64 datasource
+                                            bool success = _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
+                                            if (success)
+                                            {
+                                                setDataSource(_primaryAddress, _d64);
+                                                _dataSource = _d64;
+                                            }
+                                            else
+                                            {
+                                                _logger->printf("not found %s\n", progname);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (_dataSource == _d64)
+                                            {
+                                                if (progname[2] == '.' && progname[3] == '.')
+                                                {
+                                                    // unmount this d64 image and return to previous datasource
+                                                    _dataSource = _d64->getFileDataSource();
+                                                    setDataSource(_primaryAddress, _dataSource);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // change directory
+                                                _dataSource->openDirectory((const char*)&progname[2]);
+                                            }
+                                        }
+                                    }
+                                    _ieee->raise_dav_and_eoi();
+                                    // write directory entries
+                                    listFiles();
+                                    break;
+                                }
+                                else
+                                {
+                                    getDirectoryEntry();
+                                    _directoryEntryByteIndex = 0;
+                                }
                             }
 
                             _ieee->raise_dav_and_eoi();
@@ -1463,6 +1507,7 @@ void PETdisk::run()
                              result = _ieee->wait_for_ndac_low_or_atn_low();
                             if (result == ATN_MASK)
                             {
+                                _directoryIsCatalog = true;
                                 break;
                             }
                         }
