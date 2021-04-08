@@ -47,6 +47,17 @@
 
 #define PET_ADDRESS_MASK        0x0F
 
+const unsigned char _dirHeader[] PROGMEM =
+{
+    0x01,
+    0x04,
+    0x1F,
+    0x04,
+    0x00,
+    0x00,
+    0x12
+};
+
 /*
 const unsigned char _dirHeader[] PROGMEM =
 {
@@ -56,26 +67,14 @@ const unsigned char _dirHeader[] PROGMEM =
     0x04,
     0x00,
     0x00,
+    0x00,
+    0x00,
     0x12,
-    0x22
 };
 */
 
-const unsigned char _dirHeader[] PROGMEM =
-{
-    0x01,
-    0x04,
-    0x1F,
-    0x04,
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x12,
-};
-
-//const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
-const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"    ";
+const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
+//const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"    ";
 const unsigned char _firmwareString[] PROGMEM = "BUILD ";
 const unsigned char _fileExtension[] PROGMEM =
 {
@@ -707,10 +706,10 @@ void PETdisk::openDirectory()
     _directoryIsCatalog = false;
 
     // copy the directory header
-    pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 9);
+    pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 7);
 
     // print directory title
-    pgm_memcpy((unsigned char *)&_directoryEntry[9], (unsigned char *)_versionString, 22);
+    pgm_memcpy((unsigned char *)&_directoryEntry[7], (unsigned char *)_versionString, 24);
     _directoryEntry[31] = 0x00;
     _directoryFinished = false;
     _lastDirectoryBlock = false;
@@ -1463,7 +1462,14 @@ void PETdisk::run()
                         {
                             _directoryEntryByteIndex++;
                             // read new byte if needed
-                            if (_directoryEntryByteIndex >= 32)
+                            if (_directoryIsCatalog && _directoryEntryByteIndex == 4 && _directoryEntryIndex == 0)
+                            {
+                                // this is the first entry on a catalog command
+                                // we need to insert extra bytes into the header to prevent the wrong line numbers from showing up
+                                // TODO: figure out exactly why this works!
+                                memmove(&_directoryEntry[6], &_directoryEntry[4], 24);
+                            }
+                            else if (_directoryEntryByteIndex >= 32)
                             {
                                 if (_directoryEntryIndex == 0 && !_directoryIsCatalog)
                                 {
