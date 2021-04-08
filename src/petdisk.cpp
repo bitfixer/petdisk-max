@@ -709,10 +709,11 @@ bool PETdisk::getDirectoryEntry()
         _directoryEntryAddress += 0x001e;
         _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
         _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-        _directoryEntry[startline+2] = 0xff;
+        _directoryEntry[startline+2] = 0x00;
         _directoryEntry[startline+3] = 0xff;
-        sprintf_P((char *)&_directoryEntry[startline+4], PSTR("BLOCKS FREE.             "));
-        _directoryEntry[startline+29] = 0x00;
+        _directoryEntry[startline+4] = 0xff;
+        sprintf_P((char *)&_directoryEntry[startline+5], PSTR("BLOCKS FREE.             "));
+        //_directoryEntry[startline+29] = 0x00;
         _directoryEntry[startline+30] = 0x00;
         _directoryEntry[startline+31] = 0x00;
         _lastDirectoryBlock = true;
@@ -730,10 +731,11 @@ bool PETdisk::getDirectoryEntry()
             memset(_directoryEntry, ' ', 32);
             _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
             _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-            _directoryEntry[startline+2] = _directoryEntryIndex+1;
-            _directoryEntry[startline+3] = 0x00;
-            _directoryEntry[startline+4] = 0x20;
+            _directoryEntry[startline+2] = 0x00;
+            _directoryEntry[startline+3] = _directoryEntryIndex+1;
+            _directoryEntry[startline+4] = 0x00;
             _directoryEntry[startline+5] = 0x20;
+            //_directoryEntry[startline+5] = 0x20;
             pgm_memcpy(&_directoryEntry[startline+6], (unsigned char*)_firmwareString, 6);
             pgm_memcpy(&_directoryEntry[startline+6+6], (unsigned char*)_hash, 7);
             _directoryEntry[startline+31] = 0x00;
@@ -790,9 +792,10 @@ bool PETdisk::getDirectoryEntry()
 
                 _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
                 _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-                _directoryEntry[startline+2] = _directoryEntryIndex+1;
-                _directoryEntry[startline+3] = 0x00;
-                _directoryEntry[startline+4] = 0x20;
+                _directoryEntry[startline+2] = 0x00;
+                _directoryEntry[startline+3] = _directoryEntryIndex+1;
+                _directoryEntry[startline+4] = 0x00;
+                //_directoryEntry[startline+4] = 0x20;
                 _directoryEntry[startline+5] = 0x20;
                 _directoryEntry[startline+6] = 0x22;
 
