@@ -300,8 +300,9 @@ private:
     bool _lastDirectoryBlock;
     bool _directoryOpened;
     uint8_t _directoryEntryIndex;
-    uint8_t _directoryEntryByteIndex;
+    int8_t _directoryEntryByteIndex;
     uint8_t _directoryEntry[32];
+    uint8_t _directoryNextByte;
     uint16_t _directoryEntryAddress;
 
     bool configChanged(struct pd_config* pdcfg);
@@ -699,6 +700,7 @@ void PETdisk::openDirectory()
     _directoryFinished = false;
     _lastDirectoryBlock = false;
     _directoryOpened = true;
+    _directoryNextByte = _directoryEntry[0];
 }
 
 void PETdisk::makeCatalogHeader()
@@ -719,10 +721,10 @@ bool PETdisk::getDirectoryEntry()
         _directoryEntryAddress += 0x001e;
         _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
         _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-        _directoryEntry[startline+2] = 0x00;
+        _directoryEntry[startline+2] = 0xff;
         _directoryEntry[startline+3] = 0xff;
-        _directoryEntry[startline+4] = 0xff;
-        sprintf_P((char *)&_directoryEntry[startline+5], PSTR("BLOCKS FREE.             "));
+        sprintf_P((char *)&_directoryEntry[startline+4], PSTR("BLOCKS FREE.             "));
+        _directoryEntry[startline+29] = 0x00;
         _directoryEntry[startline+30] = 0x00;
         _directoryEntry[startline+31] = 0x00;
         _lastDirectoryBlock = true;
@@ -740,9 +742,9 @@ bool PETdisk::getDirectoryEntry()
             memset(_directoryEntry, ' ', 32);
             _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
             _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-            _directoryEntry[startline+2] = 0x00;
-            _directoryEntry[startline+3] = _directoryEntryIndex+1;
-            _directoryEntry[startline+4] = 0x00;
+            _directoryEntry[startline+2] = _directoryEntryIndex+1;
+            _directoryEntry[startline+3] = 0x00;
+            _directoryEntry[startline+4] = 0x20;
             _directoryEntry[startline+5] = 0x20;
             pgm_memcpy(&_directoryEntry[startline+6], (unsigned char*)_firmwareString, 6);
             pgm_memcpy(&_directoryEntry[startline+6+6], (unsigned char*)_hash, 7);
@@ -800,9 +802,9 @@ bool PETdisk::getDirectoryEntry()
 
                 _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
                 _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
-                _directoryEntry[startline+2] = 0x00;
-                _directoryEntry[startline+3] = _directoryEntryIndex+1;
-                _directoryEntry[startline+4] = 0x00;
+                _directoryEntry[startline+2] = _directoryEntryIndex+1;
+                _directoryEntry[startline+3] = 0x00;
+                _directoryEntry[startline+4] = 0x20;
                 _directoryEntry[startline+5] = 0x20;
                 _directoryEntry[startline+6] = 0x22;
 
@@ -1439,7 +1441,8 @@ void PETdisk::run()
                     while (!done)
                     {
                         // send one header byte
-                        result = _ieee->sendIEEEByteCheckForATN2(_directoryEntry[_directoryEntryByteIndex], _lastDirectoryBlock && _directoryEntryByteIndex == 31);
+                        //result = _ieee->sendIEEEByteCheckForATN2(_directoryEntry[_directoryEntryByteIndex], _lastDirectoryBlock && _directoryEntryByteIndex == 31);
+                        result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
                         if (result == ATN_MASK)
                         {
@@ -1457,7 +1460,7 @@ void PETdisk::run()
                                 // we need to insert extra bytes into the header to prevent the wrong line numbers from showing up
                                 // TODO: figure out exactly why this works!
                                 //memmove(&_directoryEntry[6], &_directoryEntry[4], 24);
-                                makeCatalogHeader();
+                                //makeCatalogHeader();
                             }
                             else if (_directoryEntryByteIndex >= 32)
                             {
@@ -1515,14 +1518,21 @@ void PETdisk::run()
                                 }
                             }
 
+                            _logger->printf("%d\r\n", _directoryEntryByteIndex);
                             _ieee->raise_dav_and_eoi();
 
                              result = _ieee->wait_for_ndac_low_or_atn_low();
                             if (result == ATN_MASK)
                             {
+                                _directoryEntryByteIndex--;
                                 _directoryIsCatalog = true;
                                 break;
                             }
+                            else
+                            {
+                                _directoryNextByte = _directoryEntry[_directoryEntryByteIndex];
+                            }
+
                         }
                     }
                 }
