@@ -643,7 +643,6 @@ uint32_t FAT32::seek(uint32_t pos)
         _indexed = true;
     }
 
-    _logger->printf("seek %ld\r\n", pos);
     // seeking is quantized to sector boundaries, for simplicity
     uint32_t q_pos = (pos / _bytesPerSector) * _bytesPerSector;
     unsigned int sectors = q_pos / _bytesPerSector;
@@ -653,9 +652,6 @@ uint32_t FAT32::seek(uint32_t pos)
     _filePosition.cluster = _fileClusterIndex[clusters];
     _filePosition.sectorIndex = sectorInCluster;
     _filePosition.byteCounter = q_pos;
-
-    //sprintf(tmp, "qs %ld\r\n", q_pos);
-    //_logger->log(tmp);
 
     return q_pos;
 }

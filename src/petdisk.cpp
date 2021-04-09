@@ -298,7 +298,6 @@ private:
     bool _directoryFinished;
     bool _directoryIsCatalog;
     bool _lastDirectoryBlock;
-    bool _directoryOpened;
     uint8_t _directoryEntryIndex;
     int8_t _directoryEntryByteIndex;
     uint8_t _directoryEntry[32];
@@ -871,7 +870,6 @@ void PETdisk::listFiles()
     dir_start = 0x041f;
     unsigned int file = 0;
 
-    _logger->log("lf ocd\r\n");
     _dataSource->openCurrentDirectory();
 
     do
@@ -1106,7 +1104,6 @@ bool PETdisk::isD64(const char* fileName)
 void PETdisk::run()
 {
     // start main loop
-    //uint8_t _dirEntryBuffer[32];
     while(1)
     {
         if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
@@ -1167,14 +1164,6 @@ void PETdisk::run()
                 else
                 {
                     _currentState = FILE_READ;
-                    // open file for reading
-                    if (progname[0] == '$')
-                    {
-                        if (_directoryEntryIndex == 0 && _directoryEntryByteIndex == 0)
-                        {
-                            initDirectory();
-                        }
-                    }
                 }
             }
             else if (rdchar == PET_SAVE_CMD_ADDR) // save command
@@ -1268,9 +1257,7 @@ void PETdisk::run()
                 {
                     _filenamePosition = 0;
                     _currentState = DIR_READ;
-                    _directoryEntryByteIndex = 0;
-                    _directoryEntryIndex = 0;
-                    _directoryOpened = false;
+                    initDirectory();
                 }
                 else
                 {
@@ -1432,7 +1419,6 @@ void PETdisk::run()
                     while (!done)
                     {
                         // send one header byte
-                        //result = _ieee->sendIEEEByteCheckForATN2(_directoryEntry[_directoryEntryByteIndex], _lastDirectoryBlock && _directoryEntryByteIndex == 31);
                         result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
                         result = _ieee->wait_for_ndac_high_or_atn_low();
                         if (result == ATN_MASK)
@@ -1498,6 +1484,8 @@ void PETdisk::run()
                                 {
                                     if (_directoryEntryIndex == 0)
                                     {
+                                        // have not opened the datasource directory yet
+                                        // do this here where we are not going to time out
                                         _dataSource->openCurrentDirectory();
                                     }
 
