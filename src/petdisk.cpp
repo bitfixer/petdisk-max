@@ -684,7 +684,7 @@ void PETdisk::writeFile()
 
 void PETdisk::openDirectory()
 {
-    _dataSource->openCurrentDirectory();
+    //_dataSource->openCurrentDirectory();
     _directoryEntryIndex = 0;
     _directoryEntryAddress = 0x041f;
     _directoryEntryByteIndex = 0;
@@ -698,7 +698,7 @@ void PETdisk::openDirectory()
     _directoryEntry[31] = 0x00;
     _directoryFinished = false;
     _lastDirectoryBlock = false;
-    _directoryOpened = true;
+    //_directoryOpened = true;
     _directoryNextByte = _directoryEntry[0];
 }
 
@@ -873,6 +873,7 @@ void PETdisk::listFiles()
     dir_start = 0x041f;
     unsigned int file = 0;
 
+    _logger->log("lf ocd\r\n");
     _dataSource->openCurrentDirectory();
 
     do
@@ -1171,8 +1172,15 @@ void PETdisk::run()
                     // open file for reading
                     if (progname[0] == '$')
                     {
-                        if (!_directoryOpened)
+                        if (_directoryEntryIndex == 0 && _directoryEntryByteIndex == 0)
                         {
+                            /*
+                            // copy the directory header
+                            pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 7);
+
+                            // print directory title
+                            pgm_memcpy((unsigned char *)&_directoryEntry[7], (unsigned char *)_versionString, 24);
+                            */
                             openDirectory();
                         }
                     }
@@ -1270,6 +1278,7 @@ void PETdisk::run()
                     _filenamePosition = 0;
                     _currentState = DIR_READ;
                     _directoryEntryByteIndex = 0;
+                    _directoryEntryIndex = 0;
                     _directoryOpened = false;
                 }
                 else
@@ -1496,12 +1505,17 @@ void PETdisk::run()
                                 }
                                 else
                                 {
+                                    if (!_directoryOpened)
+                                    {
+                                        _dataSource->openCurrentDirectory();
+                                        _directoryOpened = true;
+                                    }
+
                                     getDirectoryEntry();
                                     _directoryEntryByteIndex = 0;
                                 }
                             }
 
-                            _logger->printf("%d\r\n", _directoryEntryByteIndex);
                             _ieee->raise_dav_and_eoi();
 
                              result = _ieee->wait_for_ndac_low_or_atn_low();
@@ -1768,6 +1782,10 @@ int main(void)
     d64DataSource.initWithDataSource(nds_array[0], "ushergam.d64", &logger);
     
     #endif
+
+    // test
+    d64DataSource.initWithDataSource(nds_array[0], "ushergam.d64", &logger);
+    petdisk.setDataSource(8, &d64DataSource);
 
 
     logger.log("back\r\n");

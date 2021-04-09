@@ -332,6 +332,7 @@ bool D64DataSource::createNewDirectoryBlock(uint8_t* tb)
 
 void D64DataSource::openCurrentDirectory() 
 {
+    _logger->log("ocd d64\r\n");
     _dirTrackBlock[0] = 18;
     _dirTrackBlock[1] = 1;
     _dirIndexInBuffer = 0;
@@ -455,7 +456,7 @@ void D64DataSource::cbmMount()
 
 uint8_t* D64DataSource::cbmReadBlock(uint8_t* tb)
 {
-
+    _logger->printf("cmb rb %d %d\r\n", tb[0], tb[1]);
     uint32_t loc = cbmBlockLocation(tb);
     //printf("cbmReadBlock %d %d %ld\n", tb[0], tb[1], loc);
 
