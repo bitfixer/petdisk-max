@@ -316,7 +316,6 @@ private:
 
     void openDirectory();
     bool getDirectoryEntry();
-    void makeCatalogHeader();
 };
 
 void PETdisk::init(
@@ -701,13 +700,6 @@ void PETdisk::openDirectory()
     _lastDirectoryBlock = false;
     _directoryOpened = true;
     _directoryNextByte = _directoryEntry[0];
-}
-
-void PETdisk::makeCatalogHeader()
-{
-    pgm_memcpy((unsigned char*)&_directoryEntry[6], (unsigned char*)&_dirHeader[4], 3);
-    pgm_memcpy((unsigned char*)&_directoryEntry[9], (unsigned char*)_versionString, 22);
-    _directoryEntry[31] = 0x00;
 }
 
 bool PETdisk::getDirectoryEntry()
@@ -1131,7 +1123,6 @@ void PETdisk::run()
         {
             // if we are in an unlisten state,
             // wait for my address
-            //_logger->log("y\r\n");
             unsigned char buscmd = wait_for_device_address();
             if (buscmd == LISTEN)
             {
@@ -1454,15 +1445,7 @@ void PETdisk::run()
                         {
                             _directoryEntryByteIndex++;
                             // read new byte if needed
-                            if (_directoryIsCatalog && _directoryEntryByteIndex == 4 && _directoryEntryIndex == 0)
-                            {
-                                // this is the first entry on a catalog command
-                                // we need to insert extra bytes into the header to prevent the wrong line numbers from showing up
-                                // TODO: figure out exactly why this works!
-                                //memmove(&_directoryEntry[6], &_directoryEntry[4], 24);
-                                //makeCatalogHeader();
-                            }
-                            else if (_directoryEntryByteIndex >= 32)
+                            if (_directoryEntryByteIndex >= 32)
                             {
                                 if (_directoryEntryIndex == 0 && !_directoryIsCatalog)
                                 {
