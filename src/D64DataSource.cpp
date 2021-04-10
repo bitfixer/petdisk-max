@@ -415,18 +415,9 @@ void D64DataSource::processCommandString(int* address)
     {
         // seek to track and block
         buf += 3;
-        /*
-        // skip channel
-        buf = strstr(buf, ",");
-        buf++;
-        buf = strstr(buf, ",");
-        buf++;
-        */
-
         int driveNumber,track,block;
         sscanf(buf, "%d,%d,%d,%d", address, &driveNumber, &track, &block);
-        //_logger->printf("t %d b %d\r\n", track, block);
-
+        
         _fileTrackBlock[0] = track;
         _fileTrackBlock[1] = block;
 

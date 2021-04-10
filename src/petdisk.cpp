@@ -296,7 +296,6 @@ private:
     unsigned char _secondaryAddress;
 
     bool _directoryFinished;
-    bool _directoryIsCatalog;
     bool _lastDirectoryBlock;
     uint8_t _directoryEntryIndex;
     int8_t _directoryEntryByteIndex;
@@ -307,7 +306,6 @@ private:
     bool configChanged(struct pd_config* pdcfg);
     unsigned char processFilename(unsigned char* filename, unsigned char length, bool* write);
     void writeFile();
-    void listFiles();
     unsigned char wait_for_device_address();
     openFileInfo* getFileInfoForAddress(unsigned char address);
     void resetFileInformation(unsigned char address);
@@ -686,7 +684,6 @@ void PETdisk::initDirectory()
     _directoryEntryIndex = 0;
     _directoryEntryAddress = 0x041f;
     _directoryEntryByteIndex = 0;
-    _directoryIsCatalog = false;
 
     // copy the directory header
     pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 7);
@@ -859,171 +856,6 @@ bool PETdisk::getDirectoryEntry()
     }
     while (gotDir == true);
     return true;
-}
-
-void PETdisk::listFiles()
-{
-    bool gotDir;
-    unsigned char startline;
-    unsigned int dir_start;
-    unsigned char entry[32];
-    dir_start = 0x041f;
-    unsigned int file = 0;
-
-    _dataSource->openCurrentDirectory();
-
-    do
-    {
-        // get next directory entry
-        gotDir = _dataSource->getNextDirectoryEntry();
-        if (gotDir == false)
-        {
-            dir_start += 0x0020;
-            startline = 0;
-            memset(entry, ' ', 32);
-            entry[startline] = (unsigned char)(dir_start & 0x00ff);
-            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-            entry[startline+2] = file+1;
-            entry[startline+3] = 0x00;
-            entry[startline+4] = 0x20;
-            entry[startline+5] = 0x20;
-            pgm_memcpy(&entry[startline+6], (unsigned char*)_firmwareString, 6);
-            pgm_memcpy(&entry[startline+6+6], (unsigned char*)_hash, 7);
-            entry[startline+31] = 0x00;
-            file++;
-            _ieee->sendIEEEBytes(entry, 32, 0);
-
-            startline = 0;
-            dir_start += 0x001e;
-            entry[startline] = (unsigned char)(dir_start & 0x00ff);
-            entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-            entry[startline+2] = 0xff;
-            entry[startline+3] = 0xff;
-            sprintf_P((char *)&entry[startline+4], PSTR("BLOCKS FREE.             "));
-            entry[startline+29] = 0x00;
-            entry[startline+30] = 0x00;
-            entry[startline+31] = 0x00;
-            
-            _ieee->sendIEEEBytes(entry, 32, 1);
-            return;
-        }
-        else
-        {
-            if (!_dataSource->isHidden() && !_dataSource->isVolumeId())
-            {
-                // check if this is a file that can be used by petdisk
-                // currently .PRG files. Soon .SEQ and .REL
-
-                int fname_length = 0;
-                unsigned char* fileName = _dataSource->getFilename();
-                if (fileName == NULL)
-                {
-                    continue;
-                }
-                fname_length = strlen((char*)fileName);
-                bool valid_file = false;
-                // check for correct extension
-                if (fname_length > 4)
-                {
-                    if (toupper(fileName[fname_length-3]) == 'P' &&
-                        toupper(fileName[fname_length-2]) == 'R' &&
-                        toupper(fileName[fname_length-1]) == 'G')
-                    {
-                        valid_file = true;
-                    }
-                    else if (toupper(fileName[fname_length-3]) == 'S' &&
-                        toupper(fileName[fname_length-2]) == 'E' &&
-                        toupper(fileName[fname_length-1]) == 'Q')
-                    {
-                        valid_file = true;
-                    }
-                    else if (toupper(fileName[fname_length-3]) == 'D' &&
-                        toupper(fileName[fname_length-2]) == '6' &&
-                        toupper(fileName[fname_length-1]) == '4')
-                    {
-                        valid_file = true;
-                    }
-                }
-
-                if (!valid_file)
-                {
-                    // skip this file, continue to next
-                    continue;
-                }
-
-                dir_start += 0x0020;
-                startline = 0;
-
-                
-                entry[startline] = (unsigned char)(dir_start & 0x00ff);
-                entry[startline+1] = (unsigned char)((dir_start & 0xff00) >> 8);
-                entry[startline+2] = file+1;
-                entry[startline+3] = 0x00;
-                entry[startline+4] = 0x20;
-                entry[startline+5] = 0x20;
-                entry[startline+6] = 0x22;
-
-                int extensionPos = -1;
-                if (fname_length > 5)
-                {
-                    if (fileName[fname_length-4] == '.')
-                    {
-                        extensionPos = fname_length-3;
-                        fname_length = fname_length-4;
-                    }
-                }
-                
-                if (fname_length >= 17)
-                {
-                    fname_length = 17;
-                }
-                
-                for (int f = 0; f < fname_length; f++)
-                {
-                    // make sure filename is upper case
-                    entry[startline+7+f] = toupper(fileName[f]);
-                }
-
-                entry[startline+7+fname_length] = 0x22;
-                for (int f = 0; f < (17 - fname_length); f++)
-                {
-                    entry[startline+7+fname_length+f+1] = ' ';
-                }
-
-                if (_dataSource->isDirectory())
-                {
-                    entry[startline+25] = 'D';
-                    entry[startline+26] = 'I';
-                    entry[startline+27] = 'R';
-                }
-                else
-                {
-                    if (extensionPos > 0)
-                    {
-                        // make sure extension is upper case
-                        entry[startline+25] = toupper(fileName[extensionPos]);
-                        entry[startline+26] = toupper(fileName[extensionPos+1]);
-                        entry[startline+27] = toupper(fileName[extensionPos+2]);
-                    }
-                    else
-                    {
-                        entry[startline+25] = ' ';
-                        entry[startline+26] = ' ';
-                        entry[startline+27] = ' ';
-                    }
-                }
-
-                entry[startline+28] = ' ';
-                entry[startline+29] = ' ';
-                entry[startline+30] = ' ';
-                entry[startline+31] = 0x00;
-                file++;
-
-                _ieee->sendIEEEBytes(entry, 32, 0);
-            }
-        }
-    }
-    while (gotDir == true);
 }
 
 unsigned char PETdisk::wait_for_device_address()
@@ -1424,7 +1256,6 @@ void PETdisk::run()
                         if (result == ATN_MASK)
                         {
                             // ATN asserted, break out of directory listing
-                            _directoryIsCatalog = true;
                             break;
                         }
                         else
@@ -1433,7 +1264,7 @@ void PETdisk::run()
                             // read new byte if needed
                             if (_directoryEntryByteIndex >= 32)
                             {
-                                if (_directoryEntryIndex == 0 && !_directoryIsCatalog)
+                                if (_directoryEntryIndex == 0)
                                 {
                                     // do original dir load routine
                                     // this is a change directory command
@@ -1475,23 +1306,14 @@ void PETdisk::run()
                                             }
                                         }
                                     }
-                                    _ieee->raise_dav_and_eoi();
-                                    // write directory entries
-                                    listFiles();
-                                    break;
-                                }
-                                else
-                                {
-                                    if (_directoryEntryIndex == 0)
-                                    {
-                                        // have not opened the datasource directory yet
-                                        // do this here where we are not going to time out
-                                        _dataSource->openCurrentDirectory();
-                                    }
 
-                                    getDirectoryEntry();
-                                    _directoryEntryByteIndex = 0;
+                                    // have not opened the datasource directory yet
+                                    // do this here where we are not going to time out
+                                    _dataSource->openCurrentDirectory();
                                 }
+
+                                getDirectoryEntry();
+                                _directoryEntryByteIndex = 0;
                             }
 
                             _ieee->raise_dav_and_eoi();
@@ -1500,14 +1322,12 @@ void PETdisk::run()
                             if (result == ATN_MASK)
                             {
                                 _directoryEntryByteIndex--;
-                                _directoryIsCatalog = true;
                                 break;
                             }
                             else
                             {
                                 _directoryNextByte = _directoryEntry[_directoryEntryByteIndex];
                             }
-
                         }
                     }
                 }
