@@ -22,7 +22,7 @@
 #include "D64DataSource.h"
 #include "githash.h"
 
-//#ifdef TESTING 1
+//#define TESTING 1
 
 #define ESP_CONTROL     DDRD
 #define ESP_PORT        PORTD
@@ -1514,7 +1514,7 @@ int main(void)
     init_led();
     blink_led(1, 300, 50);
 
-    EspConn espConn(_buffer, &_bufferSize, &serial, &logSerial);
+    EspConn espConn(_buffer, &_bufferSize, &serial, &logger);
     EspHttp espHttp(&espConn, &logger);
     reset_esp();
     for (int i = 0; i < 50; i++)
@@ -1578,7 +1578,7 @@ int main(void)
 
     D64DataSource d64DataSource;
     d64DataSource.initWithDataSource(nds_array[0], "ushergam.d64", &logger);
-    
+
     #endif
     logger.log("ready\r\n");
 

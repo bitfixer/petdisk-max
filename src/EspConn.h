@@ -2,6 +2,7 @@
 #define __esp_conn_h__
 
 #include <stdint.h>
+#include "SerialLogger.h"
 #include "Serial.h"
 
 typedef enum eProtMode {TCP_MODE, UDP_MODE, SSL_MODE} tProtMode;
@@ -16,7 +17,7 @@ typedef enum
 
 class EspConn {
 public:
-    EspConn(uint8_t* buffer, uint16_t* bufferSize, Serial* serial, Serial1* logSerial) : 
+    EspConn(uint8_t* buffer, uint16_t* bufferSize, Serial* serial, Logger* logSerial) : 
     _serialBuffer(buffer),
     _serialBufferSize(bufferSize),
     _serial(serial),
@@ -44,11 +45,12 @@ public:
 private:
     
     void readBytesUntilSize(uint16_t size);
+    void copyEscapedString(char* dest, const char* src);
 
     uint8_t* _serialBuffer;
     uint16_t* _serialBufferSize;
     Serial* _serial;
-    Serial1* _logSerial;
+    Logger* _logSerial;
 };
 
 #endif

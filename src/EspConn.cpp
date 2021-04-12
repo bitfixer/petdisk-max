@@ -1,5 +1,6 @@
 #include "EspConn.h"
 #include <stdio.h>
+#include <ctype.h>
 #include <util/delay.h>
 #include <string.h>
 #include <avr/io.h>
@@ -70,19 +71,45 @@ void EspConn::setDns() {
     sendCmd((const char*)cmd, 5000);
 }
 
+void EspConn::copyEscapedString(char* dest, const char* src)
+{
+    int srcLen = strlen(src);
+    char* destptr = dest;
+
+    for (int i = 0; i < srcLen; i++)
+    {
+        char c = src[i];
+        if (isalnum(c))
+        {
+            *destptr++ = c;
+        }
+        else
+        {
+            sprintf(destptr, "\\%c", c);
+            destptr += 2;
+        }
+    }
+    destptr = 0x00;
+}
+
 bool EspConn::connect(const char* ssid, const char* passphrase) {
-    char cmd[64];
-    sprintf_P(cmd, PSTR("AT+CWJAP_CUR=\"%s\",\"%s\""), ssid, passphrase);
-    return sendCmd((const char*)cmd);
+    char* buffer = (char*)_serialBuffer;
+    char* escapedSsid = buffer + 257;
+    char* escapedPassphrase = escapedSsid + 33;
+
+    copyEscapedString(escapedSsid, ssid);
+    copyEscapedString(escapedPassphrase, passphrase);
+    sprintf_P(buffer, PSTR("AT+CWJAP_CUR=\"%s\",\"%s\""), escapedSsid, escapedPassphrase);
+    return sendCmd((const char*)_serialBuffer);
 }
 
 bool EspConn::sendCmd(const char* cmd, int timeout) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
         *_serialBufferSize = 0;
     }
-    
-    _serial->enable_interrupt();
+
     _serial->transmitString(cmd);
+    _serial->enable_interrupt();
     _serial->transmitString("\r\n");
     int result = readUntil(0, true, true, timeout);
     _serial->disable_interrupt();
@@ -109,7 +136,6 @@ bool EspConn::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t
     // this allows to specify the target host/port in CIPSEND
     
     int ret = -1;
-    //char cmd[64];
     char* cmd = (char*)&_serialBuffer[64];
     if (protMode==TCP_MODE) {
         sprintf_P(cmd, PSTR("AT+CIPSTART=%d,\"TCP\",\"%s\",%u"), sock, host, port);
@@ -117,11 +143,13 @@ bool EspConn::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t
     }
     else if (protMode==SSL_MODE)
     {
+        char tmp[64];
+        strcpy(tmp, host);
         // better to put the CIPSSLSIZE here because it is not supported before firmware 1.4
         sprintf_P(cmd, PSTR("AT+CIPSSLSIZE=4096"));
         sendCmd(cmd);
 
-        sprintf_P(cmd, PSTR("AT+CIPSTART=%d,\"SSL\",\"%s\",%u"), sock, host, port);
+        sprintf_P(cmd, PSTR("AT+CIPSTART=%d,\"SSL\",\"%s\",%u"), sock, tmp, port);
         sendCmd(cmd);
     }
     else if (protMode==UDP_MODE) {
