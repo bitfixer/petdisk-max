@@ -54,6 +54,8 @@ LOAD"$",devicenumber
 and 
 LIST
 
+For BASIC 4, the CATALOG and DIRECTORY commands will also work.
+
 Load a program (.PRG) with
 LOAD"PROGRAM",devicenumber
 
@@ -97,9 +99,8 @@ At the end of the directory listing the git commit id will be listed, so you can
 
 Things known to currently not work (but working on it):
 1. Support for BASIC 1 ROM (i.e. non-upgraded original PET 2001)
-2. DIRECTORY command
-3. REL files
-4. U2 (block write) drive command
+2. REL files
+3. U2 (block write) drive command
 
 Please let me know if you discover any bugs or have feature requests.
 bitfixer at (removeforantispam) bitfixer dot com
