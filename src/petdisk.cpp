@@ -755,7 +755,11 @@ bool PETdisk::getDirectoryEntry()
                 fname_length = strlen((char*)fileName);
                 bool valid_file = false;
                 // check for correct extension
-                if (fname_length > 4)
+                if (_dataSource->isDirectory())
+                {
+                    valid_file = true;
+                } 
+                else if (fname_length > 4)
                 {
                     if (toupper(fileName[fname_length-3]) == 'P' &&
                         toupper(fileName[fname_length-2]) == 'R' &&
@@ -795,6 +799,7 @@ bool PETdisk::getDirectoryEntry()
                 _directoryEntry[startline+6] = 0x22;
 
                 int extensionPos = -1;
+
                 if (fname_length > 5)
                 {
                     if (fileName[fname_length-4] == '.')
