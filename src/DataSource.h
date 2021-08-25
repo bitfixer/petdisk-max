@@ -22,9 +22,9 @@ public:
     virtual void closeFile() = 0;
     virtual void openCurrentDirectory() = 0;
     virtual uint32_t seek(uint32_t pos) { return 0; }
-    bool isHidden() { return false; }
-    bool isVolumeId() { return false; }
-    bool isDirectory() { return false; }
+    virtual bool isHidden() { return false; }
+    virtual bool isVolumeId() { return false; }
+    virtual bool isDirectory() { return false; }
     virtual unsigned char* getFilename() = 0;
     virtual unsigned char* getBuffer() = 0;
     virtual unsigned int writeBufferSize() = 0;
