@@ -380,6 +380,10 @@ void PETdisk::init(
             device_present = false;
         }
     }
+    else
+    {
+        _logger->logF(PSTR("esp present\r\n"));
+    }
 
     // check validity of config
     if (pdcfg->device_type[0] > DEVICE_END)
