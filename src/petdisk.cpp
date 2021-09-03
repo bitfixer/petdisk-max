@@ -376,25 +376,26 @@ void PETdisk::init(
 
     bool espConnected = false;
 
+    // check for presence of esp module
+    bool device_present = true;
+    if (!_espConn->device_present())
+    {
+        _logger->logF(PSTR("no device!\r\n"));
+        _espConn->attempt_baud_rate_setting();
+        if (_espConn->device_present())
+        {
+            _logger->logF(PSTR("device present at 115kbps\r\n"));
+        }
+        else
+        {
+            _logger->logF(PSTR("no device present.\r\n"));
+            device_present = false;
+        }
+    }
+
     if (strlen(pdcfg->wifi_ssid) > 0 && strlen(pdcfg->wifi_password) > 0)
     {
         _logger->logF(PSTR("trying to connect\r\n"));
-        
-        bool device_present = true;
-        if (!_espConn->device_present())
-        {
-            _logger->logF(PSTR("no device!\r\n"));
-            _espConn->attempt_baud_rate_setting();
-            if (_espConn->device_present())
-            {
-                _logger->logF(PSTR("device present at 115kbps\r\n"));
-            }
-            else
-            {
-                _logger->logF(PSTR("no device present.\r\n"));
-                device_present = false;
-            }
-        }
         
         if (device_present)
         {
