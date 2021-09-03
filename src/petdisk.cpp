@@ -361,6 +361,9 @@ void PETdisk::init(
     eeprom_read_block(pdcfg, (void*)0, sizeof(struct pd_config));
     printConfig(pdcfg);
 
+    _espConn = espConn;
+    _espHttp = espHttp;
+    bool espConnected = false;
     // check for presence of esp module
     bool device_present = true;
     if (!_espConn->device_present())
@@ -387,11 +390,6 @@ void PETdisk::init(
         _logger->logF(PSTR("using default\r\n"));
         return;
     }
-
-    _espConn = espConn;
-    _espHttp = espHttp;
-
-    bool espConnected = false;
 
     if (strlen(pdcfg->wifi_ssid) > 0 && strlen(pdcfg->wifi_password) > 0)
     {
