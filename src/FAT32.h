@@ -91,6 +91,7 @@ public:
     , _logger(logger)
     , _currentDirectoryEntry(0)
     , _initialized(false)
+    , _rootCluster(0)
     {
 
     }
