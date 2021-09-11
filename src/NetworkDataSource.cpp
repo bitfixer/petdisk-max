@@ -39,7 +39,7 @@ void NetworkDataSource::copyUrlEscapedString(char* dest, char* src)
             destptr += 3;
         }
     }
-    destptr = 0x00;
+    *destptr = 0x00;
 }
 
 void NetworkDataSource::openFileForWriting(unsigned char* fileName)
