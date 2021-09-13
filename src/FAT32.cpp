@@ -160,12 +160,12 @@ unsigned char FAT32::getBootSectorData (void)
     struct partitionInfo_Structure *partition;
     unsigned long dataSectors;
 
-    _unusedSectors = 0;
-
     if (_rootCluster != 0 && _currentDirectoryCluster != _rootCluster)
     {
         return 0;
     }
+
+    _unusedSectors = 0;
 
     _sd->readSingleBlock(0, _FatBuffer);
     bpb = (struct BS_Structure *)_FatBuffer;
