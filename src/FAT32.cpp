@@ -435,6 +435,10 @@ bool FAT32::openDirectory(const char* dirName)
     if (gotDir)
     {
         _currentDirectoryCluster = getFirstCluster(_currentDirectoryEntry);
+        if (_currentDirectoryCluster == 0)
+        {
+            _currentDirectoryCluster = _rootCluster;
+        }
         openDirectory(_currentDirectoryCluster);
         return true;
     }
