@@ -65,10 +65,24 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     sprintf_P(&recvBuffer->receiveUrl[_urlData.eepromUrlLength], PSTR("?file=%s"), recvBuffer->fileName);
 
     urlInfo* info = (urlInfo*)_dataBuffer;
+    /*
     eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
     info->host[_urlData.eepromHostLength] = 0;
 
-    _fileSize = _http->getSize((const char*)info->host, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
+    char* portPtr = strstr(info->host, ":");
+    if (portPtr)
+    {
+        sscanf(portPtr, "%d", &info->port);
+        *portPtr = 0;
+    }
+    else
+    {
+        info->port = 80;
+    }
+    */
+    getHostAndPort(info->host, &info->port);
+
+    _fileSize = _http->getSize((const char*)info->host, info->port, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
     _log->printf("filesize %ld\r\n", _fileSize);
     _currentBlockByte = 0;
     _currentOutputByte = 0;
@@ -110,13 +124,16 @@ bool NetworkDataSource::fetchBlock(uint32_t start, uint32_t end)
     int rangeSize = 0;
 
     urlInfo* info = (urlInfo*)_dataBuffer;
-    eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
-    info->host[_urlData.eepromHostLength] = 0;
+    //eeprom_read_block(info->host, _urlData.eepromHost, _urlData.eepromHostLength);
+    //info->host[_urlData.eepromHostLength] = 0;
+
+    getHostAndPort(info->host, &info->port);
 
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
 
     _blockData = _http->getRange(
         (const char*)info->host, 
+        info->port,
         (const char*)recvBuffer->receiveUrl, 
         start, 
         end, 
@@ -186,12 +203,13 @@ bool NetworkDataSource::getNextDirectoryEntry()
         int size;
         // prepare address
         urlInfo* info = (urlInfo*)_dataBuffer;
-        getHost(info->host);
+        getHostAndPort(info->host, &info->port);
         getUrl(info->url);
         sprintf_P(info->params, PSTR("?d=1&p=%d"), _currentDirectoryPage++);
         
         _dirPtr = _http->makeRequest(
             (const char*)info->host,
+            info->port,
             (const char*)info->url,
             (const char*)info->params,
             _dataBuffer,
@@ -223,7 +241,7 @@ void NetworkDataSource::writeBufferToFile(unsigned int numBytes)
     urlInfo* info = (urlInfo*)_dataBuffer;
 
     // specify url parameters
-    getHost(info->host);
+    getHostAndPort(info->host, &info->port);
     getUrl(info->url);
     
     if (_firstBlockWritten == false)
@@ -255,7 +273,7 @@ void NetworkDataSource::updateBlock()
     memmove(info->blockData, _blockData, _writeBufferSize);
 
     // specify url parameters
-    getHost(info->host);
+    getHostAndPort(info->host, &info->port);
     getUrl(info->url);
 
     uint32_t endByte = _currentOutputByte + _writeBufferSize;
@@ -304,10 +322,28 @@ unsigned char* NetworkDataSource::getBuffer()
     return _blockData;
 }
 
-void NetworkDataSource::getHost(char* host)
+void NetworkDataSource::getHostAndPort(char* host, uint16_t* port)
 {
     eeprom_read_block(host, _urlData.eepromHost, _urlData.eepromHostLength);
     host[_urlData.eepromHostLength] = 0;
+
+    _log->log("**host: ");
+    _log->log(host);
+    _log->log("\r\n");
+
+    char* portPtr = strstr(host, ":");
+    if (portPtr)
+    {
+        *portPtr = 0;
+        portPtr++;
+        _log->printf("portstr: %s\r\n", portPtr);
+        sscanf(portPtr, "%d", port);
+        *portPtr = 0;
+    }
+    else
+    {
+        *port = 80;
+    }
 }
 
 void NetworkDataSource::getUrl(char* url)

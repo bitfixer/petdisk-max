@@ -95,7 +95,7 @@ private:
     unsigned int _writeBufferSize;
     
     bool fetchBlock(uint32_t start, uint32_t end);
-    void getHost(char* host);
+    void getHostAndPort(char* host, uint16_t* port);
     void getUrl(char* url);
     void copyUrlEscapedString(char* dest, char* src);
 };
