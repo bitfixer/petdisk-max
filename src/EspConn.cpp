@@ -28,6 +28,15 @@ typedef enum
     STATE_NL_2 = 4,
 } readState;
 
+namespace bitfixer {
+
+bool EspConn::initWithParams(uint8_t* buffer, uint16_t* bufferSize, Serial* serial, Logger* logSerial) {
+    _serialBuffer = buffer;
+    _serialBufferSize = bufferSize;
+    _serial = serial;
+    _logSerial = logSerial;
+}
+
 bool EspConn::device_present() {
     if (!sendCmd("AT", 1000))
     {
@@ -38,12 +47,14 @@ bool EspConn::device_present() {
 }
 
 bool EspConn::attempt_baud_rate_setting() {
-    _serial->init(8, true);
+    //_serial->init(8, true);
+    _serial->init(115200);
     char cmd[64];
     sprintf_P(cmd, PSTR("AT+UART_DEF=500000,8,1,0,0\r\n"));
     _serial->transmitString(cmd);
     _delay_ms(1000);
-    _serial->init(0, false);
+    //_serial->init(0, false);
+    _serial->init(500000);
     return true;
 }
 
@@ -399,4 +410,6 @@ int EspConn::readUntil(const char* tag, bool findTags, bool end, int timeout) {
 
 void EspConn::reset() {
     //_ringBuffer.reset();
+}
+
 }

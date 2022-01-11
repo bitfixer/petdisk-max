@@ -19,33 +19,38 @@
     Contact the author at bitfixer@bitfixer.com
     http://bitfixer.com  
 */
-#include <avr/io.h>
-#include <avr/pgmspace.h>
 #include "SPI_routines.h"
 #include "SD_routines.h"
-#include <util/delay.h>
-#include <avr/pgmspace.h>
 #include <stdio.h>
 
 void SD::cs_select()
 {
-    SPI_PORT &= ~(1 << _cs);
+    //SPI_PORT &= ~(1 << _cs);
+    _spi->cs_select();
 }
 
 void SD::cs_unselect()
 {
-    SPI_PORT |= (1 << _cs);
+    //SPI_PORT |= (1 << _cs);
+    _spi->cs_unselect();
+}
+
+uint8_t SD::initWithSPI(bSPI* spi, int cs)
+{
+    _spi = spi;
+    _cs = cs;
+    init();
 }
 
 //******************************************************************
 //Function  : to initialize the SD/SDHC card in SPI mode
 //Arguments : none
-//return    : unsigned char; will be 0 if no error,
+//return    : uint8_t; will be 0 if no error,
 //            otherwise the response byte will be sent
 //******************************************************************
-unsigned char SD::init()
+uint8_t SD::init()
 {
-    unsigned char i, response, SD_version;
+    uint8_t i, response, SD_version;
     unsigned int retry = 0 ;
     
     cs_unselect();
@@ -101,7 +106,8 @@ unsigned char SD::init()
             retry++;
             if (retry > 0xfe)
             {
-                return 2;  //time out, card initialization failed
+                //return 2;  //time out, card initialization failed
+                return response;
             }
         } 
 
@@ -139,13 +145,13 @@ unsigned char SD::init()
 
 //******************************************************************
 //Function  : to send a command to SD card
-//Arguments : unsigned char (8-bit command value)
-//            & unsigned long (32-bit command argument)
-//return    : unsigned char; response byte
+//Arguments : uint8_t (8-bit command value)
+//            & uint32_t (32-bit command argument)
+//return    : uint8_t; response byte
 //******************************************************************
-unsigned char SD::sendCommand(unsigned char cmd, unsigned long arg)
+uint8_t SD::sendCommand(uint8_t cmd, uint32_t arg)
 {
-    unsigned char response, retry=0, status;
+    uint8_t response, retry=0, status;
 
     //SD card accepts byte address while SDHC accepts block address in multiples of 512
     //so, if it's SD card we need to convert block address into corresponding byte address by 
@@ -230,12 +236,12 @@ unsigned char SD::sendCommand(unsigned char cmd, unsigned long arg)
 //******************************************************************
 //Function  : to read a single block from SD card
 //Arguments : none
-//return    : unsigned char; will be 0 if no error,
+//return    : uint8_t; will be 0 if no error,
 //            otherwise the response byte will be sent
 //******************************************************************
-unsigned char SD::readSingleBlock(unsigned long startBlock, unsigned char* buffer)
+uint8_t SD::readSingleBlock(uint32_t startBlock, uint8_t* buffer)
 {
-    unsigned char response;
+    uint8_t response;
     unsigned int i, retry=0;
 
     response = sendCommand(READ_SINGLE_BLOCK, startBlock); //read a Block command
@@ -274,12 +280,12 @@ unsigned char SD::readSingleBlock(unsigned long startBlock, unsigned char* buffe
 //******************************************************************
 //Function  : to write to a single block of SD card
 //Arguments : none
-//return    : unsigned char; will be 0 if no error,
+//return    : uint8_t; will be 0 if no error,
 //            otherwise the response byte will be sent
 //******************************************************************
-unsigned char SD::writeSingleBlock(unsigned long startBlock, unsigned char* buffer)
+uint8_t SD::writeSingleBlock(uint32_t startBlock, uint8_t* buffer)
 {
-    unsigned char response;
+    uint8_t response;
     unsigned int i, retry=0;
 
     response = sendCommand(WRITE_SINGLE_BLOCK, startBlock); //write a Block command

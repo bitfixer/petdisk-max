@@ -4,18 +4,29 @@
 #include "DataSource.h"
 #include "EspHttp.h"
 #include "SerialLogger.h"
+#include "Settings.h"
 
-struct urlData
-{
-    void* eepromHost;
-    int eepromHostLength;
-    void* eepromUrl;
-    int eepromUrlLength;
-};
+namespace bitfixer {
 
 class NetworkDataSource : public DataSource
 {
 public:
+    NetworkDataSource()
+    : _http(NULL)
+    , _fileSize(0)
+    , _currentBlockByte(0)
+    , _currentOutputByte(0)
+    , _currentDirectoryPage(0)
+    , _blockData(0)
+    , _dataBuffer(NULL)
+    , _dataBufferSize(NULL)
+    , _dirPtr(0)
+    , _log(NULL)
+    , _firstBlockWritten(false)
+    , _readBufferSize(512)
+    , _writeBufferSize(512)
+     {}
+
     NetworkDataSource(EspHttp* http, uint8_t* buffer, uint16_t* bufferSize, Logger* log) 
     : _http(http)
     , _fileSize(0)
@@ -37,12 +48,24 @@ public:
     
     ~NetworkDataSource() {}
 
+    void initWithParams(EspHttp* http, uint8_t* buffer, uint16_t* bufferSize, Logger* log)
+    {
+        _http = http;
+        _dataBuffer = buffer;
+        _dataBufferSize = bufferSize;
+        _log = log;
+    }
+
     void setUrlData(void* eepromHost, int eepromHostLength, void* eepromUrl, int eepromUrlLength)
     {
+        /*
         _urlData.eepromHost = eepromHost;
         _urlData.eepromHostLength = eepromHostLength;
         _urlData.eepromUrl = eepromUrl;
         _urlData.eepromUrlLength = eepromUrlLength;
+        */
+
+        _settings.initWithParams(eepromHost, eepromHostLength, eepromUrl, eepromUrlLength);
     }
 
     bool init();
@@ -50,11 +73,11 @@ public:
     void openFileForWriting(unsigned char* fileName);
     bool openFileForReading(unsigned char* fileName);
     bool openDirectory(const char* dirName);
-    unsigned int getNextFileBlock();
+    uint16_t getNextFileBlock();
     bool isLastBlock();
     bool getNextDirectoryEntry();
 
-    void writeBufferToFile(unsigned int numBytes);
+    void writeBufferToFile(uint16_t numBytes);
     void updateBlock();
     void closeFile();
     void openCurrentDirectory();
@@ -64,19 +87,20 @@ public:
 
     uint32_t seek(uint32_t pos);
 
-    unsigned int readBufferSize()
+    uint16_t readBufferSize()
     {
         return _readBufferSize;
     }
 
-    unsigned int writeBufferSize()
+    uint16_t writeBufferSize()
     {
         return _writeBufferSize;
     }
 
-    unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize);
-    unsigned int requestWriteBufferSize(unsigned int requestedWriteBufferSize);
+    uint16_t requestReadBufferSize(uint16_t requestedReadBufferSize);
+    uint16_t requestWriteBufferSize(uint16_t requestedWriteBufferSize);
 
+    Settings _settings;
 private:
     EspHttp* _http;
     uint32_t _fileSize;
@@ -90,14 +114,15 @@ private:
     uint8_t* _dirPtr;
     Logger* _log;
     bool _firstBlockWritten;
-    urlData _urlData;
-    unsigned int _readBufferSize;
-    unsigned int _writeBufferSize;
+    
+
+    uint16_t _readBufferSize;
+    uint16_t _writeBufferSize;
     
     bool fetchBlock(uint32_t start, uint32_t end);
-    void getHostAndPort(char* host, uint16_t* port);
-    void getUrl(char* url);
     void copyUrlEscapedString(char* dest, char* src);
 };
+
+}
 
 #endif

@@ -5,8 +5,16 @@
 #include "Serial.h"
 #include <stdio.h>
 
+namespace bitfixer
+{
+
 class SerialLogger : public Logger {
 public:
+    SerialLogger()
+    : _serial(NULL) {
+
+    }
+
     SerialLogger(Serial* serial)
     : _serial(serial) {
 
@@ -14,6 +22,11 @@ public:
 
     void init()
     {
+    }
+
+    void initWithSerial(Serial* serial)
+    {
+        _serial = serial;
     }
 
     void log(const char* str)
@@ -75,5 +88,7 @@ private:
     char _logBuffer[LOG_BUFFER_SIZE];
     unsigned int _bufferPos;
 };
+
+}
 
 #endif

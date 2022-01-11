@@ -20,14 +20,10 @@
     http://bitfixer.com
 */
 
-#include <avr/io.h>
-#include <avr/pgmspace.h>
 #include "FAT32.h"
 #include "SD_routines.h"
 #include <string.h>
 #include <ctype.h>
-
-// test
 #include "Serial.h"
 #include <stdio.h>
 
@@ -60,70 +56,80 @@
 #define FAT_EOF            0x0fffffff
 
 //Structure to access Master Boot Record for getting info about partitions
-struct MBRinfo_Structure{
-unsigned char   nothing[446];       //ignore, placed here to fill the gap in the structure
-unsigned char   partitionData[64];  //partition records (16x4)
-unsigned int    signature;      //0xaa55
+struct PACKED MBRinfo_Structure{
+uint8_t   nothing[446];       //ignore, placed here to fill the gap in the structure
+uint8_t   partitionData[64];  //partition records (16x4)
+uint16_t    signature;      //0xaa55
 };
 
 //Structure to access info of the first partioion of the disk 
-struct partitionInfo_Structure{                 
-unsigned char   status;             //0x80 - active partition
-unsigned char   headStart;          //starting head
-unsigned int    cylSectStart;       //starting cylinder and sector
-unsigned char   type;               //partition type 
-unsigned char   headEnd;            //ending head of the partition
-unsigned int    cylSectEnd;         //ending cylinder and sector
-unsigned long   firstSector;        //total sectors between MBR & the first sector of the partition
-unsigned long   sectorsTotal;       //size of this partition in sectors
+struct PACKED partitionInfo_Structure{                 
+uint8_t   status;             //0x80 - active partition
+uint8_t   headStart;          //starting head
+uint16_t    cylSectStart;       //starting cylinder and sector
+uint8_t   type;               //partition type 
+uint8_t   headEnd;            //ending head of the partition
+uint16_t    cylSectEnd;         //ending cylinder and sector
+uint32_t   firstSector;        //total sectors between MBR & the first sector of the partition
+uint32_t   sectorsTotal;       //size of this partition in sectors
 };
 
 //Structure to access boot sector data
-struct BS_Structure{
-unsigned char jumpBoot[3]; //default: 0x009000EB   //3
-unsigned char OEMName[8];                          //11
-unsigned int bytesPerSector; //deafault: 512       //13
-unsigned char sectorPerCluster;                    //14
-unsigned int reservedSectorCount;                  //16
-unsigned char numberofFATs;                        //17
-unsigned int rootEntryCount;                       //19
-unsigned int totalSectors_F16; //must be 0 for FAT32    //21
-unsigned char mediaType;                           //22
-unsigned int FATsize_F16; //must be 0 for FAT32    //24
-unsigned int sectorsPerTrack;                      //26
-unsigned int numberofHeads;                        //28
-unsigned long hiddenSectors;                       //32
-unsigned long totalSectors_F32;                    //36
-unsigned long FATsize_F32; //count of sectors occupied by one FAT   //40
-unsigned int extFlags;                              //42
-unsigned int FSversion; //0x0000 (defines version 0.0)  //44
-unsigned long rootCluster; //first cluster of root directory (=2) //48
-unsigned int FSinfo; //sector number of FSinfo structure (=1)   //50
-unsigned int BackupBootSector;                      //52
-unsigned char reserved[12];                         //64
-unsigned char driveNumber;                          //65
-unsigned char reserved1;                            //66
-unsigned char bootSignature;                        //67
-unsigned long volumeID;                             //71
-unsigned char volumeLabel[11]; //"NO NAME "         //82
-unsigned char fileSystemType[8]; //"FAT32"          //90
-unsigned char bootData[420];                        //510
-unsigned int bootEndSignature; //0xaa55             //512
+struct PACKED BS_Structure{
+uint8_t jumpBoot[3]; //default: 0x009000EB   //3
+uint8_t OEMName[8];                          //11
+uint16_t bytesPerSector; //deafault: 512       //13
+uint8_t sectorPerCluster;                    //14
+uint16_t reservedSectorCount;                  //16
+uint8_t numberofFATs;                        //17
+uint16_t rootEntryCount;                       //19
+uint16_t totalSectors_F16; //must be 0 for FAT32    //21
+uint8_t mediaType;                           //22
+uint16_t FATsize_F16; //must be 0 for FAT32    //24
+uint16_t sectorsPerTrack;                      //26
+uint16_t numberofHeads;                        //28
+uint32_t hiddenSectors;                       //32
+uint32_t totalSectors_F32;                    //36
+uint32_t FATsize_F32; //count of sectors occupied by one FAT   //40
+uint16_t extFlags;                              //42
+uint16_t FSversion; //0x0000 (defines version 0.0)  //44
+uint32_t rootCluster; //first cluster of root directory (=2) //48
+uint16_t FSinfo; //sector number of FSinfo structure (=1)   //50
+uint16_t BackupBootSector;                      //52
+uint8_t reserved[12];                         //64
+uint8_t driveNumber;                          //65
+uint8_t reserved1;                            //66
+uint8_t bootSignature;                        //67
+uint32_t volumeID;                             //71
+uint8_t volumeLabel[11]; //"NO NAME "         //82
+uint8_t fileSystemType[8]; //"FAT32"          //90
+uint8_t bootData[420];                        //510
+uint16_t bootEndSignature; //0xaa55             //512
 };
 
 
 //Structure to access FSinfo sector data
-struct FSInfo_Structure
+struct PACKED FSInfo_Structure
 {
-unsigned long leadSignature; //0x41615252
-unsigned char reserved1[480];
-unsigned long structureSignature; //0x61417272
-unsigned long freeClusterCount; //initial: 0xffffffff
-unsigned long nextFreeCluster; //initial: 0xffffffff
-unsigned char reserved2[12];
-unsigned long trailSignature; //0xaa550000
+uint32_t leadSignature; //0x41615252
+uint8_t reserved1[480];
+uint32_t structureSignature; //0x61417272
+uint32_t freeClusterCount; //initial: 0xffffffff
+uint32_t nextFreeCluster; //initial: 0xffffffff
+uint8_t reserved2[12];
+uint32_t trailSignature; //0xaa550000
 };
 
+namespace bitfixer {
+
+bool FAT32::initWithParams(SD* sd, uint8_t* fatbuffer, uint8_t* longEntryBuffer, SerialLogger* logger)
+{
+    _sd = sd;
+    _FatBuffer = fatbuffer;
+    _longEntryString = longEntryBuffer;
+    _logger = logger;
+    init();
+}
 
 bool FAT32::init()
 {
@@ -134,7 +140,7 @@ bool FAT32::init()
         return _initialized;
     }
 
-    unsigned char res = getBootSectorData();
+    uint8_t res = getBootSectorData();
     if (res == 0)
     {
         _initialized = true;
@@ -153,19 +159,19 @@ bool FAT32::isInitialized()
 //parameters like _bytesPerSector, sectorsPerCluster etc.
 //Arguments: none
 //***************************************************************************
-unsigned char FAT32::getBootSectorData (void)
+uint8_t FAT32::getBootSectorData (void)
 {
     struct BS_Structure *bpb; //mapping the buffer onto the structure
     struct MBRinfo_Structure *mbr;
     struct partitionInfo_Structure *partition;
-    unsigned long dataSectors;
+    uint32_t dataSectors;
+
+    _unusedSectors = 0;
 
     if (_rootCluster != 0 && _currentDirectoryCluster != _rootCluster)
     {
         return 0;
     }
-
-    _unusedSectors = 0;
 
     _sd->readSingleBlock(0, _FatBuffer);
     bpb = (struct BS_Structure *)_FatBuffer;
@@ -208,12 +214,12 @@ unsigned char FAT32::getBootSectorData (void)
     return 0;
 }
 
-unsigned long FAT32::getRootCluster()
+uint32_t FAT32::getRootCluster()
 {
     return _rootCluster;
 }
 
-unsigned char* FAT32::getLongEntryString()
+uint8_t* FAT32::getLongEntryString()
 {
     return _longEntryString;
 }
@@ -223,7 +229,7 @@ unsigned char* FAT32::getLongEntryString()
 //return: first sector address
 //***************************************************************************
 
-unsigned long FAT32::getFirstSector(unsigned long clusterNumber)
+uint32_t FAT32::getFirstSector(uint32_t clusterNumber)
 {
     return (((clusterNumber - 2) * _sectorPerCluster) + _firstDataSector);
 }
@@ -235,20 +241,20 @@ unsigned long FAT32::getFirstSector(unsigned long clusterNumber)
 //if next cluster is to be set 3. next cluster number, if argument#2 = SET, else 0
 //return: next cluster number, if if argument#2 = GET, else 0
 //****************************************************************************
-unsigned long FAT32::getSetNextCluster (unsigned long clusterNumber,
-                                 unsigned char get_set,
-                                 unsigned long clusterEntry)
+uint32_t FAT32::getSetNextCluster (uint32_t clusterNumber,
+                                 uint8_t get_set,
+                                 uint32_t clusterEntry)
 {
-    unsigned int FATEntryOffset;
-    unsigned long *FATEntryValue;
-    unsigned long FATEntrySector;
-    unsigned char retry = 0;
+    uint16_t FATEntryOffset;
+    uint32_t *FATEntryValue;
+    uint32_t FATEntrySector;
+    uint8_t retry = 0;
 
     //get sector number of the cluster entry in the FAT
     FATEntrySector = _unusedSectors + _reservedSectorCount + ((clusterNumber * 4) / _bytesPerSector) ;
 
     //get the offset address in that sector number
-    FATEntryOffset = (unsigned int) ((clusterNumber * 4) % _bytesPerSector);
+    FATEntryOffset = (uint16_t) ((clusterNumber * 4) % _bytesPerSector);
 
     //read the sector into a buffer
     while(retry < 10)
@@ -261,7 +267,7 @@ unsigned long FAT32::getSetNextCluster (unsigned long clusterNumber,
     }
 
     //get the cluster address from the buffer
-    FATEntryValue = (unsigned long *) &_FatBuffer[FATEntryOffset];
+    FATEntryValue = (uint32_t *) &_FatBuffer[FATEntryOffset];
 
     if (get_set == GET)
     {
@@ -284,7 +290,7 @@ unsigned long FAT32::getSetNextCluster (unsigned long clusterNumber,
 //        total number of free clusters, if arg1 is TOTAL_FREE & arg2 is GET
 //        0xffffffff, if any error or if arg2 is SET
 //********************************************************************************************
-unsigned long FAT32::getSetFreeCluster(unsigned char totOrNext, unsigned char get_set, unsigned long FSEntry)
+uint32_t FAT32::getSetFreeCluster(uint8_t totOrNext, uint8_t get_set, uint32_t FSEntry)
 {
     struct FSInfo_Structure *FS = (struct FSInfo_Structure *) &_FatBuffer;
     
@@ -324,11 +330,11 @@ unsigned long FAT32::getSetFreeCluster(unsigned char totOrNext, unsigned char ge
      return 0xffffffff;
 }
 
-unsigned char FAT32::isLongFilename(unsigned char *fileName)
+uint8_t FAT32::isLongFilename(uint8_t *fileName)
 {
-    //unsigned char filenameLength = strlen(fileName);
-    unsigned char filenameLength = 0;
-    unsigned char i;
+    //uint8_t filenameLength = strlen(fileName);
+    uint8_t filenameLength = 0;
+    uint8_t i;
     while (fileName[filenameLength] != 0)
     {
         filenameLength++;
@@ -403,9 +409,9 @@ bool FAT32::isDirectory()
     return false;
 }
 
-unsigned char FAT32::numCharsToCompare(unsigned char *fileName, unsigned char maxChars)
+uint8_t FAT32::numCharsToCompare(uint8_t *fileName, uint8_t maxChars)
 {
-    unsigned char numChars = 0;
+    uint8_t numChars = 0;
     while(numChars < maxChars && fileName[numChars] != 0 && fileName[numChars] != '*')
     {
         numChars++;
@@ -415,10 +421,11 @@ unsigned char FAT32::numCharsToCompare(unsigned char *fileName, unsigned char ma
 
 void FAT32::openCurrentDirectory()
 {
+    _logger->printf("cluster %d\r\n", _currentDirectoryCluster);
     openDirectory(_currentDirectoryCluster);
 }
 
-void FAT32::openDirectory(unsigned long firstCluster)
+void FAT32::openDirectory(uint32_t firstCluster)
 {
     // store cluster
     _filePosition.startCluster = firstCluster;
@@ -448,8 +455,8 @@ bool FAT32::openDirectory(const char* dirName)
 
 void FAT32::deleteFile()
 {
-    unsigned long sector;
-    unsigned long byte;
+    uint32_t sector;
+    uint32_t byte;
     struct dir_Structure *dir;
     
     sector = getFirstSector(_filePosition.cluster) + _filePosition.sectorIndex;
@@ -463,17 +470,17 @@ void FAT32::deleteFile()
 
 bool FAT32::getNextDirectoryEntry()
 {
-    unsigned long firstSector;
+    uint32_t firstSector;
     struct dir_Structure *dir;
     struct dir_Longentry_Structure *longent;
-    unsigned char ord;
-    unsigned char this_long_filename_length;
-    unsigned char k;
+    uint8_t ord;
+    uint8_t this_long_filename_length;
+    uint8_t k;
     
     // reset long entry info
     memset((void *)_longEntryString, 0, MAX_FILENAME);
     _filePosition.isLongFilename = 0;
-    _filePosition.fileName = (unsigned char *)_longEntryString;
+    _filePosition.fileName = (uint8_t *)_longEntryString;
 
     while(1)
     {
@@ -510,19 +517,19 @@ bool FAT32::getNextDirectoryEntry()
 
                     for (k = 0; k < 5; k++)
                     {
-                        _longEntryString[this_long_filename_length] = (unsigned char)longent->LDIR_Name1[k];
+                        _longEntryString[this_long_filename_length] = (uint8_t)longent->LDIR_Name1[k];
                         this_long_filename_length++;
                     }
                     
                     for (k = 0; k < 6; k++)
                     {
-                        _longEntryString[this_long_filename_length] = (unsigned char)longent->LDIR_Name2[k];
+                        _longEntryString[this_long_filename_length] = (uint8_t)longent->LDIR_Name2[k];
                         this_long_filename_length++;
                     }
 
                     for (k = 0; k < 2; k++)
                     {
-                        _longEntryString[this_long_filename_length] = (unsigned char)longent->LDIR_Name3[k];
+                        _longEntryString[this_long_filename_length] = (uint8_t)longent->LDIR_Name3[k];
                         this_long_filename_length++;
                     }
                 }
@@ -547,12 +554,12 @@ bool FAT32::getNextDirectoryEntry()
     }
 }
 
-void FAT32::convertToShortFilename(unsigned char *input, unsigned char *output)
+void FAT32::convertToShortFilename(uint8_t *input, uint8_t *output)
 {
-    unsigned char extPos;
-    unsigned char inputLen;
+    uint8_t extPos;
+    uint8_t inputLen;
     
-    inputLen = (unsigned char)strlen((char *)input);
+    inputLen = (uint8_t)strlen((char *)input);
      
     // set empty chars to space
     memset(output, ' ', 11);
@@ -577,15 +584,15 @@ void FAT32::convertToShortFilename(unsigned char *input, unsigned char *output)
     }
 }
 
-bool FAT32::findFile(char* fileName, unsigned long firstCluster)
+bool FAT32::findFile(char* fileName, uint32_t firstCluster)
 {
-    unsigned char cmp_length;
+    uint8_t cmp_length;
     char* ustr;
     bool gotDir;
     int result;
 
     strupr(fileName);
-    cmp_length = numCharsToCompare((unsigned char*)fileName, strlen(fileName));
+    cmp_length = numCharsToCompare((uint8_t*)fileName, strlen(fileName));
 
     // open the specified directory
     openDirectory(firstCluster);
@@ -614,12 +621,12 @@ bool FAT32::findFile(char* fileName)
     return findFile(fileName, _currentDirectoryCluster);
 }
 
-unsigned long FAT32::getFirstCluster(struct dir_Structure *dir)
+uint32_t FAT32::getFirstCluster(struct dir_Structure *dir)
 {
-    return (((unsigned long) dir->firstClusterHI) << 16) | dir->firstClusterLO;
+    return (((uint32_t) dir->firstClusterHI) << 16) | dir->firstClusterLO;
 }
 
-bool FAT32::openFileForReading(unsigned char *fileName)
+bool FAT32::openFileForReading(uint8_t *fileName)
 {
     bool gotDir;
     
@@ -654,9 +661,9 @@ uint32_t FAT32::seek(uint32_t pos)
 
     // seeking is quantized to sector boundaries, for simplicity
     uint32_t q_pos = (pos / _bytesPerSector) * _bytesPerSector;
-    unsigned int sectors = q_pos / _bytesPerSector;
-    unsigned int clusters = sectors / _sectorPerCluster;
-    unsigned int sectorInCluster = sectors - (clusters * _sectorPerCluster);
+    uint16_t sectors = q_pos / _bytesPerSector;
+    uint16_t clusters = sectors / _sectorPerCluster;
+    uint16_t sectorInCluster = sectors - (clusters * _sectorPerCluster);
 
     _filePosition.cluster = _fileClusterIndex[clusters];
     _filePosition.sectorIndex = sectorInCluster;
@@ -692,9 +699,9 @@ void FAT32::indexFileForSeeking()
     }
 }
 
-unsigned int FAT32::getNextFileBlock()
+uint16_t FAT32::getNextFileBlock()
 {
-    unsigned long sector;
+    uint32_t sector;
     // if cluster has no more sectors, move to next cluster
     if (_filePosition.sectorIndex == _sectorPerCluster)
     {
@@ -763,7 +770,7 @@ void FAT32::copyShortFilename()
     }
 }
 
-unsigned char* FAT32::getFilename()
+uint8_t* FAT32::getFilename()
 {
     //return _filePosition.fileName;
     if (_filePosition.isLongFilename)
@@ -781,19 +788,19 @@ unsigned char* FAT32::getFilename()
     }
 }
 
-unsigned char* FAT32::getBuffer()
+uint8_t* FAT32::getBuffer()
 {
     return _FatBuffer;
 }
 
 // open a new file for writing
-void FAT32::openFileForWriting(unsigned char *fileName)
+void FAT32::openFileForWriting(uint8_t *fileName)
 {
-    unsigned long cluster;
-    unsigned char i;
+    uint32_t cluster;
+    uint8_t i;
     
     // use existing buffer for filename
-    _filePosition.fileName = (unsigned char *)_longEntryString;
+    _filePosition.fileName = (uint8_t *)_longEntryString;
     memset(_filePosition.fileName, 0, MAX_FILENAME);
     
     i = 0;
@@ -825,10 +832,10 @@ void FAT32::openFileForWriting(unsigned char *fileName)
     _filePosition.dirStartCluster = _currentDirectoryCluster;
 }
 
-void FAT32::writeBufferToFile(unsigned int bytesToWrite)
+void FAT32::writeBufferToFile(uint16_t bytesToWrite)
 {
-    unsigned long nextCluster;
-    unsigned long sector;
+    uint32_t nextCluster;
+    uint32_t sector;
     // write a block to current file
     sector = getFirstSector(_filePosition.cluster) + _filePosition.sectorIndex;
     
@@ -852,28 +859,28 @@ void FAT32::writeBufferToFile(unsigned int bytesToWrite)
 void FAT32::updateBlock()
 {
     // write a block to current file
-    unsigned long sector = getFirstSector(_filePosition.cluster) + _filePosition.sectorIndex;
+    uint32_t sector = getFirstSector(_filePosition.cluster) + _filePosition.sectorIndex;
     _sd->writeSingleBlock(sector, _FatBuffer);
 }
 
 void FAT32::closeFile()
 {
-    unsigned char fileCreatedFlag = 0;
-    unsigned char sector, j;
-    unsigned long prevCluster, firstSector, cluster;
-    unsigned int firstClusterHigh, i;
-    unsigned int firstClusterLow;
+    uint8_t fileCreatedFlag = 0;
+    uint8_t sector, j;
+    uint32_t prevCluster, firstSector, cluster;
+    uint16_t firstClusterHigh, i;
+    uint16_t firstClusterLow;
     struct dir_Structure *dir;
-    unsigned char checkSum;
-    unsigned char islongfilename;
+    uint8_t checkSum;
+    uint8_t islongfilename;
     
     struct dir_Longentry_Structure *longent;
     
-    unsigned char fname_len;
-    unsigned char fname_remainder;
-    unsigned char num_long_entries;
-    unsigned char curr_fname_pos;
-    unsigned char curr_long_entry;
+    uint8_t fname_len;
+    uint8_t fname_remainder;
+    uint8_t num_long_entries;
+    uint8_t curr_fname_pos;
+    uint8_t curr_long_entry;
      
     islongfilename = isLongFilename(_filePosition.fileName);
     num_long_entries = 0;
@@ -884,8 +891,8 @@ void FAT32::closeFile()
     if (islongfilename == 1)
     {
         memset((void *)_filePosition.shortFilename, ' ', 11);
-        makeShortFilename(_filePosition.fileName, (unsigned char *)_filePosition.shortFilename);
-        checkSum = ChkSum((unsigned char *)_filePosition.shortFilename);
+        makeShortFilename(_filePosition.fileName, (uint8_t *)_filePosition.shortFilename);
+        checkSum = ChkSum((uint8_t *)_filePosition.shortFilename);
         
         fname_len = strlen((char *)_filePosition.fileName);
         fname_remainder = fname_len % 13;
@@ -896,7 +903,7 @@ void FAT32::closeFile()
     else
     {
         // make short filename into FAT format
-        convertToShortFilename(_filePosition.fileName, (unsigned char *)_filePosition.shortFilename);
+        convertToShortFilename(_filePosition.fileName, (uint8_t *)_filePosition.shortFilename);
     }
     
     // set next free cluster in FAT
@@ -940,8 +947,8 @@ void FAT32::closeFile()
                         dir->writeTime = 0x9684;        //fixed time of last write
                         dir->writeDate = 0x3a37;        //fixed date of last write
                         
-                        firstClusterHigh = (unsigned int) ((_filePosition.startCluster & 0xffff0000) >> 16 );
-                        firstClusterLow = (unsigned int) ( _filePosition.startCluster & 0x0000ffff);
+                        firstClusterHigh = (uint16_t) ((_filePosition.startCluster & 0xffff0000) >> 16 );
+                        firstClusterLow = (uint16_t) ( _filePosition.startCluster & 0x0000ffff);
                         
                         dir->firstClusterHI = firstClusterHigh;
                         dir->firstClusterLO = firstClusterLow;
@@ -1040,10 +1047,10 @@ void FAT32::closeFile()
 //Arguments: Starting cluster
 //return: the next free cluster
 //****************************************************************
-unsigned long FAT32::searchNextFreeCluster (unsigned long startCluster)
+uint32_t FAT32::searchNextFreeCluster (uint32_t startCluster)
 {
-    unsigned long cluster, *value, sector;
-    unsigned char i;
+    uint32_t cluster, *value, sector;
+    uint8_t i;
     
     startCluster -=  (startCluster % 128);   //to start with the first file in a FAT sector
     for(cluster =startCluster; cluster <_totalClusters; cluster+=128) 
@@ -1052,7 +1059,7 @@ unsigned long FAT32::searchNextFreeCluster (unsigned long startCluster)
         _sd->readSingleBlock(sector, _FatBuffer);
         for (i = 0; i < 128; i++)
         {
-            value = (unsigned long *) &_FatBuffer[i*4];
+            value = (uint32_t *) &_FatBuffer[i*4];
             if (((*value) & 0x0fffffff) == 0)
             {
                 return(cluster+i);
@@ -1069,9 +1076,9 @@ unsigned long FAT32::searchNextFreeCluster (unsigned long startCluster)
 //Arguments: #1.flag ADD or REMOVE #2.file size in Bytes
 //return: none
 //********************************************************************
-void FAT32::freeMemoryUpdate (unsigned char flag, unsigned long size)
+void FAT32::freeMemoryUpdate (uint8_t flag, uint32_t size)
 {
-  unsigned long freeClusters;
+  uint32_t freeClusters;
   //convert file size into number of clusters occupied
   if ((size % 512) == 0)
       size = size / 512;
@@ -1094,11 +1101,11 @@ void FAT32::freeMemoryUpdate (unsigned char flag, unsigned long size)
   }
 }
 
-void FAT32::makeShortFilename(unsigned char *longFilename, unsigned char *shortFilename)
+void FAT32::makeShortFilename(uint8_t *longFilename, uint8_t *shortFilename)
 {
     // make a short file name from the given long file name
     int i;
-    unsigned char thechar;
+    uint8_t thechar;
     for (i = 0; i < 6; i++)
     {
         thechar = longFilename[i];
@@ -1134,17 +1141,18 @@ void FAT32::makeShortFilename(unsigned char *longFilename, unsigned char *shortF
 //  Returns: Sum         An 8-bit unsigned checksum of the array pointed
 //                           to by pFcbName.
 //------------------------------------------------------------------------------
-unsigned char FAT32::ChkSum (unsigned char *pFcbName)
+uint8_t FAT32::ChkSum (uint8_t *pFcbName)
 {
     int FcbNameLen;
-    unsigned char Sum;
+    uint8_t Sum;
 
     Sum = 0;
     for (FcbNameLen=11; FcbNameLen!=0; FcbNameLen--) {
-        // NOTE: The operation is an unsigned char rotate right
+        // NOTE: The operation is an uint8_t rotate right
         Sum = ((Sum & 1) ? 0x80 : 0) + (Sum >> 1) + *pFcbName++;
     }
     return (Sum);
 }
 
+}
 

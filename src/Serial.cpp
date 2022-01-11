@@ -3,9 +3,15 @@
 #include <string.h>
 #include <avr/pgmspace.h>
 
+namespace bitfixer {
+
 // Serial Port 0
-void Serial0::init(unsigned int ubrr, bool double_speed)
+void Serial0::init(int baudRate)
 {
+    // temp temp
+    uint8_t ubrr = 0;
+    bool double_speed = false;
+
     UBRR0H = (unsigned char)(ubrr>>8);
     UBRR0L = (unsigned char)ubrr;
     UCSR0A = double_speed ? (1<<U2X0) : 0x00;
@@ -39,8 +45,12 @@ void Serial0::disable_interrupt()
 
 
 // Serial Port 1
-void Serial1::init(unsigned int ubrr, bool double_speed)
+void Serial1::init(int baudRate)
 {
+    // temp temp
+    uint8_t ubrr = 0;
+    bool double_speed = false;
+
     UBRR1H = (unsigned char)(ubrr>>8);
     UBRR1L = (unsigned char)ubrr;
     UCSR1A = double_speed ? (1<<U2X1) : 0x00;
@@ -88,4 +98,6 @@ void Serial::transmitStringF(const char* string)
     {
         transmitByte(pgm_read_byte(&(*string++)));
     }
+}
+
 }

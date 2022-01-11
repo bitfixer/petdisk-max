@@ -1,8 +1,3 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <avr/pgmspace.h>
-#include <avr/eeprom.h>
-#include <util/delay.h>
 #include "EspConn.h"
 #include "Buffer.h"
 #include <stdlib.h>
@@ -20,10 +15,13 @@
 #include "DataSource.h"
 #include "NetworkDataSource.h"
 #include "D64DataSource.h"
-#include "githash.h"
+#include "helpers.h"
+#include "hardware.h"
+//#include "githash.h"
 
 //#define TESTING 1
 
+/*
 #define ESP_CONTROL     DDRD
 #define ESP_PORT        PORTD
 #define ESP_CH_PD       PD4
@@ -35,6 +33,7 @@
 #define LED_PORT        PORTB
 #define LED_PIN1        PB0
 #define LED_PIN2        PB1
+*/
 
 // addresses for PET IEEE commands
 #define PET_LOAD_FNAME_ADDR     0xF0
@@ -47,7 +46,7 @@
 
 #define PET_ADDRESS_MASK        0x0F
 
-const unsigned char _dirHeader[] PROGMEM =
+const uint8_t _dirHeader[] PROGMEM =
 {
     0x01,
     0x04,
@@ -58,9 +57,9 @@ const unsigned char _dirHeader[] PROGMEM =
     0x12
 };
 
-const unsigned char _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
-const unsigned char _firmwareString[] PROGMEM = "BUILD ";
-const unsigned char _fileExtension[] PROGMEM =
+const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
+const uint8_t _firmwareString[] PROGMEM = "BUILD ";
+const uint8_t _fileExtension[] PROGMEM =
 {
     '.',
     'P',
@@ -69,7 +68,7 @@ const unsigned char _fileExtension[] PROGMEM =
     0x00,
 };
 
-const unsigned char _seqExtension[] PROGMEM =
+const uint8_t _seqExtension[] PROGMEM =
 {
     '.',
     'S',
@@ -78,54 +77,12 @@ const unsigned char _seqExtension[] PROGMEM =
     0x00,
 };
 
-void pgm_memcpy(unsigned char *dest, unsigned char *src, int len)
+void pgm_memcpy(uint8_t *dest, uint8_t *src, int len)
 {
     int i;
     for (i = 0; i < len; i++)
     {
-        *dest++ = pgm_read_byte(&(*src++));
-    }
-}
-
-void prog_init()
-{
-    // set reset for esp
-    ESP_PORT = (1 << ESP_CH_PD) | (1 << ESP_RST);
-    ESP_CONTROL = (1 << ESP_CH_PD) | (1 << ESP_RST);
-    sei();
-}
- 
-void reset_esp()
-{
-    ESP_PORT &= ~(1 << ESP_RST);
-    ESP_PORT &= ~(1 << ESP_CH_PD);
-
-    for (int i = 0; i < 20; i++)
-    {
-        _delay_loop_2(65535);
-    }
-
-    ESP_PORT |= 1 << ESP_RST;
-    ESP_PORT |= 1 << ESP_CH_PD;
-}
-
-void init_led()
-{
-    LED_CONTROL |= 1 << LED_PIN1;
-    LED_CONTROL |= 1 << LED_PIN2;
-}
-
-void set_led(bool value)
-{
-    if (value == true)
-    {
-        LED_PORT |= 1 << LED_PIN1;
-        LED_PORT |= 1 << LED_PIN2;
-    }
-    else
-    {
-        LED_PORT &= ~(1 << LED_PIN1);
-        LED_PORT &= ~(1 << LED_PIN2);
+        *dest++ = bf_pgm_read_byte(&(*src++));
     }
 }
 
@@ -137,17 +94,17 @@ void blink_led(int count, int ms_on, int ms_off)
         set_led(true);
         for (int j = 0; j < ms_on; j++)
         {
-            _delay_ms(1);
+            hDelayMs(1);
         }
         set_led(false);
         for (int j = 0; j < ms_off; j++)
         {
-            _delay_ms(1);
+            hDelayMs(1);
         }
     }
 }
 
-void checkForFirmware(char* buffer, FAT32* fat32, Serial1* log)
+void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
 {
     log->transmitStringF(PSTR("checking\r\n"));
     if (!fat32->init())
@@ -169,7 +126,7 @@ void checkForFirmware(char* buffer, FAT32* fat32, Serial1* log)
     fat32->deleteFile();
 }
 
-void sd_test(DataSource* dataSource, Serial1* log)
+void sd_test(DataSource* dataSource, bitfixer::Serial1* log)
 {
     if (!dataSource->init())
     {
@@ -193,7 +150,7 @@ void sd_test(DataSource* dataSource, Serial1* log)
 
 #define FILENAME_MAX_LENGTH 21
 
-struct pd_config {
+struct PACKED pd_config {
     uint8_t device_type[9];
     char urls[4][64];
     char wifi_ssid[33];
@@ -237,8 +194,8 @@ typedef struct _openFileInfo
     int _fileBufferIndex;
     bool _useRemainderByte;
     int _byteIndex;
-    unsigned char _remainderByte;
-    unsigned char _nextByte;
+    uint8_t _remainderByte;
+    uint8_t _nextByte;
     bool _opened;
     bool _command;
 } openFileInfo;
@@ -258,42 +215,42 @@ public:
     ~PETdisk() {}
 
     void init(
-        FAT32* fat32,
+        bitfixer::FAT32* fat32,
         D64DataSource* d64,
         uint8_t* buffer, 
         uint16_t* bufferSize, 
-        EspConn* espConn, 
-        EspHttp* espHttp, 
-        NetworkDataSource** nds_array,
-        IEEE488* ieee,
-        SerialLogger* logger);
-    void setDataSource(unsigned char id, DataSource* dataSource);
-    DataSource* getDataSource(unsigned char id);
+        bitfixer::EspConn* espConn, 
+        bitfixer::EspHttp* espHttp, 
+        bitfixer::NetworkDataSource** nds_array,
+        bitfixer::IEEE488* ieee,
+        bitfixer::SerialLogger* logger);
+    void setDataSource(uint8_t id, DataSource* dataSource);
+    DataSource* getDataSource(uint8_t id);
 
-    bool readConfigFile(FAT32* fat32, uint8_t* buffer);
+    bool readConfigFile(bitfixer::FAT32* fat32, uint8_t* buffer);
     void printConfig(struct pd_config* pdcfg);
-    void run();
+    void loop();
 
 private:
     DataSource* _dataSources[8];
-    EspConn* _espConn;
-    EspHttp* _espHttp;
-    IEEE488* _ieee;
-    FAT32* _fat32;
+    bitfixer::EspConn* _espConn;
+    bitfixer::EspHttp* _espHttp;
+    bitfixer::IEEE488* _ieee;
+    bitfixer::FAT32* _fat32;
     D64DataSource* _d64;
-    SerialLogger* _logger;
+    bitfixer::SerialLogger* _logger;
 
     openFileInfo _openFileInformation[14];
 
     DataSource* _dataSource;
-    unsigned char* progname;
+    uint8_t* progname;
     int _filenamePosition;
     int _fileNotFound;
     int _bytesToSend;
     pdstate _currentState;
     int _bufferFileIndex;
-    unsigned char _primaryAddress;
-    unsigned char _secondaryAddress;
+    uint8_t _primaryAddress;
+    uint8_t _secondaryAddress;
 
     bool _directoryFinished;
     bool _lastDirectoryBlock;
@@ -304,11 +261,12 @@ private:
     uint16_t _directoryEntryAddress;
 
     bool configChanged(struct pd_config* pdcfg);
-    unsigned char processFilename(unsigned char* filename, unsigned char length, bool* write);
+    uint8_t processFilename(uint8_t* filename, uint8_t length, bool* write);
     void writeFile();
-    unsigned char wait_for_device_address();
-    openFileInfo* getFileInfoForAddress(unsigned char address);
-    void resetFileInformation(unsigned char address);
+    uint8_t get_device_address();
+    uint8_t wait_for_device_address();
+    openFileInfo* getFileInfoForAddress(uint8_t address);
+    void resetFileInformation(uint8_t address);
     bool isD64(const char* fileName);
 
     void initDirectory();
@@ -316,15 +274,15 @@ private:
 };
 
 void PETdisk::init(
-    FAT32* fat32,
+    bitfixer::FAT32* fat32,
     D64DataSource* d64,
     uint8_t* buffer, 
     uint16_t* bufferSize, 
-    EspConn* espConn, 
-    EspHttp* espHttp, 
-    NetworkDataSource** nds_array,
-    IEEE488* ieee,
-    SerialLogger* logger)
+    bitfixer::EspConn* espConn, 
+    bitfixer::EspHttp* espHttp, 
+    bitfixer::NetworkDataSource** nds_array,
+    bitfixer::IEEE488* ieee,
+    bitfixer::SerialLogger* logger)
 {
     _fat32 = fat32;
     _d64 = d64;
@@ -333,7 +291,7 @@ void PETdisk::init(
 
     // reset state variables
     _dataSource = 0;
-    progname = (unsigned char*)&_buffer[1024-FILENAME_MAX_LENGTH];
+    progname = (uint8_t*)&_buffer[1024-FILENAME_MAX_LENGTH];
     _filenamePosition = 0;
     _fileNotFound = 0;
     _bytesToSend = 0;
@@ -366,6 +324,7 @@ void PETdisk::init(
     bool espConnected = false;
     // check for presence of esp module
     bool device_present = true;
+    /*
     if (!_espConn->device_present())
     {
         _logger->logF(PSTR("no device!\r\n"));
@@ -384,6 +343,11 @@ void PETdisk::init(
     {
         _logger->logF(PSTR("esp present\r\n"));
     }
+    */
+
+    // temp
+    device_present = false;
+    _logger->logF(PSTR("esp disabled\r\n"));
 
     // check validity of config
     if (pdcfg->device_type[0] > DEVICE_END)
@@ -455,7 +419,7 @@ void PETdisk::init(
             char* url = strchr(pdcfg->urls[url_index], '/');
             int url_offset = url - pdcfg->urls[url_index];
 
-            NetworkDataSource* nds = nds_array[network_drive_count];
+            bitfixer::NetworkDataSource* nds = nds_array[network_drive_count];
 
             nds->setUrlData(
                 (void*)eeprom_offset, 
@@ -465,10 +429,11 @@ void PETdisk::init(
 
             sprintf_P(tmp, PSTR("d %d %d %d\r\n"), device_id, eeprom_offset, url_offset);
             _logger->log(tmp);
-            
+
             if (espConnected)
             {
                 setDataSource(device_id, nds);
+                nds->init();
             }
             else
             {
@@ -478,6 +443,10 @@ void PETdisk::init(
             network_drive_count++;
         }
     }
+
+    initDirectory();
+
+    _ieee->unlisten();
 }
 
 void PETdisk::printConfig(struct pd_config* pdcfg)
@@ -522,7 +491,7 @@ bool PETdisk::configChanged(struct pd_config* pdcfg)
     return false;
 }
 
-bool PETdisk::readConfigFile(FAT32* fat32, uint8_t* buffer)
+bool PETdisk::readConfigFile(bitfixer::FAT32* fat32, uint8_t* buffer)
 {
     // check for config file
     char cfg_fname[32];
@@ -534,7 +503,7 @@ bool PETdisk::readConfigFile(FAT32* fat32, uint8_t* buffer)
 
     sprintf_P(cfg_fname, config_filename);
     fat32->openCurrentDirectory();
-    if (!fat32->openFileForReading((unsigned char*)cfg_fname))
+    if (!fat32->openFileForReading((uint8_t*)cfg_fname))
     {
         return false;
     }
@@ -633,7 +602,7 @@ bool PETdisk::readConfigFile(FAT32* fat32, uint8_t* buffer)
     return true;
 }
 
-void PETdisk::setDataSource(unsigned char id, DataSource* dataSource)
+void PETdisk::setDataSource(uint8_t id, DataSource* dataSource)
 {
     if (id >= MIN_DEVICE_ID && id <= MAX_DEVICE_ID)
     {
@@ -641,7 +610,7 @@ void PETdisk::setDataSource(unsigned char id, DataSource* dataSource)
     }
 }
 
-DataSource* PETdisk::getDataSource(unsigned char id)
+DataSource* PETdisk::getDataSource(uint8_t id)
 {
     if (id < MIN_DEVICE_ID || id > MAX_DEVICE_ID)
     {
@@ -653,9 +622,9 @@ DataSource* PETdisk::getDataSource(unsigned char id)
 
 void PETdisk::writeFile()
 {
-    unsigned int numBytes;
-    unsigned char rdchar;
-    unsigned int writeBufferSize = _dataSource->writeBufferSize();
+    uint16_t numBytes;
+    uint8_t rdchar;
+    uint16_t writeBufferSize = _dataSource->writeBufferSize();
     
     numBytes = 0;
     do
@@ -689,10 +658,10 @@ void PETdisk::initDirectory()
     _directoryEntryByteIndex = 0;
 
     // copy the directory header
-    pgm_memcpy((unsigned char *)_directoryEntry, (unsigned char *)_dirHeader, 7);
+    pgm_memcpy((uint8_t *)_directoryEntry, (uint8_t *)_dirHeader, 7);
 
     // print directory title
-    pgm_memcpy((unsigned char *)&_directoryEntry[7], (unsigned char *)_versionString, 24);
+    pgm_memcpy((uint8_t *)&_directoryEntry[7], (uint8_t *)_versionString, 24);
     _directoryEntry[31] = 0x00;
     _directoryFinished = false;
     _lastDirectoryBlock = false;
@@ -702,14 +671,14 @@ void PETdisk::initDirectory()
 bool PETdisk::getDirectoryEntry()
 {
     bool gotDir;
-    unsigned char startline;
+    uint8_t startline;
     
     if (_directoryFinished)
     {
         startline = 0;
         _directoryEntryAddress += 0x001e;
-        _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
-        _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+        _directoryEntry[startline] = (uint8_t)(_directoryEntryAddress & 0x00ff);
+        _directoryEntry[startline+1] = (uint8_t)((_directoryEntryAddress & 0xff00) >> 8);
         _directoryEntry[startline+2] = 0xff;
         _directoryEntry[startline+3] = 0xff;
         sprintf_P((char *)&_directoryEntry[startline+4], PSTR("BLOCKS FREE.             "));
@@ -729,14 +698,16 @@ bool PETdisk::getDirectoryEntry()
             _directoryEntryAddress += 0x0020;
             startline = 0;
             memset(_directoryEntry, ' ', 32);
-            _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
-            _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+            _directoryEntry[startline] = (uint8_t)(_directoryEntryAddress & 0x00ff);
+            _directoryEntry[startline+1] = (uint8_t)((_directoryEntryAddress & 0xff00) >> 8);
             _directoryEntry[startline+2] = _directoryEntryIndex+1;
             _directoryEntry[startline+3] = 0x00;
             _directoryEntry[startline+4] = 0x20;
             _directoryEntry[startline+5] = 0x20;
-            pgm_memcpy(&_directoryEntry[startline+6], (unsigned char*)_firmwareString, 6);
-            pgm_memcpy(&_directoryEntry[startline+6+6], (unsigned char*)_hash, 7);
+            pgm_memcpy(&_directoryEntry[startline+6], (uint8_t*)_firmwareString, 6);
+            
+            // TODO: add git hash back
+            //pgm_memcpy(&_directoryEntry[startline+6+6], (uint8_t*)_hash, 7);
             _directoryEntry[startline+31] = 0x00;
             _directoryEntryIndex++;
             _directoryFinished = true;
@@ -750,7 +721,7 @@ bool PETdisk::getDirectoryEntry()
                 // currently .PRG and .SEQ, soon .REL
 
                 int fname_length = 0;
-                unsigned char* fileName = _dataSource->getFilename();
+                uint8_t* fileName = _dataSource->getFilename();
                 if (fileName == NULL)
                 {
                     continue;
@@ -793,8 +764,8 @@ bool PETdisk::getDirectoryEntry()
                 _directoryEntryAddress += 0x0020;
                 startline = 0;
 
-                _directoryEntry[startline] = (unsigned char)(_directoryEntryAddress & 0x00ff);
-                _directoryEntry[startline+1] = (unsigned char)((_directoryEntryAddress & 0xff00) >> 8);
+                _directoryEntry[startline] = (uint8_t)(_directoryEntryAddress & 0x00ff);
+                _directoryEntry[startline+1] = (uint8_t)((_directoryEntryAddress & 0xff00) >> 8);
                 _directoryEntry[startline+2] = _directoryEntryIndex+1;
                 _directoryEntry[startline+3] = 0x00;
                 _directoryEntry[startline+4] = 0x20;
@@ -866,14 +837,45 @@ bool PETdisk::getDirectoryEntry()
     return true;
 }
 
-unsigned char PETdisk::wait_for_device_address()
+uint8_t PETdisk::get_device_address()
 {
-    unsigned char ieee_address;
-    unsigned char buscmd;
+    uint8_t ieee_address;
+    uint8_t buscmd;
+    _dataSource = 0;
+   
+    bool success = false;
+    ieee_address = _ieee->get_device_address(&buscmd, &success);
+    if (!success)
+    {
+        return 0;
+    }
+
+    _dataSource = getDataSource(ieee_address);
+    if (_dataSource == 0)
+    {
+        _ieee->reject_address();
+        return 0;
+    }
+
+    _ieee->accept_address();
+    _primaryAddress = ieee_address;
+
+    return buscmd;
+}
+
+uint8_t PETdisk::wait_for_device_address()
+{
+    uint8_t ieee_address;
+    uint8_t buscmd;
     _dataSource = 0;
     while (_dataSource == 0)
     {
-        ieee_address = _ieee->get_device_address(&buscmd);
+        bool success = false;
+        ieee_address = _ieee->get_device_address(&buscmd, &success);
+        if (!success)
+        {
+            continue;
+        }
         _dataSource = getDataSource(ieee_address);
 
         if (_dataSource == 0)
@@ -889,7 +891,7 @@ unsigned char PETdisk::wait_for_device_address()
     return buscmd;
 }
 
-openFileInfo* PETdisk::getFileInfoForAddress(unsigned char address)
+openFileInfo* PETdisk::getFileInfoForAddress(uint8_t address)
 {
     if (address >= 2 && address < 16)
     {
@@ -901,7 +903,7 @@ openFileInfo* PETdisk::getFileInfoForAddress(unsigned char address)
     }
 }
 
-void PETdisk::resetFileInformation(unsigned char address)
+void PETdisk::resetFileInformation(uint8_t address)
 {
     openFileInfo* fileInfo = getFileInfoForAddress(address);
     
@@ -941,530 +943,538 @@ bool PETdisk::isD64(const char* fileName)
     return false;
 }
 
-void PETdisk::run()
+void PETdisk::loop()
 {
     // start main loop
-    while(1)
+    if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
     {
-        if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
+        _ieee->unlisten();
+        _currentState = IDLE;
+        _fileNotFound = 0;
+        _filenamePosition = 0;
+        memset(progname, 0, FILENAME_MAX_LENGTH);
+    }
+
+    //if (IEEE_CTL == 0x00)
+    if (_ieee->is_unlistened())
+    {
+        //_logger->printf(".\r\n");
+        // if we are in an unlisten state,
+        // wait for my address
+        //uint8_t buscmd = wait_for_device_address();
+        uint8_t buscmd = get_device_address();
+        if (_dataSource == 0) // no datasource found
         {
-            _ieee->unlisten();
-            _currentState = IDLE;
-            _fileNotFound = 0;
-            _filenamePosition = 0;
-            memset(progname, 0, FILENAME_MAX_LENGTH);
+            //_logger->printf("nd\r\n");
+            return;
         }
 
-        if (IEEE_CTL == 0x00)
+        if (buscmd == LISTEN)
         {
-            // if we are in an unlisten state,
-            // wait for my address
-            unsigned char buscmd = wait_for_device_address();
-            if (buscmd == LISTEN)
-            {
-                _currentState = BUS_LISTEN;
-            }
-            else
-            {
-                _currentState = BUS_TALK;
-            }
+            _currentState = BUS_LISTEN;
         }
-
-        unsigned char rdchar = _ieee->get_byte_from_bus();
-
-        if (_ieee->atn_is_low()) // check for bus command
+        else
         {
-            //_logger->printf("A %X\r\n", rdchar);
-            if (rdchar == PET_LOAD_FNAME_ADDR)
-            {
-                _currentState = LOAD_FNAME_READ;
-            }
-            else if (rdchar == PET_SAVE_FNAME_ADDR)
-            {
-                _currentState = SAVE_FNAME_READ;
-            }
-            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
-            {
-                _currentState = OPEN_FNAME_READ;
-                _secondaryAddress = rdchar & PET_ADDRESS_MASK;
-
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                if (of != NULL)
-                {
-                    of->_fileBufferIndex = -1;
-                    of->_opened = true;
-                }
-            }
-            else if (rdchar == PET_READ_CMD_ADDR) // read command
-            {
-                if (_fileNotFound == 1)
-                {
-                    _currentState = FILE_NOT_FOUND;
-                }
-                else
-                {
-                    _currentState = FILE_READ;
-                }
-            }
-            else if (rdchar == PET_SAVE_CMD_ADDR) // save command
-            {
-                _currentState = FILE_SAVE;
-            }
-            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_IO_ADDR) // print or input command
-            {
-                _secondaryAddress = rdchar & PET_ADDRESS_MASK;
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                if (of != NULL && of->_opened == true)
-                {
-                    if (_currentState == BUS_LISTEN)
-                    {
-                        if (!of->_command && of->_fileBufferIndex == -1)
-                        {
-                            _dataSource->openFileForWriting((unsigned char*)of->_fileName);
-                            of->_fileBufferIndex = 0;
-                        }
-                        of->_fileDirection = FWRITE;
-                        _currentState = OPEN_DATA_WRITE;
-                    }
-                    else
-                    {
-                        // file read
-                        if (_fileNotFound == 1)
-                        {
-                            resetFileInformation(_secondaryAddress);
-                            _currentState = FILE_NOT_FOUND;
-                        }
-                        else
-                        {
-                            of->_fileDirection = FREAD;
-                            _currentState = OPEN_DATA_READ;
-                        }
-                    }
-                }
-                else
-                {
-                    _logger->printf("X %d\r\n", _secondaryAddress);
-                }
-            }
-            else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_CLOSE_FILE)
-            {
-                unsigned char address = rdchar & PET_ADDRESS_MASK;
-                openFileInfo* of = getFileInfoForAddress(address);
-                if (of != NULL)
-                {
-                    if (of->_fileDirection == FWRITE)
-                    {
-                        if (of->_fileBufferIndex > 0)
-                        {
-                            _dataSource->writeBufferToFile(of->_fileBufferIndex);
-                            of->_fileBufferIndex = 0;
-                        }
-
-                        _dataSource->closeFile();
-                    }
-
-                    resetFileInformation(address);
-                }
-                _currentState = CLOSING;
-            }
+            _currentState = BUS_TALK;
         }
-        else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
+    }
+
+    uint8_t rdchar = _ieee->get_byte_from_bus();
+
+    if (_ieee->atn_is_low()) // check for bus command
+    {
+        _logger->printf("A %X\r\n", rdchar);
+        if (rdchar == PET_LOAD_FNAME_ADDR)
         {
+            _currentState = LOAD_FNAME_READ;
+        }
+        else if (rdchar == PET_SAVE_FNAME_ADDR)
+        {
+            _currentState = SAVE_FNAME_READ;
+        }
+        else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
+        {
+            _currentState = OPEN_FNAME_READ;
+            _secondaryAddress = rdchar & PET_ADDRESS_MASK;
+
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             if (of != NULL)
             {
-                _dataSource->getBuffer()[of->_fileBufferIndex++] = rdchar;
-                if (!of->_command && of->_fileBufferIndex >= (int)_dataSource->writeBufferSize())
-                {
-                    _dataSource->writeBufferToFile(of->_fileBufferIndex);
-                    of->_fileBufferIndex = 0;
-                }
+                of->_fileBufferIndex = -1;
+                of->_opened = true;
             }
         }
-        else if (_currentState == LOAD_FNAME_READ ||
-                 _currentState == SAVE_FNAME_READ ||
-                 _currentState == OPEN_FNAME_READ)
+        else if (rdchar == PET_READ_CMD_ADDR) // read command
         {
-            // add character to filename
-            progname[_filenamePosition] = rdchar;
-            _filenamePosition++;
-            progname[_filenamePosition] = 0;
-
-            if (_ieee->eoi_is_low())
+            if (_fileNotFound == 1)
             {
-                // this is a directory request
-                if (progname[0] == '$')
+                _currentState = FILE_NOT_FOUND;
+            }
+            else
+            {
+                _currentState = FILE_READ;
+            }
+        }
+        else if (rdchar == PET_SAVE_CMD_ADDR) // save command
+        {
+            _currentState = FILE_SAVE;
+        }
+        else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_IO_ADDR) // print or input command
+        {
+            _secondaryAddress = rdchar & PET_ADDRESS_MASK;
+
+            openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+            if (of != NULL && of->_opened == true)
+            {
+                if (_currentState == BUS_LISTEN)
                 {
-                    _filenamePosition = 0;
-                    _currentState = DIR_READ;
-                    initDirectory();
+                    if (!of->_command && of->_fileBufferIndex == -1)
+                    {
+                        _dataSource->openFileForWriting((uint8_t*)of->_fileName);
+                        of->_fileBufferIndex = 0;
+                    }
+                    of->_fileDirection = FWRITE;
+                    _currentState = OPEN_DATA_WRITE;
                 }
                 else
                 {
-                    // process filename, remove drive indicators and file type
-                    bool write;
-                    _filenamePosition = processFilename(progname, _filenamePosition, &write);
-
-                    // TODO: figure out at this point if this is a read or write using modifiers in filename
-                    // this prevents having to try opening the file every time, which is slow.
-
-                    const unsigned char *ext;
-                    if (_currentState == OPEN_FNAME_READ)
+                    // file read
+                    if (_fileNotFound == 1)
                     {
-                        ext = _seqExtension;
-                        if (write == true)
-                        {
-                            _currentState = OPEN_FNAME_READ_DONE_FOR_WRITING;
-                        }
-                        else
-                        {
-                            _currentState = OPEN_FNAME_READ_DONE;
-                        }
+                        resetFileInformation(_secondaryAddress);
+                        _currentState = FILE_NOT_FOUND;
                     }
                     else
                     {
-                        ext = _fileExtension;
-
-                        if (_currentState == LOAD_FNAME_READ)
-                        {
-                            _currentState = FILE_READ_OPENING;
-                        }
-                        else if (_currentState == SAVE_FNAME_READ)
-                        {
-                            _currentState = FILE_SAVE_OPENING;
-                        }
+                        of->_fileDirection = FREAD;
+                        _currentState = OPEN_DATA_READ;
                     }
-
-                    // copy the PRG file extension onto the end of the file name
-                    pgm_memcpy(&progname[_filenamePosition], (unsigned char*)ext, 5);
-                    _filenamePosition = 0;
-                    _logger->log((const char*)progname);
-                    _logger->logF(PSTR("\r\n"));
                 }
+            }
+            else
+            {
+                _logger->printf("X %d\r\n", _secondaryAddress);
             }
         }
-
-        _ieee->acknowledge_bus_byte();
-
-        // === PREPARE FOR READ/WRITE
-
-        if (_currentState == FILE_READ_OPENING ||
-            _currentState == FILE_SAVE_OPENING ||
-            _currentState == OPEN_FNAME_READ_DONE ||
-            _currentState == OPEN_FNAME_READ_DONE_FOR_WRITING ||
-            _currentState == DIR_READ)
+        else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_CLOSE_FILE)
         {
-            // initialize datasource
-            if (!_dataSource->init()) 
+            uint8_t address = rdchar & PET_ADDRESS_MASK;
+            openFileInfo* of = getFileInfoForAddress(address);
+            if (of != NULL)
             {
-                _fileNotFound = 1;
-                _currentState = IDLE;
-            }
+                if (of->_fileDirection == FWRITE)
+                {
+                    if (of->_fileBufferIndex > 0)
+                    {
+                        _dataSource->writeBufferToFile(of->_fileBufferIndex);
+                        of->_fileBufferIndex = 0;
+                    }
 
-            if (_currentState == FILE_SAVE_OPENING)
-            {
-                // open file
-                _dataSource->openFileForWriting(progname);
-                _currentState = IDLE;
-            }
-            else if (_currentState == FILE_READ_OPENING ||
-                     _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
-            {
-                // check for direct access command
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                if (of != NULL && of->_command == true)
-                {
-                    _logger->printf("CMD: %s\r\n", progname);
+                    _dataSource->closeFile();
                 }
-                else if (!_dataSource->openFileForReading(progname))
+
+                resetFileInformation(address);
+            }
+            _currentState = CLOSING;
+        }
+    }
+    else if (_currentState == OPEN_DATA_WRITE) // received byte to write to open file
+    {
+        openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+        if (of != NULL)
+        {
+            _dataSource->getBuffer()[of->_fileBufferIndex++] = rdchar;
+            if (!of->_command && of->_fileBufferIndex >= (int)_dataSource->writeBufferSize())
+            {
+                _dataSource->writeBufferToFile(of->_fileBufferIndex);
+                of->_fileBufferIndex = 0;
+            }
+        }
+    }
+    else if (_currentState == LOAD_FNAME_READ ||
+                _currentState == SAVE_FNAME_READ ||
+                _currentState == OPEN_FNAME_READ)
+    {
+        // add character to filename
+        progname[_filenamePosition] = rdchar;
+        _filenamePosition++;
+        progname[_filenamePosition] = 0;
+
+        if (_ieee->eoi_is_low())
+        {
+            // this is a directory request
+            if (progname[0] == '$')
+            {
+                _filenamePosition = 0;
+                _currentState = DIR_READ;
+                //initDirectory();
+            }
+            else
+            {
+                // process filename, remove drive indicators and file type
+                bool write;
+                _filenamePosition = processFilename(progname, _filenamePosition, &write);
+
+                // TODO: figure out at this point if this is a read or write using modifiers in filename
+                // this prevents having to try opening the file every time, which is slow.
+
+                const uint8_t *ext;
+                if (_currentState == OPEN_FNAME_READ)
                 {
-                    // file not found
-                    _fileNotFound = 1;
+                    ext = _seqExtension;
+                    if (write == true)
+                    {
+                        _currentState = OPEN_FNAME_READ_DONE_FOR_WRITING;
+                    }
+                    else
+                    {
+                        _currentState = OPEN_FNAME_READ_DONE;
+                    }
                 }
                 else
                 {
-                    _bytesToSend = _dataSource->getNextFileBlock();
-                    _bufferFileIndex = 0;
+                    ext = _fileExtension;
 
-                    if (_currentState == OPEN_FNAME_READ_DONE)
+                    if (_currentState == LOAD_FNAME_READ)
                     {
-                        _fileNotFound = 0;
-                        
-                        if (of != NULL)
-                        {
-                            strcpy(of->_fileName, (const char*)progname);
-                            of->_fileBufferIndex = 0;
-                            of->_useRemainderByte = false;
-                            of->_remainderByte = 0;
-                            of->_nextByte = _dataSource->getBuffer()[0];
-                        }
-                        
-                        _bufferFileIndex = _secondaryAddress;
+                        _currentState = FILE_READ_OPENING;
+                    }
+                    else if (_currentState == SAVE_FNAME_READ)
+                    {
+                        _currentState = FILE_SAVE_OPENING;
                     }
                 }
-                _currentState = IDLE;
-            }
-            else if (_currentState == OPEN_FNAME_READ_DONE_FOR_WRITING)
-            {
-                openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
-                strcpy(of->_fileName, (const char*)progname);
-                of->_fileBufferIndex = -1;
-                _currentState = IDLE;
+
+                // copy the PRG file extension onto the end of the file name
+                pgm_memcpy(&progname[_filenamePosition], (uint8_t*)ext, 5);
+                _filenamePosition = 0;
+                _logger->log((const char*)progname);
+                _logger->logF(PSTR("\r\n"));
             }
         }
+    }
 
-        if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
+    _ieee->acknowledge_bus_byte();
+
+    // === PREPARE FOR READ/WRITE
+
+    if (_currentState == FILE_READ_OPENING ||
+        _currentState == FILE_SAVE_OPENING ||
+        _currentState == OPEN_FNAME_READ_DONE ||
+        _currentState == OPEN_FNAME_READ_DONE_FOR_WRITING ||
+        _currentState == DIR_READ)
+    {
+        // initialize datasource
+        if (!_dataSource->init()) 
         {
+            _fileNotFound = 1;
+            _currentState = IDLE;
+        }
+
+        if (_currentState == FILE_SAVE_OPENING)
+        {
+            // open file
+            _dataSource->openFileForWriting(progname);
+            _currentState = IDLE;
+        }
+        else if (_currentState == FILE_READ_OPENING ||
+                    _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
+        {
+            // check for direct access command
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             if (of != NULL && of->_command == true)
             {
-                _dataSource->getBuffer()[of->_fileBufferIndex] = 0;
-                // retrieve the address from parsing command string
-                _dataSource->processCommandString(&_bufferFileIndex);
-                of = getFileInfoForAddress(_bufferFileIndex);
-                if (of != NULL)
-                {
-                    of->_nextByte = _dataSource->getBuffer()[0];
-                    of->_fileBufferIndex = 0;
-                }
-
-                resetFileInformation(_secondaryAddress);
+                _logger->printf("CMD: %s\r\n", progname);
             }
-            // unlisten or untalk command
-            _ieee->signal_ready_for_data();
-            _ieee->unlisten();
+            else if (!_dataSource->openFileForReading(progname))
+            {
+                // file not found
+                _fileNotFound = 1;
+            }
+            else
+            {
+                _bytesToSend = _dataSource->getNextFileBlock();
+                _bufferFileIndex = 0;
+
+                if (_currentState == OPEN_FNAME_READ_DONE)
+                {
+                    _fileNotFound = 0;
+                    
+                    if (of != NULL)
+                    {
+                        strcpy(of->_fileName, (const char*)progname);
+                        of->_fileBufferIndex = 0;
+                        of->_useRemainderByte = false;
+                        of->_remainderByte = 0;
+                        of->_nextByte = _dataSource->getBuffer()[0];
+                    }
+                    
+                    _bufferFileIndex = _secondaryAddress;
+                }
+            }
             _currentState = IDLE;
-            continue;
+        }
+        else if (_currentState == OPEN_FNAME_READ_DONE_FOR_WRITING)
+        {
+            openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+            strcpy(of->_fileName, (const char*)progname);
+            of->_fileBufferIndex = -1;
+            _currentState = IDLE;
+        }
+    }
+
+    if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
+    {
+        openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
+        if (of != NULL && of->_command == true)
+        {
+            _dataSource->getBuffer()[of->_fileBufferIndex] = 0;
+            // retrieve the address from parsing command string
+            _dataSource->processCommandString(&_bufferFileIndex);
+            of = getFileInfoForAddress(_bufferFileIndex);
+            if (of != NULL)
+            {
+                of->_nextByte = _dataSource->getBuffer()[0];
+                of->_fileBufferIndex = 0;
+            }
+
+            resetFileInformation(_secondaryAddress);
         }
 
+        // unlisten or untalk command
         _ieee->signal_ready_for_data();
+        _ieee->unlisten();
+        _currentState = IDLE;
+        return;
+    }
 
-        // LOAD requested
-        if (_currentState == FILE_READ || _currentState == OPEN_DATA_READ)
+    _ieee->signal_ready_for_data();
+
+    // LOAD requested
+    if (_currentState == FILE_READ || _currentState == OPEN_DATA_READ)
+    {
+        // ==== STARTING LOAD SEQUENCE
+        _ieee->begin_output();
+
+        if (_currentState == FILE_READ)
         {
-            // ==== STARTING LOAD SEQUENCE
-            _ieee->begin_output();
-
-            if (_currentState == FILE_READ)
+            // get packet
+            if (progname[0] == '$')
             {
-                // get packet
-                if (progname[0] == '$')
+                // reading a directory
+                // need to handle both standard load"$" command and DIRECTORY/CATALOG here
+                // on each byte sent, we should check for ATN asserted.
+                // if ATN is asserted, we exit and wait for further commands
+                bool done = false;
+                uint8_t result;
+                while (!done)
                 {
-                    // reading a directory
-                    // need to handle both standard load"$" command and DIRECTORY/CATALOG here
-                    // on each byte sent, we should check for ATN asserted.
-                    // if ATN is asserted, we exit and wait for further commands
-                    bool done = false;
-                    uint8_t result;
-                    while (!done)
+                    // send one header byte
+                    result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
+                    IEEEBusSignal busSignal = _ieee->wait_for_ndac_high_or_atn_low();
+                    if (busSignal == ATN)
                     {
-                        // send one header byte
-                        result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
-                        result = _ieee->wait_for_ndac_high_or_atn_low();
-                        if (result == ATN_MASK)
+                        // ATN asserted, break out of directory listing
+                        break;
+                    }
+                    else
+                    {
+                        _directoryEntryByteIndex++;
+                        // read new byte if needed
+                        if (_directoryEntryByteIndex >= 32)
                         {
-                            // ATN asserted, break out of directory listing
-                            break;
-                        }
-                        else
-                        {
-                            _directoryEntryByteIndex++;
-                            // read new byte if needed
-                            if (_directoryEntryByteIndex >= 32)
+                            if (_directoryEntryIndex == 0)
                             {
-                                if (_directoryEntryIndex == 0)
+                                // do original dir load routine
+                                // this is a change directory command
+                                if (progname[1] == ':')
                                 {
-                                    // do original dir load routine
-                                    // this is a change directory command
-                                    if (progname[1] == ':')
+                                    // change directory command
+                                    // this can be either a directory name, or a d64 file
+                                    if (isD64((const char*)&progname[2]))
                                     {
-                                        // change directory command
-                                        // this can be either a directory name, or a d64 file
-                                        if (isD64((const char*)&progname[2]))
+                                        _logger->printf("d64: %s\r\n", &progname[2]);
+                                        // this is a d64 file, mount as a datasource
+                                        // initialize d64 datasource
+                                        bool success = _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
+                                        if (success)
                                         {
-                                            _logger->printf("d64: %s\r\n", &progname[2]);
-                                            // this is a d64 file, mount as a datasource
-                                            // initialize d64 datasource
-                                            bool success = _d64->initWithDataSource(_dataSource, (const char*)&progname[2], _logger);
-                                            if (success)
+                                            setDataSource(_primaryAddress, _d64);
+                                            _dataSource = _d64;
+                                        }
+                                        else
+                                        {
+                                            _logger->printf("not found %s\n", progname);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (_dataSource == _d64)
+                                        {
+                                            if (progname[2] == '.' && progname[3] == '.')
                                             {
-                                                setDataSource(_primaryAddress, _d64);
-                                                _dataSource = _d64;
-                                            }
-                                            else
-                                            {
-                                                _logger->printf("not found %s\n", progname);
+                                                // unmount this d64 image and return to previous datasource
+                                                _dataSource = _d64->getFileDataSource();
+                                                setDataSource(_primaryAddress, _dataSource);
                                             }
                                         }
                                         else
                                         {
-                                            if (_dataSource == _d64)
-                                            {
-                                                if (progname[2] == '.' && progname[3] == '.')
-                                                {
-                                                    // unmount this d64 image and return to previous datasource
-                                                    _dataSource = _d64->getFileDataSource();
-                                                    setDataSource(_primaryAddress, _dataSource);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                // change directory
-                                                _dataSource->openDirectory((const char*)&progname[2]);
-                                            }
+                                            // change directory
+                                            _dataSource->openDirectory((const char*)&progname[2]);
                                         }
                                     }
-
-                                    // have not opened the datasource directory yet
-                                    // do this here where we are not going to time out
-                                    _dataSource->openCurrentDirectory();
                                 }
 
-                                getDirectoryEntry();
-                                _directoryEntryByteIndex = 0;
+                                // have not opened the datasource directory yet
+                                // do this here where we are not going to time out
+                                _dataSource->openCurrentDirectory();
                             }
 
-                            _ieee->raise_dav_and_eoi();
-
-                             result = _ieee->wait_for_ndac_low_or_atn_low();
-                            if (result == ATN_MASK)
-                            {
-                                _directoryEntryByteIndex--;
-                                break;
-                            }
-                            else
-                            {
-                                _directoryNextByte = _directoryEntry[_directoryEntryByteIndex];
-                            }
-                        }
-                    }
-                }
-                else // read from file
-                {
-                    // send blocks of file
-                    unsigned char done_sending = 0;
-                    while (done_sending == 0)
-                    {
-                        if (_bytesToSend == 0)
-                        {
-                            _bytesToSend = _dataSource->getNextFileBlock();
-                        }
-
-                        if (_dataSource->isLastBlock())
-                        {
-                            done_sending = 1;
-                        }
-
-                        _ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending);
-                        _bytesToSend = 0;
-                    }
-                }
-            }
-            else if (_currentState == OPEN_DATA_READ)
-            {
-                bool done = false;
-                unsigned char result = 0;
-                
-                unsigned char address = rdchar & PET_ADDRESS_MASK;
-                openFileInfo* of = getFileInfoForAddress(address);
-
-                while (!done)
-                {
-                    if (of->_useRemainderByte == true)
-                    {
-                        result = _ieee->sendIEEEByteCheckForATN(of->_remainderByte);
-                    }
-                    else
-                    {
-                        result = _ieee->sendIEEEByteCheckForATN(of->_nextByte);
-                    }
-
-                    result = _ieee->wait_for_ndac_high_or_atn_low();
-
-                    if (result == ATN_MASK)
-                    {
-                        done = true;
-                    }
-                    else
-                    {
-                        if (of->_useRemainderByte == true)
-                        {
-                            of->_useRemainderByte = false;
-                        }
-                        else
-                        {
-                            of->_remainderByte = _dataSource->getBuffer()[of->_fileBufferIndex];
-                            of->_fileBufferIndex++;
-                            of->_byteIndex++;
-                        }
-
-                        if (_bufferFileIndex != address)
-                        {
-                            _dataSource->openFileForReading((unsigned char*)of->_fileName);
-                            int blocksToRead = (of->_byteIndex / _dataSource->readBufferSize()) + 1;
-
-                            // read enough blocks to get back to the right block of the file
-                            for (int i = 0; i < blocksToRead; i++)
-                            {
-                                _dataSource->getNextFileBlock();
-                            }
-                            _bufferFileIndex = address;
-                        }
-
-                        if (of->_fileBufferIndex >= (int)_dataSource->readBufferSize())
-                        {
-                            // get next buffer block
-                            _bytesToSend = _dataSource->getNextFileBlock();
-                            of->_fileBufferIndex = 0;
+                            getDirectoryEntry();
+                            _directoryEntryByteIndex = 0;
                         }
 
                         _ieee->raise_dav_and_eoi();
 
-                        result = _ieee->wait_for_ndac_low_or_atn_low();
-                        
-                        if (result == ATN_MASK)
+                            result = _ieee->wait_for_ndac_low_or_atn_low();
+                        if (result == ATN)
                         {
-                            if (of->_fileBufferIndex == 0)
-                            {
-                                of->_useRemainderByte = true;
-                            }
-                            else
-                            {
-                                of->_fileBufferIndex--;
-                            }
-
-                            done = true;
+                            _directoryEntryByteIndex--;
+                            break;
                         }
-
-                        of->_nextByte = _dataSource->getBuffer()[of->_fileBufferIndex];
+                        else
+                        {
+                            _directoryNextByte = _directoryEntry[_directoryEntryByteIndex];
+                        }
                     }
                 }
             }
+            else // read from file
+            {
+                // send blocks of file
+                uint8_t done_sending = 0;
+                while (done_sending == 0)
+                {
+                    if (_bytesToSend == 0)
+                    {
+                        _bytesToSend = _dataSource->getNextFileBlock();
+                    }
 
-            // ==== ENDING LOAD SEQUENCE
-            _ieee->end_output();
-            _currentState = IDLE;
+                    if (_dataSource->isLastBlock())
+                    {
+                        done_sending = 1;
+                    }
 
+                    _ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending);
+                    _bytesToSend = 0;
+                }
+            }
         }
-        else if (_currentState == FILE_SAVE)
+        else if (_currentState == OPEN_DATA_READ)
         {
-            // save command
-            writeFile();
-            _ieee->unlisten();
-            _currentState = IDLE;
+            bool done = false;
+            uint8_t result = 0;
+            
+            uint8_t address = rdchar & PET_ADDRESS_MASK;
+            openFileInfo* of = getFileInfoForAddress(address);
+
+            while (!done)
+            {
+                if (of->_useRemainderByte == true)
+                {
+                    result = _ieee->sendIEEEByteCheckForATN(of->_remainderByte);
+                }
+                else
+                {
+                    result = _ieee->sendIEEEByteCheckForATN(of->_nextByte);
+                }
+
+                result = _ieee->wait_for_ndac_high_or_atn_low();
+
+                if (result == ATN)
+                {
+                    done = true;
+                }
+                else
+                {
+                    if (of->_useRemainderByte == true)
+                    {
+                        of->_useRemainderByte = false;
+                    }
+                    else
+                    {
+                        of->_remainderByte = _dataSource->getBuffer()[of->_fileBufferIndex];
+                        of->_fileBufferIndex++;
+                        of->_byteIndex++;
+                    }
+
+                    if (_bufferFileIndex != address)
+                    {
+                        _dataSource->openFileForReading((uint8_t*)of->_fileName);
+                        int blocksToRead = (of->_byteIndex / _dataSource->readBufferSize()) + 1;
+
+                        // read enough blocks to get back to the right block of the file
+                        for (int i = 0; i < blocksToRead; i++)
+                        {
+                            _dataSource->getNextFileBlock();
+                        }
+                        _bufferFileIndex = address;
+                    }
+
+                    if (of->_fileBufferIndex >= (int)_dataSource->readBufferSize())
+                    {
+                        // get next buffer block
+                        _bytesToSend = _dataSource->getNextFileBlock();
+                        of->_fileBufferIndex = 0;
+                    }
+
+                    _ieee->raise_dav_and_eoi();
+
+                    result = _ieee->wait_for_ndac_low_or_atn_low();
+                    
+                    if (result == ATN)
+                    {
+                        if (of->_fileBufferIndex == 0)
+                        {
+                            of->_useRemainderByte = true;
+                        }
+                        else
+                        {
+                            of->_fileBufferIndex--;
+                        }
+
+                        done = true;
+                    }
+
+                    of->_nextByte = _dataSource->getBuffer()[of->_fileBufferIndex];
+                }
+            }
         }
+
+        // ==== ENDING LOAD SEQUENCE
+        _ieee->end_output();
+        _currentState = IDLE;
+
+    }
+    else if (_currentState == FILE_SAVE)
+    {
+        // save command
+        writeFile();
+        _ieee->unlisten();
+        _currentState = IDLE;
     }
 }
 
-unsigned char PETdisk::processFilename(unsigned char* filename, unsigned char length, bool* write)
+uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 {
     _logger->log("pf: ");
     _logger->log(filename, length);
     _logger->log("\r\n");
 
     *write = false;
-    unsigned char drive_separator = ':';
-    unsigned char* sepptr = (unsigned char*)memmem(filename, length, &drive_separator, 1);
+    uint8_t drive_separator = ':';
+    uint8_t* sepptr = (uint8_t*)memmem(filename, length, &drive_separator, 1);
     if (sepptr)
     {
         // found a drive separator
@@ -1475,11 +1485,11 @@ unsigned char PETdisk::processFilename(unsigned char* filename, unsigned char le
 
     // find part of string before ','
     drive_separator = ',';
-    sepptr = (unsigned char*)memmem(filename, length, &drive_separator, 1);
+    sepptr = (uint8_t*)memmem(filename, length, &drive_separator, 1);
     if (sepptr)
     {
         // look for write indicator
-        unsigned char writeIndicator[2];
+        uint8_t writeIndicator[2];
         writeIndicator[0] = ',';
         writeIndicator[1] = 'W';
         int fnameLength = sepptr - filename;
@@ -1497,6 +1507,161 @@ unsigned char PETdisk::processFilename(unsigned char* filename, unsigned char le
     return length;
 }
 
+bitfixer::Serial1 _logSerial;
+bitfixer::SerialLogger _logger;
+bSPI _spi;
+SD _sd;
+bitfixer::FAT32 _fat32;
+bitfixer::EspConn _espConn;
+bitfixer::EspHttp _espHttp;
+bitfixer::IEEE488 _ieee;
+D64DataSource _d64DataSource;
+PETdisk _petdisk;
+
+bitfixer::NetworkDataSource nds0;
+bitfixer::NetworkDataSource nds1;
+bitfixer::NetworkDataSource nds2;
+bitfixer::NetworkDataSource nds3;
+
+int atncount;
+int atnstate;
+
+void setup()
+{
+    _bufferSize = 0;
+    prog_init();
+    
+    //bSPI spi;
+    _spi.init();
+
+    //bitfixer::Serial1 logSerial;
+    _logSerial.init(115200);
+
+    //bitfixer::SerialLogger logger(&logSerial);
+    _logger.initWithSerial(&_logSerial);
+
+    //SD sd(&spi, SPI_CS);
+    _sd.initWithSPI(&_spi, SPI_CS);
+
+    //bitfixer::FAT32 fat32(&sd, _buffer, &_buffer[512], &logger);
+    _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
+    checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
+
+    init_led();
+    blink_led(1, 300, 50);
+
+    //bitfixer::EspConn espConn(_buffer, &_bufferSize, NULL, &_logger);
+    _espConn.initWithParams(_buffer, &_bufferSize, NULL, &_logger);
+    //bitfixer::EspHttp espHttp(&espConn, &_logger);
+    _espHttp.initWithParams(&_espConn, &_logger);
+    reset_esp();
+
+    //bitfixer::IEEE488 ieee(&_logger);
+    _ieee.initWithLogger(&_logger);
+    _ieee.unlisten();
+
+    /*
+    // init 4 possible network datasources
+    bitfixer::NetworkDataSource nds0(&_espHttp, _buffer, &_bufferSize, &_logger);
+    bitfixer::NetworkDataSource nds1(&_espHttp, _buffer, &_bufferSize, &_logger);
+    bitfixer::NetworkDataSource nds2(&_espHttp, _buffer, &_bufferSize, &_logger);
+    bitfixer::NetworkDataSource nds3(&_espHttp, _buffer, &_bufferSize, &_logger);
+    */
+
+    nds0.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
+    nds1.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
+    nds2.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
+    nds3.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
+
+    bitfixer::NetworkDataSource* nds_array[4];
+    nds_array[0] = &nds0;
+    nds_array[1] = &nds1;
+    nds_array[2] = &nds2;
+    nds_array[3] = &nds3;
+
+    _petdisk.init(
+        &_fat32,
+        &_d64DataSource,
+        _buffer, 
+        &_bufferSize, 
+        &_espConn, 
+        &_espHttp, 
+        (bitfixer::NetworkDataSource**)nds_array,
+        &_ieee,
+        &_logger);
+
+    _logger.log("ready\r\n");
+    set_led(true);
+    atncount = 0;
+    atnstate = 1;
+}
+
+void loop()
+{
+    /*
+    bool atnasserted = _ieee.is_atn_asserted();
+    if (atnstate = 1 && atnasserted)
+    {
+        atnstate = 0;
+        atncount++;
+
+
+        _logger.printf("%d\n", atncount);
+    }
+    else if (atnstate == 0 && !atnasserted)
+    {
+        atnstate = 1;
+    }
+    */
+
+    /*
+    uint8_t dir;
+    bool success;
+    uint8_t res = _ieee.get_device_address(&dir, &success);
+    */
+
+
+    _petdisk.loop();
+    //uint8_t byte;
+    //_ieee.recv_byte(&byte);
+    //_logger.printf("recv: %X %b\n", byte, byte);
+
+    /*
+    int timenow = millis();
+    if (timenow - now > 1000)
+    {
+        _logger.printf("writing %X\n", byteval);
+        _ieee.write_byte_to_data_bus(byteval);
+        byteval <<= 1;
+        if (byteval == 0)
+        {
+            byteval = 1;
+        }
+
+        now = timenow;       
+    }
+    */
+
+    /*
+    if (_ieee.is_atn_asserted())
+    {
+        _logger.printf("ATN 0\n");
+    }
+    else
+    {
+        _logger.printf("ATN 1\n");
+    }
+    */
+
+    /*
+    _logger.printf("NDAC %d ", _ieee.read_ndac());
+    _logger.printf("DAV %d ", _ieee.read_dav());
+    _logger.printf("NRFD %d ", _ieee.read_nrfd());
+    _logger.printf("EOI %d\n", _ieee.read_eoi());
+    */
+}
+
+/*
 int main(void)
 {
     _bufferSize = 0;
@@ -1559,29 +1724,6 @@ int main(void)
         &ieee,
         &logger);
 
-    // TESTING
-    // try loading all clusters of a file on sd card
-    /*
-    fat32.openFileForReading((unsigned char*)"ushergam.d64");
-    int b = 0;
-    bool done = false;
-    char tmp[16];
-    logger.log("here\r\n");
-    fat32.indexFileForSeeking();
-    fat32.seek(1000);
-    fat32.seek(2000);
-    fat32.seek(100000);
-    */
-
-    //D64DataSource d64DataSource;
-    //d64DataSource.initWithDataSource(&fat32, "ushergam.d64", &logger);
-    //d64DataSource.openFileForReading((unsigned char*)"USHER.PRG");
-
-    //d64DataSource.getNextFileBlock();
-    //d64DataSource.getNextFileBlock();
-
-    //petdisk.setDataSource(8, &d64DataSource);
-
     #ifdef TESTING
 
     D64DataSource d64DataSource;
@@ -1598,6 +1740,7 @@ int main(void)
     while(1) {}
     return 0;
 }
+*/
 
 // can you make the interrupt handler self contained?
 
@@ -1613,12 +1756,22 @@ int main(void)
 
 // turn on serial interrupts to start reading
 // turn off when done
-
+/*
 ISR(USART0_RX_vect)
 {
     // insert character into buffer
     // loop to beginning if needed
-    unsigned char a = UDR0;
+    uint8_t a = UDR0;
     _buffer[_bufferSize] = a;
     _bufferSize++;
+}
+*/
+
+// only avr
+int main(void)
+{
+    setup();
+    while(1) {
+        loop();
+    }
 }

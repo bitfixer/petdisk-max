@@ -93,23 +93,23 @@ public:
     
     bool initWithDataSource(DataSource* dataSource, const char* fileName, Logger* logger);
 
-    void openFileForWriting(unsigned char* fileName);
-    bool openFileForReading(unsigned char* fileName);
-    uint32_t seek(unsigned int position);
+    void openFileForWriting(uint8_t* fileName);
+    bool openFileForReading(uint8_t* fileName);
+    uint32_t seek(uint16_t position);
 
     bool openDirectory(const char* dirName);
-    unsigned int getNextFileBlock();
+    uint16_t getNextFileBlock();
     bool isLastBlock();
     bool getNextDirectoryEntry();
     bool isInitialized();
 
-    void writeBufferToFile(unsigned int numBytes);
+    void writeBufferToFile(uint16_t numBytes);
     void closeFile();
     void openCurrentDirectory();
-    unsigned char* getFilename();
-    unsigned char* getBuffer();
-    unsigned int writeBufferSize();
-    unsigned int readBufferSize();
+    uint8_t* getFilename();
+    uint8_t* getBuffer();
+    uint16_t writeBufferSize();
+    uint16_t readBufferSize();
     void processCommandString(int* address);
 
     DataSource* getFileDataSource();

@@ -26,65 +26,80 @@
 #include "SD_routines.h"
 #include "SerialLogger.h"
 #include "DataSource.h"
+#include "helpers.h"
 #include <stdint.h>
 
 //Structure to access Directory Entry in the FAT
-struct dir_Structure{
-unsigned char name[11];     //0
-unsigned char attrib;       //11 //file attributes
-unsigned char NTreserved;   //12 //always 0
-unsigned char timeTenth;    //13 //tenths of seconds, set to 0 here
-unsigned int createTime;    //14 //time file was created
-unsigned int createDate;    //16 //date file was created
-unsigned int lastAccessDate;//18
-unsigned int firstClusterHI;//20 //higher word of the first cluster number
-unsigned int writeTime;     //22 //time of last write
-unsigned int writeDate;     //24 //date of last write
-unsigned int firstClusterLO;//26 //lower word of the first cluster number
-unsigned long fileSize;     //28 //size of file in bytes
+struct PACKED dir_Structure{
+uint8_t name[11];     //0
+uint8_t attrib;       //11 //file attributes
+uint8_t NTreserved;   //12 //always 0
+uint8_t timeTenth;    //13 //tenths of seconds, set to 0 here
+uint16_t createTime;    //14 //time file was created
+uint16_t createDate;    //16 //date file was created
+uint16_t lastAccessDate;//18
+uint16_t firstClusterHI;//20 //higher word of the first cluster number
+uint16_t writeTime;     //22 //time of last write
+uint16_t writeDate;     //24 //date of last write
+uint16_t firstClusterLO;//26 //lower word of the first cluster number
+uint32_t fileSize;     //28 //size of file in bytes
     //32
 };
 
-struct dir_Longentry_Structure{
-    unsigned char LDIR_Ord;
-    unsigned int LDIR_Name1[5];
-    unsigned char LDIR_Attr;
-    unsigned char LDIR_Type;
-    unsigned char LDIR_Chksum;
-    unsigned int LDIR_Name2[6];
-    unsigned int LDIR_FstClusLO;
-    unsigned int LDIR_Name3[2];
+struct PACKED dir_Longentry_Structure{
+    uint8_t LDIR_Ord;
+    uint16_t LDIR_Name1[5];
+    uint8_t LDIR_Attr;
+    uint8_t LDIR_Type;
+    uint8_t LDIR_Chksum;
+    uint16_t LDIR_Name2[6];
+    uint16_t LDIR_FstClusLO;
+    uint16_t LDIR_Name3[2];
 };
 
 // structure for file read information
-typedef struct _file_stat{
-    unsigned long currentCluster;
-    unsigned long fileSize;
-    unsigned long currentSector;
-    unsigned long byteCounter;
+typedef struct PACKED _file_stat{
+    uint32_t currentCluster;
+    uint32_t fileSize;
+    uint32_t currentSector;
+    uint32_t byteCounter;
     int sectorIndex;
 } file_stat;
 
-typedef struct _file_position {
-    unsigned char isLongFilename;
-    unsigned char *fileName;
-    unsigned long startCluster;
-    unsigned long cluster;
-    unsigned long dirStartCluster;
-    unsigned char sectorIndex;
-    unsigned long sector;
-    unsigned long fileSize;
-    unsigned long byteCounter;
-    unsigned int byte;
-    unsigned char shortFilename[11];
+typedef struct PACKED _file_position {
+    uint8_t isLongFilename;
+    uint8_t *fileName;
+    uint32_t startCluster;
+    uint32_t cluster;
+    uint32_t dirStartCluster;
+    uint8_t sectorIndex;
+    uint32_t sector;
+    uint32_t fileSize;
+    uint32_t byteCounter;
+    uint16_t byte;
+    uint8_t shortFilename[11];
 } file_position;
 
 #define MAX_FILENAME       256
 
+namespace bitfixer {
+
 class FAT32 : public DataSource
 {
 public:
-    FAT32(SD* sd, unsigned char* fatbuffer, unsigned char* longEntryBuffer, SerialLogger* logger)
+    FAT32()
+    : _sd(NULL)
+    , _FatBuffer(NULL)
+    , _longEntryString(NULL)
+    , _logger(NULL)
+    , _currentDirectoryEntry(0)
+    , _initialized(false)
+    , _rootCluster(0)
+    {
+
+    }
+
+    FAT32(SD* sd, uint8_t* fatbuffer, uint8_t* longEntryBuffer, SerialLogger* logger)
     : _sd(sd)
     , _FatBuffer(fatbuffer)
     , _longEntryString(longEntryBuffer)
@@ -98,96 +113,99 @@ public:
 
     ~FAT32() {}
 
+    bool initWithParams(SD* sd, uint8_t* fatbuffer, uint8_t* longEntryBuffer, SerialLogger* logger);
     bool init();
     bool isInitialized();
-    unsigned char* getLongEntryString();
+    uint8_t* getLongEntryString();
 
-    void openDirectory(unsigned long firstCluster);
+    void openDirectory(uint32_t firstCluster);
     bool getNextDirectoryEntry();
-    bool openFileForReading(unsigned char *fileName);
-    unsigned int getNextFileBlock();
+    bool openFileForReading(uint8_t *fileName);
+    uint16_t getNextFileBlock();
     bool isLastBlock();
 
-    void openFileForWriting(unsigned char *fileName);
-    void writeBufferToFile(unsigned int bytesToWrite);
+    void openFileForWriting(uint8_t *fileName);
+    void writeBufferToFile(uint16_t bytesToWrite);
     void updateBlock();
     void closeFile();
     bool isLongFilename();
     bool isHidden();
     bool isVolumeId();
     bool isDirectory();
-    unsigned char* getFilename();
+    uint8_t* getFilename();
     bool openDirectory(const char* dirName);
     void openCurrentDirectory();
-    unsigned char* getBuffer();
+    uint8_t* getBuffer();
 
     bool findFile(char* fileName);
     void deleteFile();
     uint32_t seek(uint32_t pos);
 
-    unsigned int writeBufferSize()
+    uint16_t writeBufferSize()
     {
         return 512;
     }
     
 private:
     SD* _sd;
-    unsigned char* _FatBuffer;
-    unsigned char* _longEntryString;
+    uint8_t* _FatBuffer;
+    uint8_t* _longEntryString;
     SerialLogger* _logger;
     file_position _filePosition;
     struct dir_Structure* _currentDirectoryEntry;
     bool _initialized;
 
     bool _indexed;
-    unsigned long _fileClusterIndex[64];
+    uint32_t _fileClusterIndex[64];
 
-    unsigned long _firstDataSector;
-    unsigned long _rootCluster;
-    unsigned long _totalClusters;
-    unsigned int _bytesPerSector;
-    unsigned int _sectorPerCluster;
-    unsigned int _reservedSectorCount;
-    unsigned long _unusedSectors;
-    unsigned long _appendFileSector;
-    unsigned long _appendFileLocation;
-    unsigned long _fileSize;
-    unsigned long _appendStartCluster;
+    uint32_t _firstDataSector;
+    uint32_t _rootCluster;
+    uint32_t _totalClusters;
+    uint16_t _bytesPerSector;
+    uint16_t _sectorPerCluster;
+    uint16_t _reservedSectorCount;
+    uint32_t _unusedSectors;
+    uint32_t _appendFileSector;
+    uint32_t _appendFileLocation;
+    uint32_t _fileSize;
+    uint32_t _appendStartCluster;
 
     //flag to keep track of free cluster count updating in FSinfo sector
-    unsigned char _freeClusterCountUpdated;
-    unsigned long _fileStartCluster;
+    uint8_t _freeClusterCountUpdated;
+    uint32_t _fileStartCluster;
 
-    unsigned long _currentDirectoryCluster;
+    uint32_t _currentDirectoryCluster;
 
-    unsigned long getRootCluster();
-    unsigned char getBootSectorData (void);
-    unsigned long getFirstSector(unsigned long clusterNumber);
-    unsigned long getSetFreeCluster(unsigned char totOrNext, unsigned char get_set, unsigned long FSEntry);
+    uint32_t getRootCluster();
+    uint8_t getBootSectorData (void);
+    uint32_t getFirstSector(uint32_t clusterNumber);
+    uint32_t getSetFreeCluster(uint8_t totOrNext, uint8_t get_set, uint32_t FSEntry);
     
-    unsigned long getSetNextCluster (unsigned long clusterNumber,unsigned char get_set,unsigned long clusterEntry);
-    unsigned char readFile (unsigned char flag, unsigned char *fileName);
+    uint32_t getSetNextCluster (uint32_t clusterNumber,uint8_t get_set,uint32_t clusterEntry);
+    uint8_t readFile (uint8_t flag, uint8_t *fileName);
 
-    void convertToShortFilename(unsigned char *input, unsigned char *output);
-    void writeFile (unsigned char *fileName);
-    unsigned long searchNextFreeCluster (unsigned long startCluster);
-    void freeMemoryUpdate (unsigned char flag, unsigned long size);
+    void convertToShortFilename(uint8_t *input, uint8_t *output);
+    void writeFile (uint8_t *fileName);
+    uint32_t searchNextFreeCluster (uint32_t startCluster);
+    void freeMemoryUpdate (uint8_t flag, uint32_t size);
     
     void startFileRead(struct dir_Structure *dirEntry, file_stat *thisFileStat);
     void getCurrentFileBlock(file_stat *thisFileStat);
-    unsigned long getNextBlockAddress(file_stat *thisFileStat);
+    uint32_t getNextBlockAddress(file_stat *thisFileStat);
 
-    unsigned long getFirstCluster(struct dir_Structure *dir);
-    void makeShortFilename(unsigned char *longFilename, unsigned char *shortFilename);
+    uint32_t getFirstCluster(struct dir_Structure *dir);
+    void makeShortFilename(uint8_t *longFilename, uint8_t *shortFilename);
 
-    unsigned char ChkSum (unsigned char *pFcbName);
-    unsigned char isLongFilename(unsigned char *fileName);
-    unsigned char numCharsToCompare(unsigned char *fileName, unsigned char maxChars);
+    uint8_t ChkSum (uint8_t *pFcbName);
+    uint8_t isLongFilename(uint8_t *fileName);
+    uint8_t numCharsToCompare(uint8_t *fileName, uint8_t maxChars);
 
-    bool findFile(char* fileName, unsigned long firstCluster);
+    bool findFile(char* fileName, uint32_t firstCluster);
     void indexFileForSeeking();
 
     void copyShortFilename();
 };
+
+}
 
 #endif

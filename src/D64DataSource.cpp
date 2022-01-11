@@ -10,7 +10,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     _cbmTrackLayout = (uint32_t*)LAYOUT_CBM;
 
     // mount the file as a D64 drive
-    bool success = _fileDataSource->openFileForReading((unsigned char*)fileName);
+    bool success = _fileDataSource->openFileForReading((uint8_t*)fileName);
     if (!success)
     {
         return false;
@@ -23,7 +23,7 @@ bool D64DataSource::initWithDataSource(DataSource* dataSource, const char* fileN
     return true;
 }
 
-void D64DataSource::openFileForWriting(unsigned char* fileName) 
+void D64DataSource::openFileForWriting(uint8_t* fileName) 
 {
     memcpy(_fileName, fileName, 21);
 
@@ -60,7 +60,7 @@ void D64DataSource::prepareNextBlockForWriting()
     }
 }
 
-bool D64DataSource::openFileForReading(unsigned char* fileName) 
+bool D64DataSource::openFileForReading(uint8_t* fileName) 
 {
     // is this a block access?
     if (fileName[0] == '#')
@@ -86,7 +86,7 @@ bool D64DataSource::openFileForReading(unsigned char* fileName)
 }
 
 
-uint32_t D64DataSource::seek(unsigned int pos) 
+uint32_t D64DataSource::seek(uint16_t pos) 
 {
     return 0; 
 }
@@ -100,7 +100,7 @@ bool D64DataSource::openDirectory(const char* dirName)
     cbmReadBlock(_dirTrackBlock);
     return true;
 }
-unsigned int D64DataSource::getNextFileBlock() 
+uint16_t D64DataSource::getNextFileBlock() 
 {
     // for direct block access, don't do anything here
     if (_directBlockAccess == true)
@@ -157,7 +157,7 @@ bool D64DataSource::isInitialized()
     return true;
 }
 
-void D64DataSource::writeBufferToFile(unsigned int numBytes) 
+void D64DataSource::writeBufferToFile(uint16_t numBytes) 
 {
     // writing a single data buffer
     // data will be in bytes 2->BLOCK_SIZE
@@ -342,7 +342,7 @@ void D64DataSource::openCurrentDirectory()
     _dirTrackBlock[1] = _cbmBuffer[1];
     _currentFileEntry = NULL;
 }
-unsigned char* D64DataSource::getFilename() 
+uint8_t* D64DataSource::getFilename() 
 {
     if (_currentFileEntry)
     {
@@ -382,7 +382,7 @@ unsigned char* D64DataSource::getFilename()
     }
     return NULL;
 }
-unsigned char* D64DataSource::getBuffer() 
+uint8_t* D64DataSource::getBuffer() 
 {
     if (_directBlockAccess)
     {
@@ -391,12 +391,12 @@ unsigned char* D64DataSource::getBuffer()
     
     return _cbmBuffer + 2;
 }
-unsigned int D64DataSource::writeBufferSize() 
+uint16_t D64DataSource::writeBufferSize() 
 {
     return BLOCK_SIZE - 2;
 }
 
-unsigned int D64DataSource::readBufferSize() 
+uint16_t D64DataSource::readBufferSize() 
 {
     if (_directBlockAccess)
     {
@@ -702,7 +702,7 @@ int D64DataSource::cbmBAM(uint8_t *tb, char s)
         //uint8_t* bam = disk->header.bam;
         uint8_t* bam = _cbmBAM;
         uint8_t *freeSectors;
-        //unsigned int b = 0;
+        //uint16_t b = 0;
         uint32_t b = 0;
 
         // If track sent to funtion is out of range, return out of range error.

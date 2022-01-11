@@ -10,14 +10,14 @@ public:
     ~DataSource() {}
 
     virtual bool init() = 0;
-    virtual void openFileForWriting(unsigned char* fileName) = 0;
-    virtual bool openFileForReading(unsigned char* fileName) = 0;
+    virtual void openFileForWriting(uint8_t* fileName) = 0;
+    virtual bool openFileForReading(uint8_t* fileName) = 0;
     virtual bool openDirectory(const char* dirName) = 0;
-    virtual unsigned int getNextFileBlock() = 0;
+    virtual uint16_t getNextFileBlock() = 0;
     virtual bool isLastBlock() = 0;
     virtual bool getNextDirectoryEntry() = 0;
     virtual bool isInitialized() = 0;
-    virtual void writeBufferToFile(unsigned int numBytes) = 0;
+    virtual void writeBufferToFile(uint16_t numBytes) = 0;
     virtual void updateBlock() {}
     virtual void closeFile() = 0;
     virtual void openCurrentDirectory() = 0;
@@ -25,15 +25,15 @@ public:
     virtual bool isHidden() { return false; }
     virtual bool isVolumeId() { return false; }
     virtual bool isDirectory() { return false; }
-    virtual unsigned char* getFilename() = 0;
-    virtual unsigned char* getBuffer() = 0;
-    virtual unsigned int writeBufferSize() = 0;
-    virtual unsigned int readBufferSize() { return 512; }
-    virtual unsigned int requestReadBufferSize(unsigned int requestedReadBufferSize) {
+    virtual uint8_t* getFilename() = 0;
+    virtual uint8_t* getBuffer() = 0;
+    virtual uint16_t writeBufferSize() = 0;
+    virtual uint16_t readBufferSize() { return 512; }
+    virtual uint16_t requestReadBufferSize(uint16_t requestedReadBufferSize) {
         // default to not changing read buffer size
         return 512;
     }
-    virtual unsigned int requestWriteBufferSize(unsigned int requestedWriteBufferSize) {
+    virtual uint16_t requestWriteBufferSize(uint16_t requestedWriteBufferSize) {
         return 512;
     }
 

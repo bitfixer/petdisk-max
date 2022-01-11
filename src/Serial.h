@@ -1,12 +1,15 @@
 #ifndef __serial_h__
 #define __serial_h__
 
+namespace bitfixer
+{
+
 class Serial {
 public:
     Serial() {}
     ~Serial() {}
 
-    virtual void init(unsigned int ubrr, bool double_speed);
+    virtual void init(int baudRate);
     virtual void transmitByte(unsigned char data) = 0;
     virtual unsigned char receiveByte() = 0;
     virtual void transmitString(const char* string);
@@ -20,7 +23,7 @@ public:
     Serial0() {}
     ~Serial0() {}
 
-    void init(unsigned int ubrr, bool double_speed = false);
+    void init(int baudRate);
     void transmitByte(unsigned char data);
     unsigned char receiveByte();
     void enable_interrupt();
@@ -32,11 +35,13 @@ public:
     Serial1() {}
     ~Serial1() {}
 
-    void init(unsigned int ubrr, bool double_speed = false);
+    void init(int baudRate);
     void transmitByte(unsigned char data);
     unsigned char receiveByte();
     void enable_interrupt();
     void disable_interrupt();
 };
+
+}
 
 #endif

@@ -5,6 +5,9 @@
 #include "SerialLogger.h"
 #include "Serial.h"
 
+namespace bitfixer
+{
+
 typedef enum eProtMode {TCP_MODE, UDP_MODE, SSL_MODE} tProtMode;
 typedef enum
 {
@@ -17,6 +20,15 @@ typedef enum
 
 class EspConn {
 public:
+    EspConn()
+    : _serialBuffer(NULL)
+    , _serialBufferSize(NULL)
+    , _serial(NULL)
+    , _logSerial(NULL)
+    {
+
+    }
+
     EspConn(uint8_t* buffer, uint16_t* bufferSize, Serial* serial, Logger* logSerial) : 
     _serialBuffer(buffer),
     _serialBufferSize(bufferSize),
@@ -26,6 +38,7 @@ public:
 
     }
 
+    bool initWithParams(uint8_t* buffer, uint16_t* bufferSize, Serial* serial, Logger* logSerial);
     bool init();
     bool device_present();
     bool attempt_baud_rate_setting();
@@ -52,5 +65,7 @@ private:
     Serial* _serial;
     Logger* _logSerial;
 };
+
+}
 
 #endif

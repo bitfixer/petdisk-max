@@ -23,6 +23,7 @@
 #ifndef _SD_ROUTINES_H_
 #define _SD_ROUTINES_H_
 
+#include <stddef.h>
 #include "SPI_routines.h"
 
 //Use following macro if you don't want to activate the multiple block access functions
@@ -56,7 +57,18 @@
 class SD 
 {
 public:
-    SD(SPI* spi, int cs)
+    SD()
+    : _spi(NULL)
+    , _startBlock(0)
+    , _totalBlocks(0)
+    , _SDHC_flag(0)
+    , _cardType(0)
+    , _cs(0)
+    {
+
+    }
+
+    SD(bSPI* spi, int cs)
     : _spi(spi)
     , _startBlock(0)
     , _totalBlocks(0)
@@ -71,17 +83,18 @@ public:
         _spi = 0;
     }
 
-    unsigned char init();
-    unsigned char sendCommand(unsigned char cmd, unsigned long arg);
-    unsigned char readSingleBlock(unsigned long startBlock, unsigned char* buffer);
-    unsigned char writeSingleBlock(unsigned long startBlock, unsigned char* buffer);
+    uint8_t init();
+    uint8_t initWithSPI(bSPI* spi, int cs);
+    uint8_t sendCommand(uint8_t cmd, uint32_t arg);
+    uint8_t readSingleBlock(uint32_t startBlock, uint8_t* buffer);
+    uint8_t writeSingleBlock(uint32_t startBlock, uint8_t* buffer);
 
 private:
-    SPI* _spi;
-    unsigned long _startBlock;
-    unsigned long _totalBlocks;
-    unsigned char _SDHC_flag;
-    unsigned char _cardType;
+    bSPI* _spi;
+    uint32_t _startBlock;
+    uint32_t _totalBlocks;
+    uint8_t _SDHC_flag;
+    uint8_t _cardType;
     int _cs;
 
     void cs_select();
