@@ -5,6 +5,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 
 #define ESP_CONTROL     DDRD
 #define ESP_PORT        PORTD
@@ -78,4 +79,19 @@ void hDelayMs(int ms)
 uint8_t bf_pgm_read_byte(uint8_t* src)
 {
   return pgm_read_byte(src);
+}
+
+void bf_eeprom_write_block(const void* block, void* eeprom, size_t n)
+{
+    eeprom_write_block(block, eeprom, n);
+}
+
+void bf_eeprom_read_block(void* block, const void* eeprom, size_t n)
+{
+    eeprom_read_block(block, eeprom, n);
+}
+
+uint8_t bf_eeprom_read_byte(const uint8_t* addr)
+{
+    return eeprom_read_byte(addr);
 }

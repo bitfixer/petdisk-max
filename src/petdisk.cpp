@@ -302,7 +302,7 @@ void PETdisk::init(
     }
 
     struct pd_config *pdcfg = (struct pd_config*)&buffer[512];
-    eeprom_read_block(pdcfg, (void*)0, sizeof(struct pd_config));
+    bf_eeprom_read_block(pdcfg, (void*)0, sizeof(struct pd_config));
     printConfig(pdcfg);
 
     _espConn = espConn;
@@ -464,7 +464,7 @@ bool PETdisk::configChanged(struct pd_config* pdcfg)
     uint8_t* cfg = (uint8_t*)pdcfg;
     for (int i = 0; i < (int)sizeof(struct pd_config); i++)
     {
-        byte = eeprom_read_byte((const uint8_t*)i);
+        byte = bf_eeprom_read_byte((const uint8_t*)i);
         if (byte != cfg[i])
         {
             return true;
@@ -572,7 +572,7 @@ bool PETdisk::readConfigFile(bitfixer::FAT32* fat32, uint8_t* buffer)
     {
         // update eeprom with new config
         _logger->logF(PSTR("config updated\r\n"));
-        eeprom_write_block(pdcfg, (void*)0, sizeof(struct pd_config));
+        bf_eeprom_write_block(pdcfg, (void*)0, sizeof(struct pd_config));
         blink_led(3, 150, 150);
     }
     else
