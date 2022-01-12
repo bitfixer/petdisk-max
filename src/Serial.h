@@ -1,6 +1,8 @@
 #ifndef __serial_h__
 #define __serial_h__
 
+#include <stdint.h>
+
 namespace bitfixer
 {
 
@@ -9,7 +11,7 @@ public:
     Serial() {}
     ~Serial() {}
 
-    virtual void init(int baudRate);
+    virtual void init(uint32_t baudRate);
     virtual void transmitByte(unsigned char data) = 0;
     virtual unsigned char receiveByte() = 0;
     virtual void transmitString(const char* string);
@@ -23,7 +25,7 @@ public:
     Serial0() {}
     ~Serial0() {}
 
-    void init(int baudRate);
+    void init(uint32_t baudRate);
     void transmitByte(unsigned char data);
     unsigned char receiveByte();
     void enable_interrupt();
@@ -35,7 +37,7 @@ public:
     Serial1() {}
     ~Serial1() {}
 
-    void init(int baudRate);
+    void init(uint32_t baudRate);
     void transmitByte(unsigned char data);
     unsigned char receiveByte();
     void enable_interrupt();

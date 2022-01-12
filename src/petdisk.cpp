@@ -324,7 +324,6 @@ void PETdisk::init(
     bool espConnected = false;
     // check for presence of esp module
     bool device_present = true;
-    /*
     if (!_espConn->device_present())
     {
         _logger->logF(PSTR("no device!\r\n"));
@@ -343,11 +342,10 @@ void PETdisk::init(
     {
         _logger->logF(PSTR("esp present\r\n"));
     }
-    */
 
     // temp
-    device_present = false;
-    _logger->logF(PSTR("esp disabled\r\n"));
+    //device_present = false;
+    //_logger->logF(PSTR("esp disabled\r\n"));
 
     // check validity of config
     if (pdcfg->device_type[0] > DEVICE_END)
@@ -443,8 +441,6 @@ void PETdisk::init(
             network_drive_count++;
         }
     }
-
-    initDirectory();
 
     _ieee->unlisten();
 }
@@ -983,7 +979,7 @@ void PETdisk::loop()
 
     if (_ieee->atn_is_low()) // check for bus command
     {
-        _logger->printf("A %X\r\n", rdchar);
+        //_logger->printf("A %X\r\n", rdchar);
         if (rdchar == PET_LOAD_FNAME_ADDR)
         {
             _currentState = LOAD_FNAME_READ;
@@ -1107,7 +1103,7 @@ void PETdisk::loop()
             {
                 _filenamePosition = 0;
                 _currentState = DIR_READ;
-                //initDirectory();
+                initDirectory();
             }
             else
             {
@@ -1508,6 +1504,7 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 }
 
 bitfixer::Serial1 _logSerial;
+bitfixer::Serial0 _espSerial;
 bitfixer::SerialLogger _logger;
 bSPI _spi;
 SD _sd;
@@ -1537,6 +1534,8 @@ void setup()
     //bitfixer::Serial1 logSerial;
     _logSerial.init(115200);
 
+    _espSerial.init(500000);
+
     //bitfixer::SerialLogger logger(&logSerial);
     _logger.initWithSerial(&_logSerial);
 
@@ -1551,7 +1550,7 @@ void setup()
     blink_led(1, 300, 50);
 
     //bitfixer::EspConn espConn(_buffer, &_bufferSize, NULL, &_logger);
-    _espConn.initWithParams(_buffer, &_bufferSize, NULL, &_logger);
+    _espConn.initWithParams(_buffer, &_bufferSize, &_espSerial, &_logger);
     //bitfixer::EspHttp espHttp(&espConn, &_logger);
     _espHttp.initWithParams(&_espConn, &_logger);
     reset_esp();
@@ -1744,6 +1743,15 @@ int main(void)
 
 // can you make the interrupt handler self contained?
 
+// only avr
+int main(void)
+{
+    setup();
+    while(1) {
+        loop();
+    }
+}
+
 
 // interrupt handler - should read bytes into a buffer.
 // this can be read outside the handler to check for end tokens
@@ -1753,10 +1761,8 @@ int main(void)
 // if you allocate enough space to handle any potential reads, you 
 // don't even need a ring buffer, just a regular buffer
 
-
 // turn on serial interrupts to start reading
 // turn off when done
-/*
 ISR(USART0_RX_vect)
 {
     // insert character into buffer
@@ -1764,14 +1770,4 @@ ISR(USART0_RX_vect)
     uint8_t a = UDR0;
     _buffer[_bufferSize] = a;
     _bufferSize++;
-}
-*/
-
-// only avr
-int main(void)
-{
-    setup();
-    while(1) {
-        loop();
-    }
 }
