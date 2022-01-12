@@ -6,31 +6,11 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-#define NUMESPTAGS 5
-
 namespace bitfixer 
 {
 
 WiFiClient client;
 HTTPClient httpClient;
-
-const char* ESPTAGS[] =
-{
-    "\r\nOK\r\n",
-    "\r\nERROR\r\n",
-    "\r\nFAIL\r\n",
-    "\r\nSEND OK\r\n",
-    " CONNECT\r\n"
-};
-
-typedef enum
-{
-    STATE_READ = 0,
-    STATE_O = 1,
-    STATE_K = 2,
-    STATE_NL_1 = 3,
-    STATE_NL_2 = 4,
-} readState;
 
 bool EspConn::device_present() {
     // always present for esp32 device
@@ -49,6 +29,7 @@ bool EspConn::initWithParams(uint8_t* buffer, uint16_t* bufferSize, Serial* seri
     _serial = serial;
     _logSerial = logSerial;
     init();
+    return true;
 }
     
 bool EspConn::init() {
@@ -97,27 +78,12 @@ bool EspConn::connect(const char* ssid, const char* passphrase) {
          _logSerial->printf(".");
      }
     _logSerial->printf("wifi connected\n");
+    return true;
+    // todo: handle connection failure
 }
 
 bool EspConn::sendCmd(const char* cmd, int timeout) {
-    /*
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        *_serialBufferSize = 0;
-    }
-
-    _serial->transmitString(cmd);
-    _serial->enable_interrupt();
-    _serial->transmitString("\r\n");
-    int result = readUntil(0, true, true, timeout);
-    _serial->disable_interrupt();
-
-    if (result < 0 || result == 2) // FAIL
-    {
-        return false;
-    }
-    
     return true;
-    */
 }
 
 bool EspConn::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode)
@@ -134,7 +100,6 @@ bool EspConn::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t
 void EspConn::stopClient(uint8_t sock)
 {
 }
-
 
 int contains(const char* big, const char* small, size_t size)
 {
@@ -156,19 +121,14 @@ int contains(const char* big, const char* small, size_t size)
 
 void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
 {
-    //_logSerial->printf("esp send data length %d: %s\n", len, (char*)data);
-    int bytesWritten = client.write(data, len);
-    //_logSerial->printf("sent %d\n", bytesWritten);
-    
+    client.write(data, len);
     int recCount = 0;
     while (client.available() || client.connected())
     {
         int byte = client.read();
         if (byte != -1)
         {
-            //_logSerial->printf("got %d: %X %c\n", recCount, byte, byte);
             _serialBuffer[recCount] = byte;
-            //_logSerial->printf("%c", byte);
             recCount++;
         }
     }
@@ -178,27 +138,6 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
 
 void EspConn::readBytesUntilSize(uint16_t size)
 {
-    /*
-    // keep reading until the right number of bytes has been read
-    bool done = false;
-    uint16_t current_buffer_size = 0;
-    while (!done)
-    {
-        ATOMIC_BLOCK(ATOMIC_FORCEON) 
-        {
-            current_buffer_size = *_serialBufferSize;
-        }
-
-        if (current_buffer_size >= size)
-        {
-            done = true;
-        }
-        else
-        {
-            _delay_ms(1);
-        }
-    }
-    */
 }
 
 bool endsWith(const char* big, const char* small, size_t size)
@@ -216,55 +155,6 @@ bool endsWith(const char* big, const char* small, size_t size)
 }
 
 int EspConn::readUntil(const char* tag, bool findTags, bool end, int timeout) {
-    /*
-    int ret = -1;
-    uint16_t current_buffer_size = 0;
-    int currtime = 0;
-    while (ret < 0 && currtime < timeout) 
-    {
-        ATOMIC_BLOCK(ATOMIC_FORCEON) {
-            current_buffer_size = *_serialBufferSize;
-        }
-        if (current_buffer_size > 0) 
-        {
-            if (tag != 0) 
-            {
-                if (end)
-                {
-                    if (endsWith((const char*)_serialBuffer, tag, current_buffer_size) == true) 
-                    {
-                        ret = 1;
-                        break;
-                    }
-                }
-                else
-                {
-                    if (contains((const char*)_serialBuffer, tag, current_buffer_size) > 0)
-                    {
-                        ret = 1;
-                        break;
-                    }
-                }
-                //_delay_ms(1);
-            }
-            else 
-            {
-                for(int i = 0; i < NUMESPTAGS; i++)
-                {
-                    if (endsWith((const char*)_serialBuffer, ESPTAGS[i], current_buffer_size) == true)
-                    {
-                        ret = i;
-                        break;
-                    }
-                }
-            }
-        }
-        currtime++;
-        _delay_ms(1);
-    }
-
-    return ret;
-    */
    return -1;
 }
 
