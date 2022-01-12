@@ -18,9 +18,9 @@ $(SRCDIR)/FAT32.o\
 $(SRCDIR)/IEEE488.o\
 $(SRCDIR)/NetworkDataSource.o\
 $(SRCDIR)/D64DataSource.o\
-$(SRCDIR)/helpers.o\
 $(SRCDIR)/Settings.o\
-$(SRCDIR)/hardware.o
+$(SRCDIR)/hardware.o\
+$(SRCDIR)/helpers.o
 
 BOOTLOADER_OBJECTS = $(SRCDIR)/bootloader.o\
 $(SRCDIR)/SPI_routines.o\

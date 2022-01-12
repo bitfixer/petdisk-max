@@ -47,13 +47,11 @@ bool EspConn::device_present() {
 }
 
 bool EspConn::attempt_baud_rate_setting() {
-    //_serial->init(8, true);
     _serial->init(115200);
     char cmd[64];
     sprintf_P(cmd, PSTR("AT+UART_DEF=500000,8,1,0,0\r\n"));
     _serial->transmitString(cmd);
     _delay_ms(1000);
-    //_serial->init(0, false);
     _serial->init(500000);
     return true;
 }
@@ -249,77 +247,6 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
         //return -1;
     }
 }
-
-/*
-int EspConn::sendData(uint8_t sock, unsigned char* data, int len) {
-    char* cmd = (char*)&_serialBuffer[64];
-    sprintf_P(cmd, PSTR("AT+CIPSEND=%d,%d\r\n"), sock, len);
-    
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        *_serialBufferSize = 0;
-    }
-
-    _serial->enable_interrupt();
-    _serial->transmitString((unsigned char*)cmd);
-    readUntil("> ", false, true, 5000);
-    
-    for (int i = 0; i < len; i++)
-    {
-        _serial->transmitByte(data[i]);
-    }
-
-    if (sock == 0) 
-    {
-        uint16_t current_buffer_size;
-        readUntil("+IPD", false, false, 5000);
-
-        // parse the number of bytes in the packet
-        readUntil(":HTTP", false, false, 5000);
-
-        // find the number of bytes in the packet
-         ATOMIC_BLOCK(ATOMIC_FORCEON) {
-            current_buffer_size = *_serialBufferSize;
-        }
-
-        int start = contains((const char*)_serialBuffer, (const char*)"+IPD", current_buffer_size);
-        int end = contains((const char*)_serialBuffer, (const char*)":HTTP", current_buffer_size);
-
-        char temp[32];
-        memset(temp, 0, 32);
-        memcpy(temp, &_serialBuffer[start], end-start+1+1);
-        int ss, bytes;
-
-        // look for data coming back from the TCP connection.
-        sscanf(temp, "+IPD,%d,%d:", &ss, &bytes);
-
-        sprintf_P(temp, PSTR("%d bytes.\r\n"), bytes);
-        _logSerial->transmitString(temp);
-        
-        readBytesUntilSize((uint16_t)(end + bytes + 1));
-
-        readUntil("0,CLOSED\r\n", false, false, 5000);
-
-        //_delay_ms(5000);
-        _serial->disable_interrupt();
-
-        for (int i = 0; i < 512; i++)
-        {
-            _logSerial->transmitByte(_serialBuffer[i]);
-        }
-
-        sprintf_P(temp, PSTR("DONE.\r\n"));
-        _logSerial->transmitString(temp);
-        
-        return bytes;
-    }
-    else 
-    {
-        readUntil(0, true, true, 5000);
-        _serial->disable_interrupt();
-        return -1;
-    }
-}
-*/
 
 void EspConn::readBytesUntilSize(uint16_t size)
 {

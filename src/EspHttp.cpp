@@ -50,7 +50,7 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
     
     // parse data from serial buffer
     // find beginning of HTTP message
-    uint8_t* httpStart = (uint8_t*)memmem(buffer, bufSize, "HTTP", 4);
+    uint8_t* httpStart = (uint8_t*)bf_memmem(buffer, bufSize, "HTTP", 4);
     if (httpStart == 0)
     {
         *size = 0;
@@ -60,7 +60,7 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
     int httpSize = bufSize - (httpStart - buffer);
 
     // find blank newline to signify beginning of payload data
-    uint8_t* datastart = (uint8_t*)memmem(httpStart, httpSize, "\r\n\r\n", 4);
+    uint8_t* datastart = (uint8_t*)bf_memmem(httpStart, httpSize, "\r\n\r\n", 4);
 
     if (datastart == 0)
     {

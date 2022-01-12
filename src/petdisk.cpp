@@ -21,20 +21,6 @@
 
 //#define TESTING 1
 
-/*
-#define ESP_CONTROL     DDRD
-#define ESP_PORT        PORTD
-#define ESP_CH_PD       PD4
-#define ESP_RST         PD5
-#define ESP_GPIO0       PD7
-#define ESP_GPIO2       PD6
-
-#define LED_CONTROL     DDRB
-#define LED_PORT        PORTB
-#define LED_PIN1        PB0
-#define LED_PIN2        PB1
-*/
-
 // addresses for PET IEEE commands
 #define PET_LOAD_FNAME_ADDR     0xF0
 #define PET_SAVE_FNAME_ADDR     0xF1
@@ -1470,7 +1456,7 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 
     *write = false;
     uint8_t drive_separator = ':';
-    uint8_t* sepptr = (uint8_t*)memmem(filename, length, &drive_separator, 1);
+    uint8_t* sepptr = (uint8_t*)bf_memmem(filename, length, &drive_separator, 1);
     if (sepptr)
     {
         // found a drive separator
@@ -1481,7 +1467,7 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 
     // find part of string before ','
     drive_separator = ',';
-    sepptr = (uint8_t*)memmem(filename, length, &drive_separator, 1);
+    sepptr = (uint8_t*)bf_memmem(filename, length, &drive_separator, 1);
     if (sepptr)
     {
         // look for write indicator
@@ -1491,7 +1477,7 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
         int fnameLength = sepptr - filename;
         int indicatorsSize = length - fnameLength;
 
-        if (memmem(sepptr, indicatorsSize, writeIndicator, 2) != NULL)
+        if (bf_memmem(sepptr, indicatorsSize, writeIndicator, 2) != NULL)
         {
             // mark as a write
             *write = true;
@@ -1539,8 +1525,7 @@ void setup()
     //bitfixer::SerialLogger logger(&logSerial);
     _logger.initWithSerial(&_logSerial);
 
-    //SD sd(&spi, SPI_CS);
-    _sd.initWithSPI(&_spi, SPI_CS);
+    _sd.initWithSPI(&_spi, spi_cs());
 
     //bitfixer::FAT32 fat32(&sd, _buffer, &_buffer[512], &logger);
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
@@ -1597,149 +1582,8 @@ void setup()
 
 void loop()
 {
-    /*
-    bool atnasserted = _ieee.is_atn_asserted();
-    if (atnstate = 1 && atnasserted)
-    {
-        atnstate = 0;
-        atncount++;
-
-
-        _logger.printf("%d\n", atncount);
-    }
-    else if (atnstate == 0 && !atnasserted)
-    {
-        atnstate = 1;
-    }
-    */
-
-    /*
-    uint8_t dir;
-    bool success;
-    uint8_t res = _ieee.get_device_address(&dir, &success);
-    */
-
-
     _petdisk.loop();
-    //uint8_t byte;
-    //_ieee.recv_byte(&byte);
-    //_logger.printf("recv: %X %b\n", byte, byte);
-
-    /*
-    int timenow = millis();
-    if (timenow - now > 1000)
-    {
-        _logger.printf("writing %X\n", byteval);
-        _ieee.write_byte_to_data_bus(byteval);
-        byteval <<= 1;
-        if (byteval == 0)
-        {
-            byteval = 1;
-        }
-
-        now = timenow;       
-    }
-    */
-
-    /*
-    if (_ieee.is_atn_asserted())
-    {
-        _logger.printf("ATN 0\n");
-    }
-    else
-    {
-        _logger.printf("ATN 1\n");
-    }
-    */
-
-    /*
-    _logger.printf("NDAC %d ", _ieee.read_ndac());
-    _logger.printf("DAV %d ", _ieee.read_dav());
-    _logger.printf("NRFD %d ", _ieee.read_nrfd());
-    _logger.printf("EOI %d\n", _ieee.read_eoi());
-    */
 }
-
-/*
-int main(void)
-{
-    _bufferSize = 0;
-    prog_init();
-    
-    SPI spi;
-    spi.init();
-
-    Serial0 serial;
-    serial.init(0);  
-
-    Serial1 logSerial;
-    logSerial.init(0);
-
-    SerialLogger logger(&logSerial);
-    logger.init();
-
-    SD sd(&spi, SPI_CS);
-    FAT32 fat32(&sd, _buffer, &_buffer[512], &logger);
-
-    checkForFirmware((char*)&_buffer[769], &fat32, &logSerial);
-
-    init_led();
-    blink_led(1, 300, 50);
-
-    EspConn espConn(_buffer, &_bufferSize, &serial, &logger);
-    EspHttp espHttp(&espConn, &logger);
-    reset_esp();
-    for (int i = 0; i < 50; i++)
-    {
-        _delay_loop_2(65535);
-    }
-
-    IEEE488 ieee(&logger);
-    ieee.unlisten();
-
-    // init 4 possible network datasources
-    NetworkDataSource nds0(&espHttp, _buffer, &_bufferSize, &logger);
-    NetworkDataSource nds1(&espHttp, _buffer, &_bufferSize, &logger);
-    NetworkDataSource nds2(&espHttp, _buffer, &_bufferSize, &logger);
-    NetworkDataSource nds3(&espHttp, _buffer, &_bufferSize, &logger);
-
-    NetworkDataSource* nds_array[4];
-    nds_array[0] = &nds0;
-    nds_array[1] = &nds1;
-    nds_array[2] = &nds2;
-    nds_array[3] = &nds3;
-
-    D64DataSource d64DataSource;
-
-    PETdisk petdisk;
-    petdisk.init(
-        &fat32,
-        &d64DataSource,
-        _buffer, 
-        &_bufferSize, 
-        &espConn, 
-        &espHttp, 
-        (NetworkDataSource**)nds_array,
-        &ieee,
-        &logger);
-
-    #ifdef TESTING
-
-    D64DataSource d64DataSource;
-    d64DataSource.initWithDataSource(nds_array[0], "ushergam.d64", &logger);
-
-    #endif
-    logger.log("ready\r\n");
-
-    set_led(true);
-
-    // execute run loop
-    petdisk.run();
-
-    while(1) {}
-    return 0;
-}
-*/
 
 // can you make the interrupt handler self contained?
 
@@ -1751,7 +1595,6 @@ int main(void)
         loop();
     }
 }
-
 
 // interrupt handler - should read bytes into a buffer.
 // this can be read outside the handler to check for end tokens
