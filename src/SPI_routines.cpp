@@ -20,39 +20,16 @@
     http://bitfixer.com
 */
 #include "SPI_routines.h"
-#include <avr/io.h>
-
-#define SPI_CONTROL     DDRB
-#define SPI_PORT        PORTB
-#define SPI_CS          PB4
-#define SPI_CS2         PB3
-#define SPI_MOSI        PB5
-#define SPI_SCK         PB7
-
-#define SPI_CS_MASK     1<<SPI_CS
-#define NOT_SPI_CS_MASK ~(SPI_CS_MASK)
+#include "hardware.h"
 
 void bSPI::init()
 {
-    SPI_PORT = 0x00;
-    SPI_PORT |= 1 << SPI_CS;
-    SPI_PORT |= 1 << SPI_CS2;
-    SPI_CONTROL |= 1 << SPI_CS;
-    SPI_CONTROL |= 1 << SPI_CS2;
-    SPI_CONTROL |= 1 << SPI_MOSI;
-    SPI_CONTROL |= 1 << SPI_SCK; 
-
-    SPCR = 0x52;
-    SPSR = 0x00;
+    spi_init();
 }
 
 uint8_t bSPI::transmit(uint8_t data)
 {
-    SPDR = data;
-    while ( !(SPSR & (1<<SPIF)) ) {}
-
-    data = SPDR;
-    return data;
+    return spi_transmit(data);
 }
 
 uint8_t bSPI::receive()
@@ -62,10 +39,10 @@ uint8_t bSPI::receive()
 
 void bSPI::cs_select()
 {
-    SPI_PORT &= NOT_SPI_CS_MASK;
+    spi_cs_select();
 }
 
 void bSPI::cs_unselect()
 {
-    SPI_PORT |= SPI_CS_MASK;
+    spi_cs_unselect();
 }
