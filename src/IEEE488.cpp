@@ -27,9 +27,6 @@
 #include <string.h>
 #include "IEEE488_hardware.h"
 
-// test
-#include <avr/io.h>
-
 namespace bitfixer {
 
 void IEEE488::initWithLogger(SerialLogger* logger)

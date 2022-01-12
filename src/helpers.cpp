@@ -1,5 +1,6 @@
 #include "helpers.h"
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 const void *bf_memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen)

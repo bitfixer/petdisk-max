@@ -9,7 +9,6 @@ PROGRAMMER = -c linuxspi -P /dev/spidev0.0
 SRCDIR     = src
 BIN        = bin
 OBJECTS    = $(SRCDIR)/petdisk.o\
-$(SRCDIR)/EspConn.o\
 $(SRCDIR)/Serial.o\
 $(SRCDIR)/EspHttp.o\
 $(SRCDIR)/SD_routines.o\
@@ -19,13 +18,16 @@ $(SRCDIR)/IEEE488.o\
 $(SRCDIR)/NetworkDataSource.o\
 $(SRCDIR)/D64DataSource.o\
 $(SRCDIR)/Settings.o\
-$(SRCDIR)/hardware.o\
-$(SRCDIR)/helpers.o
+$(SRCDIR)/helpers.o\
+$(SRCDIR)/avr/EspConn.o\
+$(SRCDIR)/avr/hardware.o\
 
 BOOTLOADER_OBJECTS = $(SRCDIR)/bootloader.o\
 $(SRCDIR)/SPI_routines.o\
 $(SRCDIR)/SD_routines.o\
 $(SRCDIR)/FAT32_tiny.o
+
+INCLUDE    = -I./src/avr
 
 FUSES 		= -U lfuse:w:0xc2:m -U hfuse:w:0xda:m -U efuse:w:0xff:m -U lock:w:0xEF:m
 

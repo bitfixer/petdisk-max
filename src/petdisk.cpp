@@ -1587,6 +1587,7 @@ void loop()
 
 // can you make the interrupt handler self contained?
 
+/*
 // only avr
 int main(void)
 {
@@ -1614,3 +1615,4 @@ ISR(USART0_RX_vect)
     _buffer[_bufferSize] = a;
     _bufferSize++;
 }
+*/
