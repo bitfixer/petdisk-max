@@ -38,8 +38,8 @@ FUSES 		= -U lfuse:w:0xc2:m -U hfuse:w:0xda:m -U efuse:w:0xff:m -U lock:w:0xEF:m
 # Tune the lines below only if you know what you are doing:
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE) -V
-COMPILE = avr-g++ -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -std=gnu99 $(INCLUDE)
-COMPILECPP = avr-g++ -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -std=c++11 $(INCLUDE)
+COMPILE = avr-g++ -Wall -Os -DISAVR=1 -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -std=gnu99 $(INCLUDE)
+COMPILECPP = avr-g++ -Wall -Os -DISAVR=1 -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -std=c++11 $(INCLUDE)
 
 BOOTLOADER_ADDR_324_H = 0x7000
 BOOTLOADER_ADDR_644_H = 0xF000

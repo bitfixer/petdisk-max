@@ -1585,9 +1585,7 @@ void loop()
     _petdisk.loop();
 }
 
-// can you make the interrupt handler self contained?
-
-/*
+#ifdef ISAVR
 // only avr
 int main(void)
 {
@@ -1615,4 +1613,4 @@ ISR(USART0_RX_vect)
     _buffer[_bufferSize] = a;
     _bufferSize++;
 }
-*/
+#endif

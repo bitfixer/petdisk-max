@@ -326,16 +326,16 @@ void IEEE488::begin_output()
 
 void IEEE488::end_output()
 {
+    set_ndac_output();
+    lower_ndac();
+
     set_dav_input();
     set_eoi_input();
 
     set_nrfd_output();
     raise_nrfd();
-    set_ndac_output();
-    raise_ndac();
 
     set_data_input();
-    lower_ndac();
 }
 
 uint8_t IEEE488::sendIEEEByteCheckForATN(uint8_t byte)
