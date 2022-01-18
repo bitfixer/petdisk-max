@@ -14,7 +14,7 @@
 
 #define DATADIR 15
 
-#define ATN_PIN     36
+#define ATN_PIN     5
 #define EOI_PIN     22
 #define DAV_PIN     21
 #define NRFD_PIN    17

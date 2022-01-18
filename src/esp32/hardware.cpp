@@ -1,4 +1,5 @@
 #include "hardware.h"
+#include "IEEE488_hardware.h"
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <SPI.h>
@@ -14,7 +15,8 @@ uint8_t spi_cs()
 void prog_init()
 {
     // nothing for esp32
-    EEPROM.begin(512);
+    set_atn_input();
+    EEPROM.begin(512);    
 }
  
 void reset_esp()

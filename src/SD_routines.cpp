@@ -39,7 +39,7 @@ uint8_t SD::initWithSPI(bSPI* spi, int cs)
 {
     _spi = spi;
     _cs = cs;
-    init();
+    return init();
 }
 
 //******************************************************************

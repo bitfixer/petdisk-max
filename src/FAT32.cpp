@@ -128,7 +128,7 @@ bool FAT32::initWithParams(SD* sd, uint8_t* fatbuffer, uint8_t* longEntryBuffer,
     _FatBuffer = fatbuffer;
     _longEntryString = longEntryBuffer;
     _logger = logger;
-    init();
+    return init();
 }
 
 bool FAT32::init()

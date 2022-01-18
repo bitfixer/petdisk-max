@@ -1,6 +1,7 @@
 #include "EspHttp.h"
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include "helpers.h"
 
 namespace bitfixer {
@@ -79,7 +80,7 @@ uint32_t EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, ui
     uint32_t fileSize;
     int size;
     datastart = makeRequest(host, url, "&l=1", buffer, bufferSize, &size);
-    sscanf((const char*)datastart, "%ld\r\n", &fileSize);
+    sscanf((const char*)datastart, "%" SCNu32 "\r\n", &fileSize);
     _log->printf("got size %ld\r\n", fileSize);
     return fileSize;
 }
@@ -87,11 +88,7 @@ uint32_t EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, ui
 uint8_t* EspHttp::getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size)
 {
     char params[25];
-    sprintf_P(params, PSTR("&s=%ld&e=%ld"), start, end);
-    //_log->transmitString(params);
-    //_log->transmitStringF(PSTR("\r\n"));
-
-    //_log->printf("%s %s\n", url, params);
+    sprintf_P(params, PSTR("&s=%" SCNu32 "&e=%" SCNu32), start, end);
     return makeRequest(host, url, (const char*)params, buffer, bufferSize, size);
 }
 
