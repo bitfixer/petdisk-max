@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 struct __attribute__ ((packed)) receiveBuffer {
     char serialBuffer[832];
@@ -264,7 +265,7 @@ void NetworkDataSource::updateBlock()
 
     uint32_t endByte = _currentOutputByte + _writeBufferSize;
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
-    sprintf_P(info->params, PSTR("?f=%s&u=1&s=%ld&e=%ld"), recvBuffer->fileName, _currentOutputByte, endByte);
+    sprintf_P(info->params, PSTR("?f=%s&u=1&s=%" PRIu32 "&e=%" PRIu32), recvBuffer->fileName, _currentOutputByte, endByte);
 
     _http->postBlock(
         info->host,

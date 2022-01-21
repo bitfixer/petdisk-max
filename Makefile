@@ -21,6 +21,7 @@ $(SRCDIR)/Settings.o\
 $(SRCDIR)/helpers.o\
 $(SRCDIR)/avr/EspConn.o\
 $(SRCDIR)/avr/hardware.o\
+$(SRCDIR)/avr/avr_main.cpp
 
 BOOTLOADER_OBJECTS = $(SRCDIR)/bootloader.o\
 $(SRCDIR)/SPI_routines.o\

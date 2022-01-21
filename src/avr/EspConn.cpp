@@ -35,6 +35,8 @@ bool EspConn::initWithParams(uint8_t* buffer, uint16_t* bufferSize, Serial* seri
     _serialBufferSize = bufferSize;
     _serial = serial;
     _logSerial = logSerial;
+
+    return true;
 }
 
 bool EspConn::device_present() {

@@ -3,12 +3,12 @@
 
 #include <stddef.h>
 #ifdef ISAVR
+// avr
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #else
-#define PSTR(A) A
-#define PROGMEM
-#define sprintf_P sprintf
+// esp32
+#include <pgmspace.h>
 #define sscanf_P sscanf
 #endif
 

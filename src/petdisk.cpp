@@ -1,5 +1,4 @@
 #include "EspConn.h"
-#include "Buffer.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -20,6 +19,10 @@
 //#include "githash.h"
 
 //#define TESTING 1
+
+// global memory buffer
+uint8_t _buffer[1024];
+uint16_t _bufferSize;
 
 // addresses for PET IEEE commands
 #define PET_LOAD_FNAME_ADDR     0xF0
@@ -1514,43 +1517,28 @@ void setup()
     _bufferSize = 0;
     prog_init();
     
-    //bSPI spi;
     _spi.init();
 
-    //bitfixer::Serial1 logSerial;
     _logSerial.init(115200);
 
     _espSerial.init(500000);
 
-    //bitfixer::SerialLogger logger(&logSerial);
     _logger.initWithSerial(&_logSerial);
 
     _sd.initWithSPI(&_spi, spi_cs());
 
-    //bitfixer::FAT32 fat32(&sd, _buffer, &_buffer[512], &logger);
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
     checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
 
     init_led();
     blink_led(1, 300, 50);
 
-    //bitfixer::EspConn espConn(_buffer, &_bufferSize, NULL, &_logger);
     _espConn.initWithParams(_buffer, &_bufferSize, &_espSerial, &_logger);
-    //bitfixer::EspHttp espHttp(&espConn, &_logger);
     _espHttp.initWithParams(&_espConn, &_logger);
     reset_esp();
 
-    //bitfixer::IEEE488 ieee(&_logger);
     _ieee.initWithLogger(&_logger);
     _ieee.unlisten();
-
-    /*
-    // init 4 possible network datasources
-    bitfixer::NetworkDataSource nds0(&_espHttp, _buffer, &_bufferSize, &_logger);
-    bitfixer::NetworkDataSource nds1(&_espHttp, _buffer, &_bufferSize, &_logger);
-    bitfixer::NetworkDataSource nds2(&_espHttp, _buffer, &_bufferSize, &_logger);
-    bitfixer::NetworkDataSource nds3(&_espHttp, _buffer, &_bufferSize, &_logger);
-    */
 
     nds0.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
     nds1.initWithParams(&_espHttp, _buffer, &_bufferSize, &_logger);
@@ -1584,33 +1572,3 @@ void loop()
 {
     _petdisk.loop();
 }
-
-#ifdef ISAVR
-// only avr
-int main(void)
-{
-    setup();
-    while(1) {
-        loop();
-    }
-}
-
-// interrupt handler - should read bytes into a buffer.
-// this can be read outside the handler to check for end tokens
-// would need to be consumed fast enough to prevent buffer overrun
-// length can be an atomic (8-bit) value
-// you are guaranteed to be able to read this amount of data
-// if you allocate enough space to handle any potential reads, you 
-// don't even need a ring buffer, just a regular buffer
-
-// turn on serial interrupts to start reading
-// turn off when done
-ISR(USART0_RX_vect)
-{
-    // insert character into buffer
-    // loop to beginning if needed
-    uint8_t a = UDR0;
-    _buffer[_bufferSize] = a;
-    _bufferSize++;
-}
-#endif

@@ -88,7 +88,7 @@ uint32_t EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, ui
 uint8_t* EspHttp::getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size)
 {
     char params[25];
-    sprintf_P(params, PSTR("&s=%" SCNu32 "&e=%" SCNu32), start, end);
+    sprintf_P(params, PSTR("&s=%" PRIu32 "&e=%" PRIu32), start, end);
     return makeRequest(host, url, (const char*)params, buffer, bufferSize, size);
 }
 
