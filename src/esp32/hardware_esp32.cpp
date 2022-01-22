@@ -48,7 +48,7 @@ void hDelayMs(int ms)
 
 uint8_t bf_pgm_read_byte(uint8_t* src)
 {
-    return *src;
+    return pgm_read_byte(src);
 }
 
 void bf_eeprom_write_block(const void* block, void* eeprom, size_t n)
