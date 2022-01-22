@@ -20,7 +20,7 @@ $(SRCDIR)/D64DataSource.o\
 $(SRCDIR)/Settings.o\
 $(SRCDIR)/helpers.o\
 $(SRCDIR)/avr/EspConn.o\
-$(SRCDIR)/avr/hardware.o\
+$(SRCDIR)/avr/hardware_avr.o\
 $(SRCDIR)/avr/avr_main.cpp
 
 BOOTLOADER_OBJECTS = $(SRCDIR)/bootloader.o\

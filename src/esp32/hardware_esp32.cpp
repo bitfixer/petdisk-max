@@ -1,5 +1,4 @@
 #include "hardware.h"
-#include "IEEE488_hardware.h"
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <SPI.h>

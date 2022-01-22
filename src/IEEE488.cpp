@@ -25,7 +25,7 @@
 #include "IEEE488.h"
 #include <stdio.h>
 #include <string.h>
-#include "IEEE488_hardware.h"
+#include "hardware.h"
 
 namespace bitfixer {
 

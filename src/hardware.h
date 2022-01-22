@@ -1,8 +1,16 @@
 #ifndef __hardware_h__
 #define __hardware_h__
 
+#ifdef ISAVR
+#include "hardware_avr.h"
+#else
+#include "hardware_esp32.h"
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
+
+#define PACKED __attribute__ ((packed))
 
 uint8_t spi_cs();
 void prog_init();

@@ -2,6 +2,7 @@
 #define __IEEE488_HARDWARE_H__
 
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 
 #define IEEE_PORT   PORTC
 #define IEEE_PIN    PINC

@@ -1,5 +1,5 @@
 #include "NetworkDataSource.h"
-#include "helpers.h"
+#include "hardware.h"
 #include "Settings.h"
 #include <stdio.h>
 #include <string.h>
