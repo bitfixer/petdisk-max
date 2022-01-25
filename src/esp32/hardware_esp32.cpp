@@ -1,5 +1,4 @@
 #include "hardware.h"
-#include "SDOta.h"
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <SPI.h>
@@ -171,9 +170,6 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
 
     logger->printf("file size: %d\n", fileSize);
 
-    char md5[32];
-    memset(md5, 0, 32);
-
     // read entire file and generate md5
     uint16_t b = 512;
     int count = 0;
@@ -201,6 +197,7 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
             logger->printf("error setting md5\n");
             return -1;
         }
+
         int lastFlashingPct = -1;
         logger->printf("flashing: ");
         while (!Update.isFinished()) {
@@ -251,8 +248,12 @@ void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger)
         logger->printf("SD update complete.\n");
 
         // remove firmware file(s)
+        //fs->openCurrentDirectory();
+        logger->printf("finding firmware file\n");
+        char buffer[32];
+        sprintf_P((char*)buffer, PSTR("FIRM*"));
         fs->openCurrentDirectory();
-        if (!fs->findFile("FIRM*"))
+        if (!fs->findFile(buffer))
         {
             logger->printf("firmware file not found after update - unexpected\n");
             return;

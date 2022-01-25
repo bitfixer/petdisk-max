@@ -16,7 +16,6 @@
 #include "D64DataSource.h"
 #include "helpers.h"
 #include "hardware.h"
-#include "SDOta.h"
 //#include "githash.h"
 
 //#define TESTING 1
