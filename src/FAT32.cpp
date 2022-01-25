@@ -649,6 +649,11 @@ bool FAT32::openFileForReading(uint8_t *fileName)
     return true;
 }
 
+uint32_t FAT32::getFileSize()
+{
+    return _filePosition.fileSize;
+}
+
 uint32_t FAT32::seek(uint32_t pos)
 {
     // given position, figure out which cluster and sector 

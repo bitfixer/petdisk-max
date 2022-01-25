@@ -121,6 +121,7 @@ public:
     void openDirectory(uint32_t firstCluster);
     bool getNextDirectoryEntry();
     bool openFileForReading(uint8_t *fileName);
+    uint32_t getFileSize();
     uint16_t getNextFileBlock();
     bool isLastBlock();
 

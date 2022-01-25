@@ -114,8 +114,6 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* l
     log->transmitStringF(PSTR("gotfirmware\r\n"));
 
     return true;
-    // found firmware file, delete
-    //fat32->deleteFile();
 }
 
 void sd_test(DataSource* dataSource, bitfixer::Serial1* log)
@@ -1515,58 +1513,6 @@ bitfixer::NetworkDataSource nds3;
 int atncount;
 int atnstate;
 
-uint16_t _flash_bytes_available;
-
-void startDl(void){
-  //write bin file to sdcard
-  //SD.remove("fw.bin");
-  //file = SD.open("fw.bin", FILE_WRITE);
-  _logger.printf("startDl\n");
-}
-void endDl(void){
-  //file.close();
-  _logger.printf("endDl\n");
-}
-void startFl(void){
-  //write bin file to sdcard
-  //file = SD.open("fw.bin", FILE_READ);
-  _logger.printf("startFl\n");
-}
-void endFl(void){
-  //file.close();
-  _logger.printf("endFl\n");
-}
-
-void saveData(uint8_t *buffer, int bytes){
-  //file.write(buffer, bytes);
-  _logger.printf("saveData, %d\n", bytes);
-}
-int readData(uint8_t *buffer, int bytes){
-    _logger.printf("readData, %d\n", bytes);
-    uint16_t bytesRead;
-    uint8_t* bPtr = buffer;
-    bytesRead = _fat32.getNextFileBlock();
-    _logger.printf("fat32 got %d\n", bytesRead);
-    memcpy(bPtr, _fat32.getBuffer(), bytesRead);
-    bPtr += bytesRead;
-    if (bytesRead < 512)
-    {
-        return bytesRead;
-    }
-
-    bytesRead = _fat32.getNextFileBlock();
-    _logger.printf("fat32 got %d\n", bytesRead);
-    memcpy(bPtr, _fat32.getBuffer(), bytesRead);
-    return 512 + bytesRead;
-}
-void progress(DlState state, int percent){
-  _logger.printf("state = %d - percent = %d\n", state, percent);
-}
-
-void error(char *message){
-  _logger.printf("%s\n", message);
-}
-
 void setup()
 {
     _bufferSize = 0;
@@ -1583,34 +1529,10 @@ void setup()
     _sd.initWithSPI(&_spi, spi_cs());
 
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
-    _logger.printf("FIRMWARE 1\n");
     bool hasFirmware = checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
     if (hasFirmware)
     {
-        char fname[256];
-        uint8_t* f = _fat32.getFilename();
-        _logger.printf("filename: %s\n", f);
-        strcpy(fname, (const char*)f);
-
-        _fat32.openFileForReading((uint8_t*)fname);
-        
-        // doing firmware update
-        DlInfo info;
-        info.url = "abc";
-        info.md5 = "123";
-        info.startDownloadCallback = startDl;
-        info.endDownloadCallback = endDl;
-        info.startFlashingCallback = startFl;
-        info.endFlashingCallback = endFl;
-
-        info.saveDataCallback = saveData;
-        info.readDataCallback = readData;
-        info.progressCallback = progress;
-        info.errorCallback = error;
-
-        _flash_bytes_available = 0;
-
-        httpOTA.start(info);
+        firmware_detected_action(&_fat32, &_logger);
     }
 
     init_led();

@@ -258,3 +258,11 @@ void serial1_disable_interrupt()
 {
     UCSR1B &= ~(1 << RXCIE1);
 }
+
+void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger)
+{
+    // firmware file still exists from previous update
+    // delete the file
+
+    fs->deleteFile();
+}
