@@ -1,0 +1,31 @@
+Partlist
+
+Exported from petdisk_max_dip.brd at 26.01.22 23.24
+
+EAGLE Version 9.6.1 Copyright (c) 1988-2020 Autodesk, Inc.
+
+Assembly variant: 
+
+Part     Value            Package                     Library             Position (mm)         Orientation
+
+C1       10uF             1206                        SparkFun-Capacitors (72.5 17.5)           MR90
+C2       10uF             1206                        SparkFun-Capacitors (62.5 17.5)           MR270
+C3       0.1uF            0603-CAP                    SparkFun-Capacitors (39.3 20.7)           MR90
+C5       0.1uF            0603-CAP                    SparkFun-Capacitors (26 18.3)             MR90
+C6       10uF             1206                        SparkFun-Capacitors (16.2 18.5)           MR90
+C7       0.1uF            0603-CAP                    SparkFun-Capacitors (18.55 17.95)         MR90
+C8       10uF             1206                        SparkFun-Capacitors (23.9 18.5)           MR90
+C9       10uF             1206                        SparkFun-Capacitors (60 17.5)             MR270
+D1       RED              LED-0603                    SparkFun-LED        (61 26.5)             MR270
+D2       RED              LED-0603                    SparkFun-LED        (57.5 26.5)           MR270
+IC1      ATMEGA1284P-PU   DIP1543W58P254L5175H635Q40N rakettitiede        (38.67 16.68)         R270
+IC2      NCP1117LPST33T3G SOT230P700X180-4N           rakettitiede        (67.5 17.5)           MR270
+ISP      AVR_SPI_PRG_6NS  2X3-NS                      SparkFun-Connectors (5 5)                 MR180
+MOD      USD-SOCKET-CHINA USD-SOCKET-PP               BaseApp             (13.5 17.5)           MR90
+MOD1     ESP01            ESP01                       esp8266             (37.14 16.6)          MR90
+PWRIN                     2X03                        pinhead-2           (71.04 6.44)          R270
+R1       1K               0603-RES                    SparkFun-Resistors  (42.3 21.5)           MR180
+R2       1K               0603-RES                    SparkFun-Resistors  (54 26.5)             MR180
+R3       1K               0603-RES                    SparkFun-Resistors  (50.5 26.5)           MR180
+U$1      CBM_IEEE_CONN    UPS24CONN                   commodore           (36.86 1.54)          R180
+U$4      24PINEDGE        24PINEDGE                   commodore           (37.2 32.8)           R180
