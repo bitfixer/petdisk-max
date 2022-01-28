@@ -93,26 +93,36 @@ void blink_led(int count, int ms_on, int ms_off)
     }
 }
 
-bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
+void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
 {
     log->transmitStringF(PSTR("checking\r\n"));
     if (!fat32->init())
     {
         log->transmitStringF(PSTR("noinit\r\n"));
-        return false;
+        return;
+    }
+
+    // first check for NODELETE.FRM, 
+    // if this file exists, do not delete any firmware files.
+    // Useful during programming
+    sprintf_P(buffer, PSTR("NODELETE.FRM"));
+    fat32->openCurrentDirectory();
+    if (fat32->findFile(buffer))
+    {
+        log->transmitStringF(PSTR("nodelete\r\n"));
+        return;
     }
 
     sprintf_P(buffer, PSTR("FIRM*"));
-    fat32->openCurrentDirectory();
     if (!fat32->findFile(buffer))
     {
         log->transmitStringF(PSTR("nofirm\r\n"));
-        return false;
+        return;
     }
 
     log->transmitStringF(PSTR("gotfirmware\r\n"));
-
-    return true;
+    fat32->deleteFile();
+    return;
 }
 
 void sd_test(DataSource* dataSource, bitfixer::Serial1* log)
@@ -1528,11 +1538,7 @@ void setup()
     _sd.initWithSPI(&_spi, spi_cs());
 
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
-    bool hasFirmware = checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
-    if (hasFirmware)
-    {
-        firmware_detected_action(&_fat32, &_logger);
-    }
+    checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
 
     init_led();
     blink_led(1, 300, 50);

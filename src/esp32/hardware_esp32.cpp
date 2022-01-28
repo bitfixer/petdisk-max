@@ -246,22 +246,6 @@ void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger)
     if (ret == 1)
     {
         logger->printf("SD update complete.\n");
-
-        // remove firmware file(s)
-        //fs->openCurrentDirectory();
-        logger->printf("finding firmware file\n");
-        char buffer[32];
-        sprintf_P((char*)buffer, PSTR("FIRM*"));
-        fs->openCurrentDirectory();
-        if (!fs->findFile(buffer))
-        {
-            logger->printf("firmware file not found after update - unexpected\n");
-            return;
-        }
-
-        logger->printf("deleting firmware file %s\n", (char*)fs->getFilename());
-        fs->deleteFile();
-
         // reset into the new firmware
         ESP.restart();
     }
