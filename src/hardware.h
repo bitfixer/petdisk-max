@@ -43,6 +43,4 @@ unsigned char serial1_receiveByte();
 void serial1_enable_interrupt();
 void serial1_disable_interrupt();
 
-void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger);
-
 #endif
