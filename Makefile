@@ -8,6 +8,9 @@ CLOCK      = 8000000
 PROGRAMMER = -c linuxspi -P /dev/spidev0.0
 SRCDIR     = src
 BIN        = bin
+AVRDIR 	   = $(SRCDIR)/avr
+BLDIR	   = $(AVRDIR)/bootloader
+
 OBJECTS    = $(SRCDIR)/petdisk.o\
 $(SRCDIR)/Serial.o\
 $(SRCDIR)/EspHttp.o\
@@ -23,10 +26,10 @@ $(SRCDIR)/avr/EspConn.o\
 $(SRCDIR)/avr/hardware_avr.o\
 $(SRCDIR)/avr/avr_main.cpp
 
-BOOTLOADER_OBJECTS = $(SRCDIR)/bootloader.o\
-$(SRCDIR)/SPI_routines.o\
-$(SRCDIR)/SD_routines.o\
-$(SRCDIR)/FAT32_tiny.o
+BOOTLOADER_OBJECTS = $(BLDIR)/bootloader.o\
+$(BLDIR)/SPI_routines.o\
+$(BLDIR)/SD_routines.o\
+$(BLDIR)/FAT32_tiny.o
 
 INCLUDE    = -I./src/avr
 
@@ -118,6 +121,8 @@ progdisable:
 clean:
 	rm -f *.hex *.elf *.o *.bin
 	rm -f $(SRCDIR)/*.o
+	rm -f $(AVRDIR)/*.o
+	rm -f $(BLDIR)/*.o
 	rm -f $(BIN)/*
 
 $(SRCDIR)/githash.h:
