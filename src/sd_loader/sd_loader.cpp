@@ -15,6 +15,18 @@ bSPI _spi;
 SD _sd;
 bitfixer::FAT32 _fat32;
 
+void blink_led(int count, int ms_on, int ms_off)
+{
+    set_led(false);
+    for (int i = 0; i < count; i++)
+    {
+        set_led(true);
+        hDelayMs(ms_on);
+        set_led(false);
+        hDelayMs(ms_off);
+    }
+}
+
 // SD card updater
 int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
 {
@@ -33,17 +45,28 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
     uint32_t fileSize = fs->getFileSize();
 
     logger->printf("file size: %d\n", fileSize);
+    // blink led quickly during update
+    bool led_state = false;
+    set_led(false);
 
     // read entire file and generate md5
     uint16_t b = 512;
     int count = 0;
+    int blocksPerBlink = 10;
 
     fwMd5.begin();
+    int numBlocks = 0;
     while (b == 512)
     {
         b = fs->getNextFileBlock();
         if (b > 0)
         {
+            numBlocks++;
+            if (numBlocks % blocksPerBlink == 0)
+            {
+                led_state = !led_state;
+                set_led(led_state);
+            }
             fwMd5.add(fs->getBuffer(), b);
             count += b;
         }
@@ -52,6 +75,8 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
     // calculate md5
     fwMd5.calculate();
     logger->printf("firmware md5: %s count %d", fwMd5.toString().c_str(), count);
+
+    set_led(false);
 
     // reopen file
     fs->openFileForReading((uint8_t*)fname);
@@ -75,9 +100,11 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
                 bytesWritten += written;
 
                 int pct = (100*bytesWritten)/fileSize;
-                if (pct > lastFlashingPct && pct % 10 == 0)
+                if (pct > 0 && pct > lastFlashingPct && pct % 10 == 0)
                 {
-                    logger->printf("%d ", (100*bytesWritten)/fileSize);
+                    int flashes = pct / 10;
+                    blink_led(flashes, 150, 150);
+                    logger->printf("%d ", pct);
                 }
                 lastFlashingPct = pct;
             } else {
@@ -151,10 +178,13 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* l
 
 void setup()
 {
-    prog_init();
+    // initialize led
+    init_led();
+    set_led(false);
+
     _logSerial.init(115200);
     _logger.initWithSerial(&_logSerial);
-    _logger.printf("done setup\n");
+    _logger.printf("checking for firmware\n");
 
     _spi.init();
     _sd.initWithSPI(&_spi, spi_cs());
@@ -164,11 +194,14 @@ void setup()
     if (hasFirmware)
     {
         _logger.printf("has firmware: %s\n", _fat32.getFilename());
+        blink_led(2, 150, 150);
+
         firmware_detected_action(&_fat32, &_logger);
     }
     else
     {
         _logger.printf("no firmware\n");
+        blink_led(3, 150, 150);
         no_firmware_action(&_logger);
     }
 }
