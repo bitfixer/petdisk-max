@@ -8,6 +8,7 @@
 #include "../hardware.h"
 
 uint8_t _buffer[1024];
+char expected_md5[33];
 
 bitfixer::Serial1 _logSerial;
 bitfixer::SerialLogger _logger;
@@ -74,7 +75,20 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
 
     // calculate md5
     fwMd5.calculate();
-    logger->printf("firmware md5: %s count %d", fwMd5.toString().c_str(), count);
+    logger->printf("firmware md5: %s count %d\n", fwMd5.toString().c_str(), count);
+
+    // check for match with md5 from file
+    if (strlen(expected_md5) > 0) {
+        if (strcmp(fwMd5.toString().c_str(), expected_md5) != 0)
+        {
+            logger->printf("calculated md5 does not match, cancelling update\n");
+            return -1;
+        }
+        else
+        {
+            logger->printf("md5 matches.\n");
+        }
+    }
 
     set_led(false);
 
@@ -154,30 +168,96 @@ void no_firmware_action(Logger* logger)
     ESP.restart();    
 }
 
-bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
+bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogger* log)
 {
-    log->transmitStringF(PSTR("checking\r\n"));
+    char firmwareFilename[13];
+    char md5Filename[13];
+
+    log->printf("checking\r\n");
     if (!fat32->init())
     {
-        log->transmitStringF(PSTR("noinit\r\n"));
+        log->printf("noinit\r\n");
         return false;
     }
 
-    sprintf_P(buffer, PSTR("FIRM*"));
+    // check for existence of firmware file
     fat32->openCurrentDirectory();
-    if (!fat32->findFile(buffer))
+    // try to find a firmware file
+
+    bool found = false;
+    while (fat32->getNextDirectoryEntry())
     {
-        log->transmitStringF(PSTR("nofirm\r\n"));
+        uint8_t* fname = fat32->getFilename();
+        if (strlen((char*)fname) != 12)
+        {
+            continue;
+        }
+
+        if (
+            fname[0] == 'F' && 
+            fname[1] == 'I' && 
+            fname[2] == 'R' && 
+            fname[3] == 'M' &&
+            fname[9] == 'B' &&
+            fname[10] == 'I' &&
+            fname[11] == 'N') 
+        {
+            strcpy(firmwareFilename, (char*)fname);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        log->printf("no firmware\r\n");
+        return false;
+    }
+    
+    // get filename
+    log->printf("found firmware, filename: %s\n", firmwareFilename);
+
+    // check for md5 file with the same prefix
+    strcpy(md5Filename, firmwareFilename);
+    md5Filename[9] = 'M';
+    md5Filename[10] = 'D';
+    md5Filename[11] = '5';
+
+    fat32->openCurrentDirectory();
+    if (fat32->findFile(md5Filename))
+    {
+        log->printf("found md5 file: %s\n", buffer);
+        // read from this file and store the md5
+        if (fat32->openFileForReading((uint8_t*)md5Filename))
+        {
+            fat32->getNextFileBlock();
+            memcpy(expected_md5, fat32->getBuffer(), 32);
+            log->printf("md5: %s\n", expected_md5);
+        }
+    }
+    else
+    {
+        log->printf("md5 file not found: %s\n", md5Filename);
+    }
+
+    // now find firmware file
+    fat32->openCurrentDirectory();
+    if (!fat32->findFile(firmwareFilename))
+    {
+        log->printf("no firmware\r\n");
         return false;
     }
 
-    log->transmitStringF(PSTR("gotfirmware\r\n"));
+    log->printf("got firmware: %s\n", firmwareFilename);
 
     return true;
 }
 
 void setup()
 {
+    // clear expected md5
+    memset(expected_md5, 0, 33);
+    
     // initialize led
     init_led();
     set_led(false);
@@ -190,12 +270,11 @@ void setup()
     _sd.initWithSPI(&_spi, spi_cs());
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
 
-    bool hasFirmware = checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
+    bool hasFirmware = checkForFirmware((char*)&_buffer[769], &_fat32, &_logger);
     if (hasFirmware)
     {
         _logger.printf("has firmware: %s\n", _fat32.getFilename());
         blink_led(2, 150, 150);
-
         firmware_detected_action(&_fat32, &_logger);
     }
     else
