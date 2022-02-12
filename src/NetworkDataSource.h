@@ -58,13 +58,6 @@ public:
 
     void setUrlData(void* eepromHost, int eepromHostLength, void* eepromUrl, int eepromUrlLength)
     {
-        /*
-        _urlData.eepromHost = eepromHost;
-        _urlData.eepromHostLength = eepromHostLength;
-        _urlData.eepromUrl = eepromUrl;
-        _urlData.eepromUrlLength = eepromUrlLength;
-        */
-
         _settings.initWithParams(eepromHost, eepromHostLength, eepromUrl, eepromUrlLength);
     }
 
