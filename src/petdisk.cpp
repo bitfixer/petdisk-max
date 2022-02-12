@@ -16,7 +16,7 @@
 #include "D64DataSource.h"
 #include "helpers.h"
 #include "hardware.h"
-//#include "githash.h"
+#include "githash.h"
 
 //#define TESTING 1
 
@@ -702,7 +702,7 @@ bool PETdisk::getDirectoryEntry()
             pgm_memcpy(&_directoryEntry[startline+6], (uint8_t*)_firmwareString, 6);
             
             // TODO: add git hash back
-            //pgm_memcpy(&_directoryEntry[startline+6+6], (uint8_t*)_hash, 7);
+            pgm_memcpy(&_directoryEntry[startline+6+6], (uint8_t*)_hash, 7);
             _directoryEntry[startline+31] = 0x00;
             _directoryEntryIndex++;
             _directoryFinished = true;

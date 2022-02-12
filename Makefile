@@ -126,7 +126,8 @@ clean:
 	rm -f $(BIN)/*
 
 $(SRCDIR)/githash.h:
-	echo const unsigned char _hash[] PROGMEM = \"$(shell git rev-parse --short HEAD | tr [:lower:] [:upper:])\"\; > $@
+	echo \#include \"hardware.h\" > $@
+	echo const unsigned char _hash[] PROGMEM = \"$(shell git rev-parse --short HEAD | tr [:lower:] [:upper:])\"\; >> $@
 
 # file targets:
 %.elf: bindir $(SRCDIR)/githash.h $(OBJECTS)
