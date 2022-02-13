@@ -8,7 +8,8 @@
 #include "../hardware.h"
 
 uint8_t _buffer[1024];
-char expected_md5[33];
+char _expectedMd5[33];
+char _firmwareFilename[13];
 
 bitfixer::Serial1 _logSerial;
 bitfixer::SerialLogger _logger;
@@ -38,11 +39,7 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
     // open firmware file
     MD5Builder fwMd5;
 
-    char fname[256];
-    uint8_t* f = fs->getFilename();
-    logger->printf("filename: %s\n", f);
-    strcpy(fname, (const char*)f);
-    fs->openFileForReading((uint8_t*)fname);
+    fs->openFileForReading((uint8_t*)_firmwareFilename);
     uint32_t fileSize = fs->getFileSize();
 
     logger->printf("file size: %d\n", fileSize);
@@ -78,8 +75,8 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
     logger->printf("firmware md5: %s count %d\n", fwMd5.toString().c_str(), count);
 
     // check for match with md5 from file
-    if (strlen(expected_md5) > 0) {
-        if (strcmp(fwMd5.toString().c_str(), expected_md5) != 0)
+    if (strlen(_expectedMd5) > 0) {
+        if (strcmp(fwMd5.toString().c_str(), _expectedMd5) != 0)
         {
             logger->printf("calculated md5 does not match, cancelling update\n");
             return -1;
@@ -93,7 +90,7 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
     set_led(false);
 
     // reopen file
-    fs->openFileForReading((uint8_t*)fname);
+    fs->openFileForReading((uint8_t*)_firmwareFilename);
     if (Update.begin(fileSize, U_FLASH)){
         if (!Update.setMD5(fwMd5.toString().c_str()))
         {
@@ -116,8 +113,8 @@ int sd_card_update(bitfixer::FAT32* fs, Logger* logger)
                 int pct = (100*bytesWritten)/fileSize;
                 if (pct > 0 && pct > lastFlashingPct && pct % 10 == 0)
                 {
-                    int flashes = pct / 10;
-                    blink_led(flashes, 150, 150);
+                    // blink once every 10% progress
+                    blink_led(1, 150, 150);
                     logger->printf("%d ", pct);
                 }
                 lastFlashingPct = pct;
@@ -160,6 +157,7 @@ void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger)
     }
 }
 
+// reboot into other boot partition.
 void no_firmware_action(Logger* logger)
 {
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
@@ -170,7 +168,6 @@ void no_firmware_action(Logger* logger)
 
 bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogger* log)
 {
-    char firmwareFilename[13];
     char md5Filename[13];
 
     log->printf("checking\r\n");
@@ -182,8 +179,8 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
 
     // check for existence of firmware file
     fat32->openCurrentDirectory();
+    
     // try to find a firmware file
-
     bool found = false;
     while (fat32->getNextDirectoryEntry())
     {
@@ -202,7 +199,7 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
             fname[10] == 'I' &&
             fname[11] == 'N') 
         {
-            strcpy(firmwareFilename, (char*)fname);
+            strcpy(_firmwareFilename, (char*)fname);
             found = true;
             break;
         }
@@ -215,10 +212,10 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
     }
     
     // get filename
-    log->printf("found firmware, filename: %s\n", firmwareFilename);
+    log->printf("found firmware, filename: %s\n", _firmwareFilename);
 
     // check for md5 file with the same prefix
-    strcpy(md5Filename, firmwareFilename);
+    strcpy(md5Filename, _firmwareFilename);
     md5Filename[9] = 'M';
     md5Filename[10] = 'D';
     md5Filename[11] = '5';
@@ -231,8 +228,8 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
         if (fat32->openFileForReading((uint8_t*)md5Filename))
         {
             fat32->getNextFileBlock();
-            memcpy(expected_md5, fat32->getBuffer(), 32);
-            log->printf("md5: %s\n", expected_md5);
+            memcpy(_expectedMd5, fat32->getBuffer(), 32);
+            log->printf("md5: %s\n", _expectedMd5);
         }
     }
     else
@@ -242,13 +239,13 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
 
     // now find firmware file
     fat32->openCurrentDirectory();
-    if (!fat32->findFile(firmwareFilename))
+    if (!fat32->findFile(_firmwareFilename))
     {
         log->printf("no firmware\r\n");
         return false;
     }
 
-    log->printf("got firmware: %s\n", firmwareFilename);
+    log->printf("got firmware: %s\n", _firmwareFilename);
 
     return true;
 }
@@ -256,7 +253,8 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
 void setup()
 {
     // clear expected md5
-    memset(expected_md5, 0, 33);
+    memset(_expectedMd5, 0, 33);
+    memset(_firmwareFilename, 0, 13);
     
     // initialize led
     init_led();

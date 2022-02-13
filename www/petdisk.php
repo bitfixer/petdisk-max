@@ -124,6 +124,16 @@ if ($verb == "GET")
             echo $respbody;
             flush();
         }
+        else if (getParam('t') == 1)
+        {
+            $currentDate = new DateTime();
+            $currentDate->setTimezone(new DateTimeZone("UTC"));
+            $formattedDate = $currentDate->format("Y-m-d\TH:i:s\Z");
+            header('Content-Length: '.strlen($formattedDate));
+            header('Content-Type: text/plain');
+            echo $formattedDate;
+            flush();
+        }
         else
         {
             // requesting a range of bytes
