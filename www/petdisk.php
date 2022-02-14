@@ -47,8 +47,15 @@ if ($verb == "GET")
     $file = "./";
     if (isset($_GET['file']))
     {
-        $fname = "./".$_GET['file'];
-        $file = fileExists($fname, false);
+        if ($_GET['file'] == "TIME")
+        {
+            $file = "TIME";
+        }
+        else
+        {
+            $fname = "./".$_GET['file'];
+            $file = fileExists($fname, false);
+        }
     }
 
     if ($file)
@@ -57,7 +64,17 @@ if ($verb == "GET")
         {
             if ($_GET['l'] == 1)
             {
-                $fs = filesize($file);
+                $fs = 0;
+                if ($file == "TIME")
+                {
+                    // length of time field
+                    // this will be YYYY-MM-DD HH:mm:ss\n
+                    $fs = strlen("YYYY-MM-DD HH:mm:ss\n");
+                }
+                else
+                {
+                    $fs = filesize($file);
+                }
                 $resp = $fs."\r\n";
                 header('Content-Length: '.strlen($resp));
                 header('Content-Type: application/octet-stream');
@@ -124,21 +141,25 @@ if ($verb == "GET")
             echo $respbody;
             flush();
         }
-        else if (getParam('t') == 1)
-        {
-            $currentDate = new DateTime();
-            $currentDate->setTimezone(new DateTimeZone("UTC"));
-            $formattedDate = $currentDate->format("Y-m-d\TH:i:s\Z");
-            header('Content-Length: '.strlen($formattedDate));
-            header('Content-Type: text/plain');
-            echo $formattedDate;
-            flush();
-        }
         else
         {
             // requesting a range of bytes
             $start = $_GET['s'];
             $end = $_GET['e'];
+
+            if ($file == "TIME")
+            {
+                $currentDate = new DateTime();
+                $currentDate->setTimezone(new DateTimeZone("UTC"));
+                $formattedDate = $currentDate->format("Y-m-d H:i:s\n");
+                $content_length = strlen($formattedDate);
+                header('Content-Length: '.$content_length);
+                header('Content-Type: application/octet-stream');
+                echo $formattedDate;
+                flush();
+                return;
+            }
+
             $fp = fopen($file, "r");
 
             if ($fp)

@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include "hardware.h"
 
-void Settings::initWithParams(void* eepromHost, int eepromHostLength, void* eepromUrl, int eepromUrlLength)
+void Settings::initWithParams(void* eepromHost, int eepromHostLength, int port, void* eepromUrl, int eepromUrlLength)
 {
     _urlData.eepromHost = eepromHost;
     _urlData.eepromHostLength = eepromHostLength;
+    _urlData.port = port;
     _urlData.eepromUrl = eepromUrl;
     _urlData.eepromUrlLength = eepromUrlLength;
 }
@@ -23,4 +24,9 @@ int Settings::getHost(char* host)
    bf_eeprom_read_block(host, _urlData.eepromHost, _urlData.eepromHostLength);
    host[_urlData.eepromHostLength] = 0;
    return _urlData.eepromHostLength;
+}
+
+int Settings::getPort()
+{
+    return _urlData.port;
 }

@@ -33,10 +33,10 @@ public:
     ~EspHttp() {}
 
     void initWithParams(EspConn* espConn, Logger* log);
-    bool postBlock(char* host, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes);
-    uint8_t* makeRequest(const char* host, const char* url, const char* params, uint8_t* buffer, uint16_t* bufferSize, int* size);
-    uint32_t getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize);
-    uint8_t* getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size);
+    bool postBlock(char* host, int port, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes);
+    uint8_t* makeRequest(const char* host, int port, const char* url, const char* params, uint8_t* buffer, uint16_t* bufferSize, int* size);
+    uint32_t getSize(const char* host, int port, const char* url, uint8_t* buffer, uint16_t* bufferSize);
+    uint8_t* getRange(const char* host, int port, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size);
 
     int getSizeE(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize);
 

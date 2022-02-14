@@ -210,6 +210,8 @@ public:
         {
             _dataSources[i] = 0;
         }
+
+        _timeDataSource = NULL;
     }
     ~PETdisk() {}
 
@@ -230,6 +232,8 @@ public:
     void printConfig(struct pd_config* pdcfg);
     void loop();
 
+    bitfixer::NetworkDataSource* _timeDataSource;
+
 private:
     DataSource* _dataSources[8];
     bitfixer::EspConn* _espConn;
@@ -238,6 +242,7 @@ private:
     bitfixer::FAT32* _fat32;
     D64DataSource* _d64;
     bitfixer::SerialLogger* _logger;
+    
 
     openFileInfo _openFileInformation[14];
 
@@ -284,6 +289,10 @@ void PETdisk::init(
     bitfixer::SerialLogger* logger)
 {
     _fat32 = fat32;
+
+    // default time and date for FAT32
+    _fat32->setDateTime(2022, 01, 01, 0, 0, 0);
+
     _d64 = d64;
     _ieee = ieee;
     _logger = logger;
@@ -411,16 +420,29 @@ void PETdisk::init(
             int device_id = i + MIN_DEVICE_ID;
             int url_index = pdcfg->device_type[i] - DEVICE_URL_BASE;
             int eeprom_offset = 9 + (64 * url_index);
-
+            
             // find the host and url portion for this datasource
             char* url = strchr(pdcfg->urls[url_index], '/');
             int url_offset = url - pdcfg->urls[url_index];
 
+            // check for specified port in host string
+            int hostEndIndex = url_offset;
+            char* portSeparator = strchr(pdcfg->urls[url_index], ':');
+            int port = 80;
+            if (portSeparator != NULL && portSeparator < url) 
+            {
+                sscanf(portSeparator, ":%d/", &port);
+                _logger->printf("port is %d\n", port);
+                hostEndIndex = portSeparator - pdcfg->urls[url_index];
+            }
+
             bitfixer::NetworkDataSource* nds = nds_array[network_drive_count];
 
+            _logger->printf("setting port: %d\n", port);
             nds->setUrlData(
                 (void*)eeprom_offset, 
-                url_offset, 
+                hostEndIndex,
+                port,
                 (void*)(eeprom_offset+url_offset), 
                 strlen(pdcfg->urls[url_index]) - url_offset);
 
@@ -431,6 +453,11 @@ void PETdisk::init(
             {
                 setDataSource(device_id, nds);
                 nds->init();
+
+                if (_timeDataSource == NULL)
+                {
+                    _timeDataSource = nds;
+                }
             }
             else
             {
@@ -643,6 +670,31 @@ void PETdisk::writeFile()
         _dataSource->writeBufferToFile(numBytes);
     }
     
+    // if there is a timeDataSource, get the current time
+    if (_timeDataSource != NULL && _dataSource->needRealTime())
+    {
+        if (_timeDataSource->openFileForReading((uint8_t*)"TIME"))
+        {
+            uint16_t blockSize = _timeDataSource->getNextFileBlock();
+            _logger->printf("blockSize: %d\n", blockSize);
+        }
+    }
+
+    if (_dataSource->needRealTime())
+    {
+        // attempt to fetch current date and time
+        if (_timeDataSource != NULL)
+        {
+            int year, month, day, hour, minute, second;
+            bool gotTimeDate = _timeDataSource->getCurrentDateTime(&year, &month, &day, &hour, &minute, &second);
+            if (gotTimeDate)
+            {
+                // set time and date on original datasource
+                _dataSource->setDateTime(year, month, day, hour, minute, second);
+            }
+        }
+    }
+
     _dataSource->closeFile();
 }
 

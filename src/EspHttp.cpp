@@ -13,7 +13,7 @@ void EspHttp::initWithParams(EspConn* espConn, Logger* log)
     _log = log;
 }
 
-bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes)
+bool EspHttp::postBlock(char* host, int port, char* url, char* params, uint8_t* buffer, uint16_t* bufferSize, int numBytes)
 {
     // prepare url
     urlInfo* info = (urlInfo*)buffer;
@@ -26,18 +26,25 @@ bool EspHttp::postBlock(char* host, char* url, char* params, uint8_t* buffer, ui
 
     int full_data_length = url_strlen + numBytes;
 
-    _espConn->startClient(host, 80, 0, TCP_MODE);
+    if (!_espConn->startClient(host, port, 0, TCP_MODE))
+    {
+        // error
+        return false;
+    }
     _espConn->sendData(0, (unsigned char*)startpos, full_data_length);
     return true;
 }
 
-uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* params, uint8_t* buffer, uint16_t* bufferSize, int* size)
+uint8_t* EspHttp::makeRequest(const char* host, int port, const char* url, const char* params, uint8_t* buffer, uint16_t* bufferSize, int* size)
 {
     urlInfo* info = (urlInfo*)buffer;
     char* data = info->urlstring;
 
     sprintf_P(data, PSTR("GET %s%s HTTP/1.0\r\nHost: %s\r\n\r\n"), url, params, host);
-    _espConn->startClient(host, 80, 0, TCP_MODE);
+    if (!_espConn->startClient(host, port, 0, TCP_MODE))
+    {
+        return NULL;
+    }
     _espConn->sendData(0, (unsigned char*)data, strlen(data));
     int bufSize = *bufferSize;
     
@@ -66,22 +73,27 @@ uint8_t* EspHttp::makeRequest(const char* host, const char* url, const char* par
     return datastart;
 }
 
-uint32_t EspHttp::getSize(const char* host, const char* url, uint8_t* buffer, uint16_t* bufferSize)
+uint32_t EspHttp::getSize(const char* host, int port, const char* url, uint8_t* buffer, uint16_t* bufferSize)
 {
     uint8_t* datastart;
     uint32_t fileSize;
     int size;
-    datastart = makeRequest(host, url, "&l=1", buffer, bufferSize, &size);
+    datastart = makeRequest(host, port, url, "&l=1", buffer, bufferSize, &size);
+    if (datastart == NULL)
+    {
+        return 0;
+    }
+
     sscanf((const char*)datastart, "%" SCNu32 "\r\n", &fileSize);
     _log->printf("got size %ld\r\n", fileSize);
     return fileSize;
 }
 
-uint8_t* EspHttp::getRange(const char* host, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size)
+uint8_t* EspHttp::getRange(const char* host, int port, const char* url, uint32_t start, uint32_t end, uint8_t* buffer, uint16_t* bufferSize, int* size)
 {
     char params[25];
     sprintf_P(params, PSTR("&s=%" PRIu32 "&e=%" PRIu32), start, end);
-    return makeRequest(host, url, (const char*)params, buffer, bufferSize, size);
+    return makeRequest(host, port, url, (const char*)params, buffer, bufferSize, size);
 }
 
 }

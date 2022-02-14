@@ -801,6 +801,14 @@ uint8_t* FAT32::getBuffer()
 // open a new file for writing
 void FAT32::openFileForWriting(uint8_t *fileName)
 {
+    // first, check if file already exists
+    openCurrentDirectory();
+    if (findFile((char*)fileName))
+    {
+        // remove existing file first
+        deleteFile();
+    }
+
     uint32_t cluster;
     uint8_t i;
     
@@ -943,14 +951,15 @@ void FAT32::closeFile()
                     {
                         memcpy((void *)dir->name, (void *)_filePosition.shortFilename, 11);
 
-                        dir->attrib = ATTR_ARCHIVE; //settting file attribute as 'archive'
-                        dir->NTreserved = 0;            //always set to 0
+                        dir->attrib = ATTR_ARCHIVE; //setting file attribute as 'archive'
+                        dir->NTreserved = 0;        //always set to 0
                         dir->timeTenth = 0;         //always set to 0
-                        dir->createTime = 0x9684;       //fixed time of creation
-                        dir->createDate = 0x3a37;       //fixed date of creation
-                        dir->lastAccessDate = 0x3a37;   //fixed date of last access
-                        dir->writeTime = 0x9684;        //fixed time of last write
-                        dir->writeDate = 0x3a37;        //fixed date of last write
+
+                        dir->createTime = _timeValue;
+                        dir->createDate = _dateValue;
+                        dir->lastAccessDate = _dateValue;
+                        dir->writeTime = _timeValue;
+                        dir->writeDate = _dateValue;
                         
                         firstClusterHigh = (uint16_t) ((_filePosition.startCluster & 0xffff0000) >> 16 );
                         firstClusterLow = (uint16_t) ( _filePosition.startCluster & 0x0000ffff);
@@ -1159,5 +1168,18 @@ uint8_t FAT32::ChkSum (uint8_t *pFcbName)
     return (Sum);
 }
 
+void FAT32::setDateTime(int year, int month, int day, int hour, int minute, int second)
+{
+    // convert unix timestamp to 16 bit date and time values used by fat32.
+    _dateValue = (uint16_t)(year - 1980) << 9; // top 7 bits
+    _dateValue += (uint16_t)month  << 5;
+    _dateValue += (uint16_t)day;
+
+    _timeValue = (uint16_t)hour << 11; // top 5 bits
+    _timeValue += (uint16_t)minute << 5;
+    _timeValue += (uint16_t)(second / 2);
+
+    _logger->printf("d %X t %X\n", _dateValue, _timeValue);
 }
 
+}

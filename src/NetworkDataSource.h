@@ -56,9 +56,9 @@ public:
         _log = log;
     }
 
-    void setUrlData(void* eepromHost, int eepromHostLength, void* eepromUrl, int eepromUrlLength)
+    void setUrlData(void* eepromHost, int eepromHostLength, int port, void* eepromUrl, int eepromUrlLength)
     {
-        _settings.initWithParams(eepromHost, eepromHostLength, eepromUrl, eepromUrlLength);
+        _settings.initWithParams(eepromHost, eepromHostLength, port, eepromUrl, eepromUrlLength);
     }
 
     bool init();
@@ -77,6 +77,8 @@ public:
     bool isDirectory() { return false; }
     unsigned char* getFilename();
     unsigned char* getBuffer();
+
+    bool getCurrentDateTime(int* year, int* month, int* day, int* hour, int* minute, int* second);
 
     uint32_t seek(uint32_t pos);
 
@@ -108,7 +110,6 @@ private:
     Logger* _log;
     bool _firstBlockWritten;
     
-
     uint16_t _readBufferSize;
     uint16_t _writeBufferSize;
     

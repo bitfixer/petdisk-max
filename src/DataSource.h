@@ -38,6 +38,8 @@ public:
     }
 
     virtual void processCommandString(int* address) {} // default no action
+    virtual bool needRealTime() { return false; }
+    virtual void setDateTime(int year, int month, int day, int hour, int minute, int second) {}
 };
 
 #endif

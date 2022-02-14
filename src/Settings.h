@@ -5,6 +5,7 @@ struct urlData
 {
     void* eepromHost;
     int eepromHostLength;
+    int port;
     void* eepromUrl;
     int eepromUrlLength;
 };
@@ -14,9 +15,10 @@ public:
     Settings() {};
     ~Settings() {};
 
-    void initWithParams(void* eepromHost, int eepromHostLength, void* eepromUrl, int eepromUrlLength);
+    void initWithParams(void* eepromHost, int eepromHostLength, int port, void* eepromUrl, int eepromUrlLength);
     int getUrl(char* url);
     int getHost(char* host);
+    int getPort();
 
 private:
     urlData _urlData;

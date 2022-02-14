@@ -69,8 +69,10 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     
     urlInfo* info = (urlInfo*)_dataBuffer;
     _settings.getHost(info->host);
+    int port = _settings.getPort();
+    _log->printf("host %s port %d\n", info->host, port);
 
-    _fileSize = _http->getSize((const char*)info->host, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
+    _fileSize = _http->getSize((const char*)info->host, port, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
     _log->printf("fs %d\n", _fileSize);
     _currentBlockByte = 0;
     _currentOutputByte = 0;
@@ -115,13 +117,15 @@ bool NetworkDataSource::fetchBlock(uint32_t start, uint32_t end)
 
     urlInfo* info = (urlInfo*)_dataBuffer;
     int hostLength = _settings.getHost(info->host);
+    int port = _settings.getPort();
 
     info->host[hostLength] = 0;
 
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
 
     _blockData = _http->getRange(
-        (const char*)info->host, 
+        (const char*)info->host,
+        port,
         (const char*)recvBuffer->receiveUrl, 
         start, 
         end, 
@@ -193,10 +197,13 @@ bool NetworkDataSource::getNextDirectoryEntry()
         urlInfo* info = (urlInfo*)_dataBuffer;
         _settings.getHost(info->host);
         _settings.getUrl(info->url);
+        int port = _settings.getPort();
+
         sprintf_P(info->params, PSTR("?d=1&p=%d"), _currentDirectoryPage++);
         
         _dirPtr = _http->makeRequest(
             (const char*)info->host,
+            port,
             (const char*)info->url,
             (const char*)info->params,
             _dataBuffer,
@@ -230,7 +237,8 @@ void NetworkDataSource::writeBufferToFile(uint16_t numBytes)
     // specify url parameters
     _settings.getHost(info->host);
     _settings.getUrl(info->url);
-    
+    int port = _settings.getPort();
+
     if (_firstBlockWritten == false)
     {
         sprintf_P(info->params, PSTR("?f=%s&n=1"), _fileName);
@@ -243,6 +251,7 @@ void NetworkDataSource::writeBufferToFile(uint16_t numBytes)
 
     _http->postBlock(
         info->host,
+        port,
         info->url,
         info->params,
         _dataBuffer,
@@ -262,6 +271,7 @@ void NetworkDataSource::updateBlock()
     // specify url parameters
     _settings.getHost(info->host);
     _settings.getUrl(info->url);
+    int port = _settings.getPort();
 
     uint32_t endByte = _currentOutputByte + _writeBufferSize;
     struct receiveBuffer* recvBuffer = (struct receiveBuffer*)_dataBuffer;
@@ -269,6 +279,7 @@ void NetworkDataSource::updateBlock()
 
     _http->postBlock(
         info->host,
+        port,
         info->url,
         info->params,
         _dataBuffer,
@@ -308,4 +319,29 @@ unsigned char* NetworkDataSource::getBuffer()
 {
     return _blockData;
 }
+
+bool NetworkDataSource::getCurrentDateTime(int* year, int* month, int* day, int* hour, int* minute, int* second)
+{
+    // try to fetch time
+    if (openFileForReading((uint8_t*)"TIME"))
+    {
+        _log->printf("got time\n");
+        uint16_t blockSize = getNextFileBlock();
+        _log->printf("size: %d\n", blockSize);
+
+        //int timestamp = 0;
+        //sscanf((const char*)_petdisk._timeDataSource->getBuffer(), "%d", &timestamp);
+        //_logger.printf("timestamp is %d\n", timestamp);
+
+        if (blockSize >= _fileSize) {
+            // read in current date and time from string
+            sscanf((const char*)getBuffer(), "%d-%d-%d %d:%d:%d\n", year, month, day, hour, minute, second);
+            return true;
+        }
+    }
+
+    // somehow failed
+    return false;
+}
+
 }

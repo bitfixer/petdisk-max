@@ -95,6 +95,8 @@ public:
     , _currentDirectoryEntry(0)
     , _initialized(false)
     , _rootCluster(0)
+    , _timeValue(0)
+    , _dateValue(0)
     {
 
     }
@@ -107,6 +109,8 @@ public:
     , _currentDirectoryEntry(0)
     , _initialized(false)
     , _rootCluster(0)
+    , _timeValue(0)
+    , _dateValue(0)
     {
 
     }
@@ -142,9 +146,16 @@ public:
     void deleteFile();
     uint32_t seek(uint32_t pos);
 
+    void setDateTime(int year, int month, int day, int hour, int minute, int second);
+
     uint16_t writeBufferSize()
     {
         return 512;
+    }
+
+    bool needRealTime()
+    {
+        return true;
     }
     
 private:
@@ -161,6 +172,10 @@ private:
 
     uint32_t _firstDataSector;
     uint32_t _rootCluster;
+    
+    uint16_t _timeValue;
+    uint16_t _dateValue;
+
     uint32_t _totalClusters;
     uint16_t _bytesPerSector;
     uint16_t _sectorPerCluster;
