@@ -670,17 +670,7 @@ void PETdisk::writeFile()
         _dataSource->writeBufferToFile(numBytes);
     }
     
-    // if there is a timeDataSource, get the current time
     if (_timeDataSource != NULL && _dataSource->needRealTime())
-    {
-        if (_timeDataSource->openFileForReading((uint8_t*)"TIME"))
-        {
-            uint16_t blockSize = _timeDataSource->getNextFileBlock();
-            _logger->printf("blockSize: %d\n", blockSize);
-        }
-    }
-
-    if (_dataSource->needRealTime())
     {
         // attempt to fetch current date and time
         if (_timeDataSource != NULL)
@@ -1515,10 +1505,8 @@ void PETdisk::loop()
 
 uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 {
-    _logger->log("pf: ");
     _logger->log(filename, length);
-    _logger->log("\r\n");
-
+    
     *write = false;
     uint8_t drive_separator = ':';
     uint8_t* sepptr = (uint8_t*)bf_memmem(filename, length, &drive_separator, 1);
