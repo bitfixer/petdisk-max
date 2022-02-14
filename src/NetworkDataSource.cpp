@@ -70,10 +70,8 @@ bool NetworkDataSource::openFileForReading(unsigned char* fileName)
     urlInfo* info = (urlInfo*)_dataBuffer;
     _settings.getHost(info->host);
     int port = _settings.getPort();
-    _log->printf("host %s port %d\n", info->host, port);
-
+    
     _fileSize = _http->getSize((const char*)info->host, port, recvBuffer->receiveUrl, _dataBuffer, _dataBufferSize);
-    _log->printf("fs %d\n", _fileSize);
     _currentBlockByte = 0;
     _currentOutputByte = 0;
     _blockData = 0;
