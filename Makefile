@@ -155,7 +155,7 @@ $(BIN)/bootloader.elf: bindir $(BOOTLOADER_OBJECTS)
 
 # pad the end of the main program with zeros, leaving enough room for the bootloader
 $(BIN)/petdisk_and_bootloader.bin: bindir $(BIN)/petdisk.bin $(BIN)/bootloader.bin
-	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_1284_D) - $(shell stat -f "%z" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
+	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_1284_D) - $(shell stat -c "%s" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
 	cat $(BIN)/petdisk.bin $(BIN)/bootloader.bin > $(BIN)/petdisk_and_bootloader.bin
 
 bindir:
