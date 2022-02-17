@@ -54,6 +54,7 @@ void reset_esp()
 
     ESP_PORT |= 1 << ESP_RST;
     ESP_PORT |= 1 << ESP_CH_PD;
+    hDelayMs(500);
 }
 
 void init_led()
