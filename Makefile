@@ -11,7 +11,9 @@ BIN        = bin
 AVRDIR 	   = $(SRCDIR)/avr
 BLDIR	   = $(AVRDIR)/bootloader
 
-OBJECTS    = $(SRCDIR)/petdisk.o\
+OBJECTS    = \
+$(SRCDIR)/avr/avr_main.o\
+$(SRCDIR)/petdisk.o\
 $(SRCDIR)/Serial.o\
 $(SRCDIR)/EspHttp.o\
 $(SRCDIR)/SD_routines.o\
@@ -23,8 +25,7 @@ $(SRCDIR)/D64DataSource.o\
 $(SRCDIR)/Settings.o\
 $(SRCDIR)/helpers.o\
 $(SRCDIR)/avr/EspConn.o\
-$(SRCDIR)/avr/hardware_avr.o\
-$(SRCDIR)/avr/avr_main.cpp
+$(SRCDIR)/avr/hardware_avr.o
 
 BOOTLOADER_OBJECTS = $(BLDIR)/bootloader.o\
 $(BLDIR)/SPI_routines.o\
@@ -154,9 +155,12 @@ $(BIN)/bootloader.elf: bindir $(BOOTLOADER_OBJECTS)
 	$(COMPILECPP) -Ttext=$(BOOTLOADER_ADDR_1284_H) -o $(BIN)/bootloader.elf $(BOOTLOADER_OBJECTS)
 
 # pad the end of the main program with zeros, leaving enough room for the bootloader
-$(BIN)/petdisk_and_bootloader.bin: bindir $(BIN)/petdisk.bin $(BIN)/bootloader.bin
-	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_1284_D) - $(shell stat -c "%s" $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
+$(BIN)/petdisk_and_bootloader.bin: bindir $(BIN)/petdisk.bin $(BIN)/bootloader.bin $(BIN)/filesize
+	dd if=/dev/zero bs=1 count=$(shell expr $(BOOTLOADER_ADDR_1284_D) - $(shell $(BIN)/filesize $(BIN)/petdisk.bin)) >> $(BIN)/petdisk.bin
 	cat $(BIN)/petdisk.bin $(BIN)/bootloader.bin > $(BIN)/petdisk_and_bootloader.bin
+
+$(BIN)/filesize: $(SRCDIR)/tools/filesize.cpp
+	g++ $(SRCDIR)/tools/filesize.cpp -o $(BIN)/filesize
 
 bindir:
 	mkdir -p bin

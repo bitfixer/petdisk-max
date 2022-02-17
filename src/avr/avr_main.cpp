@@ -1,6 +1,6 @@
 #include <avr/interrupt.h>
 
-extern uint8_t* _buffer;
+extern uint8_t _buffer[1024];
 extern uint16_t _bufferSize;
 
 extern void setup();
