@@ -33,11 +33,11 @@ void set_led(bool value)
 {
     if (value == true)
     {
-        digitalWrite(2, HIGH);
+        digitalWrite(LED_PIN, HIGH);
     }
     else
     {
-        digitalWrite(2, LOW);
+        digitalWrite(LED_PIN, LOW);
     }
 }
 
