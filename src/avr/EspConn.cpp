@@ -150,7 +150,7 @@ bool EspConn::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t
     char* cmd = (char*)&_serialBuffer[64];
     if (protMode==TCP_MODE) {
         sprintf_P(cmd, PSTR("AT+CIPSTART=%d,\"TCP\",\"%s\",%u"), sock, host, port);
-        sendCmd(cmd);
+        return sendCmd(cmd);
     }
     else if (protMode==SSL_MODE)
     {
