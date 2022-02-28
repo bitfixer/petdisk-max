@@ -46,7 +46,7 @@ const uint8_t _dirHeader[] PROGMEM =
     0x12
 };
 
-const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
+const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V2.0\"      ";
 const uint8_t _firmwareString[] PROGMEM = "BUILD ";
 const uint8_t _fileExtension[] PROGMEM =
 {
@@ -272,6 +272,7 @@ private:
     openFileInfo* getFileInfoForAddress(uint8_t address);
     void resetFileInformation(uint8_t address);
     bool isD64(const char* fileName);
+    bool openFile(uint8_t* fileName);
 
     void initDirectory();
     bool getDirectoryEntry();
@@ -765,17 +766,27 @@ bool PETdisk::getDirectoryEntry()
                 }
                 fname_length = strlen((char*)fileName);
                 bool valid_file = false;
+                bool isPrg = false;
                 // check for correct extension
                 if (_dataSource->isDirectory())
                 {
                     valid_file = true;
-                } 
+                }
+                // default files with no extension to PRG
+                else if (!strstr((const char*)fileName, "."))
+                {
+                    // no period in filename so no extension
+                    // default to PRG type
+                    isPrg = true;
+                    valid_file = true;
+                }
                 else if (fname_length > 4)
                 {
                     if (toupper(fileName[fname_length-3]) == 'P' &&
                         toupper(fileName[fname_length-2]) == 'R' &&
                         toupper(fileName[fname_length-1]) == 'G')
                     {
+                        isPrg = true;
                         valid_file = true;
                     }
                     else if (toupper(fileName[fname_length-3]) == 'S' &&
@@ -851,6 +862,12 @@ bool PETdisk::getDirectoryEntry()
                         _directoryEntry[startline+25] = toupper(fileName[extensionPos]);
                         _directoryEntry[startline+26] = toupper(fileName[extensionPos+1]);
                         _directoryEntry[startline+27] = toupper(fileName[extensionPos+2]);
+                    }
+                    else if (isPrg)
+                    {
+                        _directoryEntry[startline+25] = 'P';
+                        _directoryEntry[startline+26] = 'R';
+                        _directoryEntry[startline+27] = 'G';
                     }
                     else
                     {
@@ -978,6 +995,26 @@ bool PETdisk::isD64(const char* fileName)
     }
 
     return false;
+}
+
+bool PETdisk::openFile(uint8_t* fileName)
+{
+    if (_dataSource->openFileForReading(fileName))
+    {
+        return true;
+    }
+
+    // if attempting to read PRG file, also check without extension
+    char* extPos = strstr((const char*)fileName, ".PRG");
+    if (!extPos)
+    {
+        // already no extension
+        return false;
+    }
+
+    // remove extension
+    *extPos = 0;
+    return _dataSource->openFileForReading(fileName);
 }
 
 void PETdisk::loop()
@@ -1223,7 +1260,7 @@ void PETdisk::loop()
             {
                 _logger->printf("CMD: %s\r\n", progname);
             }
-            else if (!_dataSource->openFileForReading(progname))
+            else if (!openFile(progname))
             {
                 // file not found
                 _fileNotFound = 1;
@@ -1559,9 +1596,6 @@ bitfixer::NetworkDataSource nds1;
 bitfixer::NetworkDataSource nds2;
 bitfixer::NetworkDataSource nds3;
 
-int atncount;
-int atnstate;
-
 void setup()
 {
     _bufferSize = 0;
@@ -1614,8 +1648,6 @@ void setup()
 
     _logger.log("ready\r\n");
     set_led(true);
-    atncount = 0;
-    atnstate = 1;
 }
 
 void loop()
