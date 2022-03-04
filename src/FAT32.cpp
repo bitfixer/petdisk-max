@@ -421,7 +421,6 @@ uint8_t FAT32::numCharsToCompare(uint8_t *fileName, uint8_t maxChars)
 
 void FAT32::openCurrentDirectory()
 {
-    _logger->printf("cluster %d\r\n", _currentDirectoryCluster);
     openDirectory(_currentDirectoryCluster);
 }
 

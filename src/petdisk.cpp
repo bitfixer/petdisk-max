@@ -93,6 +93,23 @@ void blink_led(int count, int ms_on, int ms_off)
     }
 }
 
+bool checkForDisable(char* buffer, bitfixer::FAT32* fat32)
+{
+    if (!fat32->init())
+    {
+        return false;
+    }
+
+    fat32->openCurrentDirectory();
+    sprintf_P(buffer, PSTR("DISABLE.PD"));
+    if (fat32->findFile(buffer))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
 {
     log->transmitStringF(PSTR("checking\r\n"));
@@ -1600,18 +1617,23 @@ void setup()
 {
     _bufferSize = 0;
     prog_init();
-    
     _spi.init();
-
     _logSerial.init(115200);
-
     _espSerial.init(500000);
-
     _logger.initWithSerial(&_logSerial);
-
     _sd.initWithSPI(&_spi, spi_cs());
-
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
+    if (checkForDisable((char*)&_buffer[769], &_fat32))
+    {
+        _logger.printf("DISABLE.PD found, disabling device\n");
+        _ieee.initWithLogger(&_logger);
+        _ieee.unlisten();
+        init_led();
+        while(1) {
+            blink_led(4, 500, 500);
+            hDelayMs(1000);
+        }
+    }
     checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
 
     init_led();
