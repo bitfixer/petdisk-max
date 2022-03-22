@@ -1623,9 +1623,18 @@ void PETdisk::processCommand(uint8_t* command)
         // change directory command
         if (command[2] == DIR_BACK_CHARACTER)
         {
-            char d[3];
-            sprintf(d, "..");
-            _dataSource->openDirectory(d);
+            if (_dataSource == _d64)
+            {
+                // unmount this d64 image and return to previous datasource
+                _dataSource = _d64->getFileDataSource();
+                setDataSource(_primaryAddress, _dataSource);
+            }
+            else
+            {
+                char d[3];
+                sprintf(d, "..");
+                _dataSource->openDirectory(d);
+            }
             return;
         }
 
@@ -1639,8 +1648,27 @@ void PETdisk::processCommand(uint8_t* command)
             return;
         }
 
-        // change directory
-        _dataSource->openDirectory((const char*)&command[3]);
+        char* dirname = (char*)&command[3];
+
+        if (isD64(dirname))
+        {
+            // cd command to d64 file
+            bool success = _d64->initWithDataSource(_dataSource, dirname, _logger);
+            if (success)
+            {
+                setDataSource(_primaryAddress, _d64);
+                _dataSource = _d64;
+            }
+            else
+            {
+                _logger->printf("not found: %s\n", dirname);
+            }
+        }
+        else
+        {
+            // change directory
+           _dataSource->openDirectory(dirname);
+        }
     }
 }
 
