@@ -35,6 +35,8 @@ uint16_t _bufferSize;
 
 #define PET_ADDRESS_MASK        0x0F
 
+#define DIR_BACK_CHARACTER      0x5F
+
 const uint8_t _dirHeader[] PROGMEM =
 {
     0x01,
@@ -283,6 +285,7 @@ private:
 
     bool configChanged(struct pd_config* pdcfg);
     uint8_t processFilename(uint8_t* filename, uint8_t length, bool* write);
+    void processCommand(uint8_t* command);
     void writeFile();
     uint8_t get_device_address();
     uint8_t wait_for_device_address();
@@ -1046,7 +1049,6 @@ void PETdisk::loop()
         memset(progname, 0, FILENAME_MAX_LENGTH);
     }
 
-    //if (IEEE_CTL == 0x00)
     if (_ieee->is_unlistened())
     {
         //_logger->printf(".\r\n");
@@ -1078,10 +1080,12 @@ void PETdisk::loop()
         if (rdchar == PET_LOAD_FNAME_ADDR)
         {
             _currentState = LOAD_FNAME_READ;
+            _secondaryAddress = 0;
         }
         else if (rdchar == PET_SAVE_FNAME_ADDR)
         {
             _currentState = SAVE_FNAME_READ;
+            _secondaryAddress = 0;
         }
         else if ((rdchar & PET_OPEN_FNAME_MASK) == PET_OPEN_FNAME_MASK) // open command to another address
         {
@@ -1236,8 +1240,11 @@ void PETdisk::loop()
                     }
                 }
 
-                // copy the PRG file extension onto the end of the file name
-                pgm_memcpy(&progname[_filenamePosition], (uint8_t*)ext, 5);
+                // if not a command, copy the file extension onto the end of the file name
+                if (_secondaryAddress != 15)
+                {
+                    pgm_memcpy(&progname[_filenamePosition], (uint8_t*)ext, 5);
+                }
                 _filenamePosition = 0;
                 _logger->log((const char*)progname);
                 _logger->logF(PSTR("\r\n"));
@@ -1276,6 +1283,9 @@ void PETdisk::loop()
             if (of != NULL && of->_command == true)
             {
                 _logger->printf("CMD: %s\r\n", progname);
+
+                // check for directory commands
+                processCommand(progname);
             }
             else if (!openFile(progname))
             {
@@ -1560,6 +1570,10 @@ void PETdisk::loop()
 uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 {
     _logger->log(filename, length);
+    if (_secondaryAddress == 15)
+    {
+        return length;
+    }
     
     *write = false;
     uint8_t drive_separator = ':';
@@ -1594,6 +1608,40 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
     }
 
     return length;
+}
+
+void PETdisk::processCommand(uint8_t* command)
+{
+    int len = strlen((char*)command);
+    if (len < 3)
+    {
+        return;
+    }
+
+    if (tolower(command[0]) == 'c' && tolower(command[1]) == 'd')
+    {
+        // change directory command
+        if (command[2] == DIR_BACK_CHARACTER)
+        {
+            char d[3];
+            sprintf(d, "..");
+            _dataSource->openDirectory(d);
+            return;
+        }
+
+        if (command[2] != ':')
+        {
+            return;
+        }
+
+        if (len < 4)
+        {
+            return;
+        }
+
+        // change directory
+        _dataSource->openDirectory((const char*)&command[3]);
+    }
 }
 
 bitfixer::Serial1 _logSerial;
