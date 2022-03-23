@@ -590,7 +590,7 @@ bool FAT32::findFile(char* fileName, uint32_t firstCluster)
     bool gotDir;
     int result;
 
-    strupr(fileName);
+    upperStringInPlace(fileName);
     cmp_length = numCharsToCompare((uint8_t*)fileName, strlen(fileName));
 
     // open the specified directory
@@ -603,7 +603,9 @@ bool FAT32::findFile(char* fileName, uint32_t firstCluster)
             return false;
         }
 
-        ustr = strupr((char*)getFilename());
+        ustr = (char*)getFilename();
+        upperStringInPlace(ustr);
+
         result = strncmp((char*)fileName, ustr, cmp_length);
 
         if (result == 0)

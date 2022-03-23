@@ -8,4 +8,7 @@ const void *bf_memmem(
   const void *haystack, size_t haystacklen, 
   const void *needle,   size_t needlelen );
 
+void lowerStringInPlace(char* str);
+void upperStringInPlace(char* str);
+
 #endif

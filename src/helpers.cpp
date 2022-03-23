@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 
 const void *bf_memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen)
 {
@@ -23,4 +24,24 @@ const void *bf_memmem(const void *haystack, size_t haystacklen, const void *need
     }
 
     return NULL;
+}
+
+void lowerStringInPlace(char* str)
+{
+    char* c = str;
+    while (*c != 0)
+    {
+        *c = tolower(*c);
+        c++;
+    }
+}
+
+void upperStringInPlace(char* str)
+{
+    char* c = str;
+    while (*c != 0)
+    {
+        *c = toupper(*c);
+        c++;
+    }
 }

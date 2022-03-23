@@ -285,7 +285,7 @@ private:
 
     bool configChanged(struct pd_config* pdcfg);
     uint8_t processFilename(uint8_t* filename, uint8_t length, bool* write);
-    void processCommand(uint8_t* command);
+    bool processCommand(uint8_t* command);
     void writeFile();
     uint8_t get_device_address();
     uint8_t wait_for_device_address();
@@ -1091,6 +1091,7 @@ void PETdisk::loop()
         {
             _currentState = OPEN_FNAME_READ;
             _secondaryAddress = rdchar & PET_ADDRESS_MASK;
+            //_logger->printf("sa1 %d\n", _secondaryAddress);
 
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             if (of != NULL)
@@ -1330,8 +1331,16 @@ void PETdisk::loop()
         if (of != NULL && of->_command == true)
         {
             _dataSource->getBuffer()[of->_fileBufferIndex] = 0;
-            // retrieve the address from parsing command string
-            _dataSource->processCommandString(&_bufferFileIndex);
+
+            if (processCommand(_dataSource->getBuffer()))
+            {
+                _bufferFileIndex = _secondaryAddress;
+            }
+            else
+            {
+                // retrieve the address from parsing command string
+                _dataSource->processCommandString(&_bufferFileIndex);
+            }
             of = getFileInfoForAddress(_bufferFileIndex);
             if (of != NULL)
             {
@@ -1479,6 +1488,13 @@ void PETdisk::loop()
             
             uint8_t address = rdchar & PET_ADDRESS_MASK;
             openFileInfo* of = getFileInfoForAddress(address);
+            if (address == 15)
+            {
+                // read from address 15 is the drive status
+                of->_nextByte = '\r';
+            }
+
+            int cc = 0;
 
             while (!done)
             {
@@ -1569,7 +1585,7 @@ void PETdisk::loop()
 
 uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
 {
-    _logger->log(filename, length);
+    _logger->printf("%s l %d\n", filename, length);
     if (_secondaryAddress == 15)
     {
         return length;
@@ -1610,15 +1626,15 @@ uint8_t PETdisk::processFilename(uint8_t* filename, uint8_t length, bool* write)
     return length;
 }
 
-void PETdisk::processCommand(uint8_t* command)
+bool PETdisk::processCommand(uint8_t* command)
 {
     int len = strlen((char*)command);
     if (len < 3)
     {
-        return;
+        return false;
     }
 
-    if (tolower(command[0]) == 'c' && tolower(command[1]) == 'd')
+    if (toupper(command[0]) == 'C' && toupper(command[1]) == 'D')
     {
         // change directory command
         if (command[2] == DIR_BACK_CHARACTER)
@@ -1635,20 +1651,21 @@ void PETdisk::processCommand(uint8_t* command)
                 sprintf(d, "..");
                 _dataSource->openDirectory(d);
             }
-            return;
+            return true;
         }
 
         if (command[2] != ':')
         {
-            return;
+            return false;
         }
 
         if (len < 4)
         {
-            return;
+            return false;
         }
 
-        char* dirname = (char*)&command[3];
+        char dirname[64];
+        strcpy(dirname, (char*)&command[3]);
 
         if (isD64(dirname))
         {
@@ -1667,9 +1684,21 @@ void PETdisk::processCommand(uint8_t* command)
         else
         {
             // change directory
-           _dataSource->openDirectory(dirname);
+            _logger->printf("open dir: %s\n", dirname);
+            if (_dataSource->openDirectory(dirname))
+            {
+                _logger->printf("opened.\n");
+            }
+            else
+            {
+                _logger->printf("not opened\n");
+            }
         }
+
+        return true;
     }
+
+    return false;
 }
 
 bitfixer::Serial1 _logSerial;
