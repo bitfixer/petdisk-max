@@ -148,3 +148,29 @@ void serial1_disable_interrupt()
 {
     // N/A
 }
+
+bool isFirmwareFile(char* fname)
+{
+    if (fname == NULL)
+    {
+        return false;
+    }
+
+    if (strlen(fname) != 12)
+    {
+        return false;
+    }
+
+    if (fname[0] == 'F' && 
+        fname[1] == 'I' && 
+        fname[2] == 'R' && 
+        fname[3] == 'M' &&
+        fname[9] == 'P' &&
+        fname[10] == 'D' &&
+        fname[11] == '2')
+    {
+        return true;
+    }
+
+    return false;
+}

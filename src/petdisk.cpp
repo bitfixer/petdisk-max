@@ -112,12 +112,12 @@ bool checkForDisable(char* buffer, bitfixer::FAT32* fat32)
     return false;
 }
 
-void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* log)
+void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogger* log)
 {
-    log->transmitStringF(PSTR("checking\r\n"));
+    log->logF(PSTR("checking\r\n"));
     if (!fat32->init())
     {
-        log->transmitStringF(PSTR("noinit\r\n"));
+        log->logF(PSTR("noinit\r\n"));
         return;
     }
 
@@ -128,18 +128,34 @@ void checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::Serial1* l
     fat32->openCurrentDirectory();
     if (fat32->findFile(buffer))
     {
-        log->transmitStringF(PSTR("nodelete\r\n"));
+        log->logF(PSTR("nodelete\r\n"));
         return;
     }
 
-    sprintf_P(buffer, PSTR("FIRM*"));
-    if (!fat32->findFile(buffer))
+    // check for existence of firmware file
+    // name specific to architecture (atmega, esp32)
+
+    fat32->openCurrentDirectory();
+    bool foundFirmware = false;
+    while (fat32->getNextDirectoryEntry() == true)
     {
-        log->transmitStringF(PSTR("nofirm\r\n"));
+        unsigned char* name = fat32->getFilename();
+        upperStringInPlace((char*)name);
+        if (isFirmwareFile((char*)name))
+        {
+            log->printf("%s is firmware\r\n", name);
+            foundFirmware = true;
+            break;
+        }
+    }
+
+    if (!foundFirmware)
+    {
+        log->logF(PSTR("nofirm\r\n"));
         return;
     }
 
-    log->transmitStringF(PSTR("gotfirmware\r\n"));
+    log->logF(PSTR("gotfirmware\r\n"));
     fat32->deleteFile();
     return;
 }
@@ -1739,7 +1755,7 @@ void setup()
             hDelayMs(1000);
         }
     }
-    checkForFirmware((char*)&_buffer[769], &_fat32, &_logSerial);
+    checkForFirmware((char*)&_buffer[769], &_fat32, &_logger);
 
     init_led();
     blink_led(1, 300, 50);

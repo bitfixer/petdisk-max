@@ -267,3 +267,29 @@ void firmware_detected_action(bitfixer::FAT32* fs, Logger* logger)
 
     fs->deleteFile();
 }
+
+bool isFirmwareFile(char* fname)
+{
+    if (fname == NULL)
+    {
+        return false;
+    }
+
+    if (strlen(fname) != 12)
+    {
+        return false;
+    }
+
+    if (fname[0] == 'F' && 
+        fname[1] == 'I' && 
+        fname[2] == 'R' && 
+        fname[3] == 'M' &&
+        fname[9] == 'B' &&
+        fname[10] == 'I' &&
+        fname[11] == 'N')
+    {
+        return true;
+    }
+
+    return false;
+}

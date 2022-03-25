@@ -185,20 +185,11 @@ bool checkForFirmware(char* buffer, bitfixer::FAT32* fat32, bitfixer::SerialLogg
     while (fat32->getNextDirectoryEntry())
     {
         uint8_t* fname = fat32->getFilename();
-        if (strlen((char*)fname) != 12)
+        upperStringInPlace((char*)fname);
+        log->printf("checking %s\r\n", fname);
+        if (isFirmwareFile((char*)fname))
         {
-            continue;
-        }
-
-        if (
-            fname[0] == 'F' && 
-            fname[1] == 'I' && 
-            fname[2] == 'R' && 
-            fname[3] == 'M' &&
-            fname[9] == 'B' &&
-            fname[10] == 'I' &&
-            fname[11] == 'N') 
-        {
+            log->printf("%s is firmware\n", fname);
             strcpy(_firmwareFilename, (char*)fname);
             found = true;
             break;
@@ -269,6 +260,7 @@ void setup()
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512], &_logger);
 
     bool hasFirmware = checkForFirmware((char*)&_buffer[769], &_fat32, &_logger);
+
     if (hasFirmware)
     {
         _logger.printf("has firmware: %s\n", _fat32.getFilename());
