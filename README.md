@@ -88,8 +88,12 @@ LOAD"$:..",devicenumber
 
 ## Updating the PETdisk MAX
 
-Firmware updates will come periodically with fixes and new features. The latest firmware will be located here:
+Firmware updates will come periodically with fixes and new features. The latest firmware for both the v1 and v2 PETdisk MAX models will be located here:
+PETdisk MAX v1:
 [FIRMWARE.BIN](https://github.com/bitfixer/petdisk-max/raw/main/firmware/FIRMWARE.BIN)
+
+PETdisk MAX v2:
+[FIRMWARE.PD2](https://github.com/bitfixer/petdisk-max/raw/main/firmware/FIRMWARE.PD2)
 
 To update the firmware on the device, copy this file onto the root directory of an empty microSD card formatted to FAT32. Insert the card into the PETdisk and power up. After a few seconds the new firmware will be loaded onto the device.
 You can verify that the update worked by loading a directory from the SD card. 
