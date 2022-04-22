@@ -20,9 +20,9 @@ Then connect the wire lead included with the PETdisk to the 5v pin, and feed the
 ### For the clip: 
 You'll need to clip onto a 5v source on the mainboard. An easy place to find this is on one of the 6520 chips, there are 2 of them in the PET. They are located close on the board to the IEEE-488 port. Locate one of the 6520 chips, they will be close to the back of the board and labeled '6520' somewhere on the chip. Not to be confused with the '6502' also on the board.
 
-Locations of 6520s in some PET motherboards:
-2001: UB8 and UG8
-2001N: UC6 and UC7
+Locations of 6520s in some PET motherboards:\
+2001: UB8 and UG8\
+2001N: UC6 and UC7\
 8032: UB16 and UB12
 
 Pick the more conveniently located 6520, and find pin 20. If you are looking at the chip with the notch up, go to the left side of the chip and go down to the lower left corner. Clip on to this pin and then feed the wire lead out the back through the opening around the IEEE-488 connector.
