@@ -95,7 +95,7 @@ PETdisk MAX v1 (Atmel ATmega1284)
 PETdisk MAX v2 (ESP32):
 [FIRMWARE.PD2](https://github.com/bitfixer/petdisk-max/raw/main/firmware/FIRMWARE.PD2)
 
-To update the firmware on the device, copy this file onto the root directory of an empty microSD card formatted to FAT32. Insert the card into the PETdisk and power up. After a few seconds the new firmware will be loaded onto the device.
+To update the firmware on the device, copy this file onto the root directory of an empty microSD card formatted to FAT32. Insert the card into the PETdisk and power up. On the v1, the new firmware will be loaded onto the device after a few seconds. On the v2, the update takes about a minute during which you will first see rapid blinking on the LED, then a single blink every few seconds, followed by a few additional blinks and then the LED remains on. Once the LED is solidly on, the update is done.\
 You can verify that the update worked by loading a directory from the SD card. 
 At the end of the directory listing the git commit id will be listed, so you can verify it changed from before the update. This also provides a firmware ID which you can use if you need to report any bugs.
 
