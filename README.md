@@ -36,7 +36,7 @@ After this, just plug the PETdisk MAX into the IEEE-488 connector and you're rea
 
 The default configuration of the PETdisk MAX uses the built-in sd card as device 8.
 You can change this device number as well as setting up a maximum of 4 network drives by editing this file template:
-[PETDISK.CFG](https://raw.githubusercontent.com/bitfixer/petdisk-max/main/PETDISK.CFG)
+[PETDISK.CFG](https://raw.githubusercontent.com/bitfixer/petdisk-max/main/PETDISK.CFG)\
 Each line of the file consists of the drive number, comma, text specifying the drive.
 SD0 refers to the built-in SD card. Change the drive number here if you like.
 For network drives, the specifier is the full URL of the drive script. Up to 4 can be used at once.
