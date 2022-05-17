@@ -1215,7 +1215,7 @@ void PETdisk::loop()
         if (_ieee->eoi_is_low())
         {
             // this is a directory request
-            if (progname[0] == '$')
+            if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
                 _filenamePosition = 0;
                 _currentState = DIR_READ;
@@ -1385,7 +1385,7 @@ void PETdisk::loop()
         if (_currentState == FILE_READ)
         {
             // get packet
-            if (progname[0] == '$')
+            if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
                 // reading a directory
                 // need to handle both standard load"$" command and DIRECTORY/CATALOG here
@@ -1415,6 +1415,12 @@ void PETdisk::loop()
                                 // this is a change directory command
                                 if (progname[1] == ':')
                                 {
+                                    if (progname[0] == '@')
+                                    {
+                                        int len = strlen((const char*)progname);
+                                        sprintf((char*)&progname[len], ".D64");
+                                    }
+
                                     // change directory command
                                     // this can be either a directory name, or a d64 file
                                     if (isD64((const char*)&progname[2]))
