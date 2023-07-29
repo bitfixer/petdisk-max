@@ -103,7 +103,11 @@ if ($verb == "GET")
             foreach ($files as $file)
             {
                 $file_parts = pathinfo($file);
-                $ext = strtolower($file_parts['extension']);
+                $ext = "";
+                if (array_key_exists('extension', $file_parts)) {
+                    $ext = strtolower($file_parts['extension']);
+                }
+
                 if ($ext == "prg" || $ext == "seq" || $ext == "d64")
                 {
                     $newentry = strtoupper($file)."\n";
@@ -144,8 +148,8 @@ if ($verb == "GET")
         else
         {
             // requesting a range of bytes
-            $start = $_GET['s'];
-            $end = $_GET['e'];
+            $start = getParam('s');
+            $end = getParam('e');
 
             if ($file == "TIME")
             {
@@ -165,8 +169,15 @@ if ($verb == "GET")
             if ($fp)
             {
                 fseek($fp, $start, SEEK_SET);
-                $contents = fread($fp, $end-$start);
-                $content_length = $end-$start;
+
+                $contents = "";
+                if ($start != false && $end != false) {
+                    $contents = fread($fp, $end-$start);
+                    $content_length = $end-$start;
+                } else {
+                    $contents = file_get_contents()
+                }
+                
                 header('Content-Length: '.$content_length);
                 header('Content-Type: application/octet-stream');
                 echo $contents;
