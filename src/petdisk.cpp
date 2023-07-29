@@ -457,7 +457,7 @@ void PETdisk::init(
             int device_id = i + MIN_DEVICE_ID;
             int url_index = pdcfg->device_type[i] - DEVICE_URL_BASE;
             int eeprom_offset = 9 + (64 * url_index);
-            
+
             // find the host and url portion for this datasource
             char* url = strchr(pdcfg->urls[url_index], '/');
             int url_offset = url - pdcfg->urls[url_index];
@@ -1740,6 +1740,24 @@ bitfixer::NetworkDataSource nds1;
 bitfixer::NetworkDataSource nds2;
 bitfixer::NetworkDataSource nds3;
 
+void run_diagnostics() {
+    DataSource* ds = _petdisk.getDataSource(10);
+    if (!ds) {
+        _logger.log("diag: no datasource");
+        return;
+    }
+
+    _logger.log("open for writing");
+    char fname[32];
+    sprintf(fname, "test.abc");
+    ds->openFileForWriting((uint8_t*)fname);
+    _logger.log("get buffer");
+    uint8_t* buf = ds->getBuffer();
+    memset(buf, 0xAA, 256);
+    ds->writeBufferToFile(256);
+    ds->closeFile();
+}
+
 void setup()
 {
     _bufferSize = 0;
@@ -1794,6 +1812,11 @@ void setup()
         (bitfixer::NetworkDataSource**)nds_array,
         &_ieee,
         &_logger);
+
+    // run diagnostics if needed
+    // TODO: check if DIAG.PD2 exists
+    // run_diagnostics();
+
 
     _logger.log("ready\r\n");
     set_led(true);

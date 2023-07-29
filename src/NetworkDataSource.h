@@ -54,6 +54,9 @@ public:
         _dataBuffer = buffer;
         _dataBufferSize = bufferSize;
         _log = log;
+
+        struct urlInfo* urlInfo = (struct urlInfo*)_dataBuffer;
+        _fileName = urlInfo->fileName;
     }
 
     void setUrlData(void* eepromHost, int eepromHostLength, int port, void* eepromUrl, int eepromUrlLength)

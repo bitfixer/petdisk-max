@@ -175,7 +175,7 @@ if ($verb == "GET")
                     $contents = fread($fp, $end-$start);
                     $content_length = $end-$start;
                 } else {
-                    $contents = file_get_contents()
+                    $contents = file_get_contents();
                 }
                 
                 header('Content-Length: '.$content_length);
