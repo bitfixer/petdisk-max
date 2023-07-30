@@ -128,11 +128,15 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
         int byte = client.read();
         if (byte != -1)
         {
-            _serialBuffer[recCount] = byte;
-            recCount++;
+            // guard against buffer overflow
+            if (recCount < 1000) {
+                _serialBuffer[recCount] = byte;
+                recCount++;
+                _logSerial->log((unsigned char*)&byte, 1);
+            }
         }
     }
-
+    
     *_serialBufferSize = recCount;
 }
 
