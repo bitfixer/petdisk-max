@@ -164,24 +164,23 @@ if ($verb == "GET")
                 return;
             }
 
-            $fp = fopen($file, "r");
-
-            if ($fp)
-            {
-                fseek($fp, $start, SEEK_SET);
-
+            if (fileExists($file)) {
                 $contents = "";
-                if ($start != false && $end != false) {
+                if ($end > 0) {
+                    $fp = fopen($file, "r");
+                    fseek($fp, $start, SEEK_SET);
                     $contents = fread($fp, $end-$start);
+                    fclose($fp);
                     $content_length = $end-$start;
                 } else {
-                    $contents = file_get_contents();
+                    $contents = file_get_contents($file);
                 }
-                
                 header('Content-Length: '.$content_length);
                 header('Content-Type: application/octet-stream');
                 echo $contents;
                 flush();
+            } else {
+                error_log("file " . $file . " does not exist");
             }
         }
     }
