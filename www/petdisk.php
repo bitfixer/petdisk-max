@@ -196,7 +196,13 @@ else if ($verb == "PUT")
     $new = getParam('n');
 
     // read put data
-    $putdata = file_get_contents("php://input");
+    $putdata = '';
+    if (getParam('b64')) {
+        $base64data = file_get_contents("php://input");
+        $putdata = base64_decode($base64data);
+    } else {
+        $putdata = file_get_contents("php://input");
+    }
 
     $full_fname = "";
     if ($fname)
@@ -214,7 +220,7 @@ else if ($verb == "PUT")
     $file_contents = "";
     if ($exists == true && $new == 1)
     {
-        unlink($file);
+        unlink($full_fname);
         $exists = false;
     }
 
