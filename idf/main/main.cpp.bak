@@ -1,0 +1,23 @@
+#include <stdio.h>
+#include <esp_log.h>
+#include "hardware.h"
+#include "IEEE488.h"
+
+extern "C" void app_main(void)
+{
+    esp_log_level_set("main", ESP_LOG_INFO);
+    esp_log_level_set("ieee", ESP_LOG_INFO);
+
+    setupIoConf();
+
+    ESP_LOGI("main", "hello!");
+    bitfixer::IEEE488 ieee;
+    ieee.init();
+    ieee.unlisten();
+
+    uint8_t dir = 0;
+    bool success = false;
+    ieee.get_device_address(&dir, &success);
+
+    ESP_LOGI("main", "dir %d s %d", dir, success);
+}
