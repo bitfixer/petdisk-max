@@ -99,6 +99,11 @@ To update the firmware on the device, copy this file onto the root directory of 
 You can verify that the update worked by loading a directory from the SD card. 
 At the end of the directory listing the git commit id will be listed, so you can verify it changed from before the update. This also provides a firmware ID which you can use if you need to report any bugs.
 
+## Building the PETdisk MAX firmware
+
+If you want to build the PETdisk MAX firmware, two versions are included in this repo. The first is a legacy version built with platformio and arduino, and is located in the 'legacy' directory. Open that directory in VSCode with the platformio plugin installed, and you should be able to build and install with the platformio menu. 
+Second is a newer version built directly on esp-idf v5.1+. This is located in the 'idf' directory. With esp-idf 5.1+ installed and sourced, run 'idf.py build flash' to build and install the firmware on the device.
+
 ## Coming Soon
 
 Things known to currently not work (but working on it):
