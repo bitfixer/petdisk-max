@@ -380,7 +380,9 @@ void PETdisk::init(
         log_i("attempting wifi connection");
         if (_espConn->connect(pdcfg->wifi_ssid, pdcfg->wifi_password))
         {
-            log_i("wifi connect: %s %s", pdcfg->wifi_ssid, pdcfg->wifi_password);
+            log_i("wifi connect");
+            log_i("ssid: %s", pdcfg->wifi_ssid);
+            log_i("password: %s", pdcfg->wifi_password);
             espConnected = true;
             blink_led(2, 150, 150);
         }
@@ -510,7 +512,13 @@ static bool parseCSVLine(const char* line, char* key, char* value) {
     if (*separator == '"') {
         separator++;
     }
-    char* lineend = strchr(separator, '\n');
+
+    char* lineend = separator;
+    // skip until end of line
+    while (*lineend != 0 && *lineend != '\r' && *lineend != '\n') {
+        lineend++;
+    }
+
     int valuelen = lineend-separator;
     memcpy(value, separator, valuelen);
     if (value[valuelen-1] == '"') {
