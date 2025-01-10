@@ -310,6 +310,33 @@ private:
     bool getDirectoryEntry();
 };
 
+bool petdisk_config_valid(struct pd_config* cfg) {
+    // first check if any device has been set
+    // at least one device should be set to a value other than DEVICE_NONE
+    bool device_set = false;
+    for (int i = 0; i < 9; i++) {
+        if (cfg->device_type[i] != DEVICE_NONE) {
+            device_set = true;
+            break;
+        }
+    }
+
+    if (!device_set) {
+        log_i("no devices set, not valid config");
+        return false;
+    }
+
+    // check if any devices have an invalid type
+    for (int i = 0; i < 9; i++) {
+        if (cfg->device_type[i] > DEVICE_END) {
+            log_i("device %d->%d, invalid", i, cfg->device_type[i]);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void PETdisk::init(
     bitfixer::FAT32* fat32,
     D64DataSource* d64,
@@ -366,7 +393,8 @@ void PETdisk::init(
     bool espConnected = false;
     
     // check validity of config
-    if (pdcfg->device_type[0] > DEVICE_END)
+    //if (pdcfg->device_type[0] > DEVICE_END)
+    if (!petdisk_config_valid(pdcfg))
     {
         // config not set
         // use defaults
@@ -469,12 +497,15 @@ void PETdisk::printConfig(struct pd_config* pdcfg)
     char tmp[128];
     for (int i = 0; i < 9; i++)
     {
-        sprintf_P(tmp, PSTR("d %d->%d"), i, pdcfg->device_type[i]);
+        //sprintf_P(tmp, PSTR("d %d->%d"), i, pdcfg->device_type[i]);
+        //log_is((const char*)tmp);
+        log_i("d %d->%d", i, pdcfg->device_type[i]);
     }
 
     for (int i = 0; i < 4; i++)
     {
-        sprintf_P(tmp, PSTR("u %d->"), i);
+        //sprintf_P(tmp, PSTR("u %d->"), i);
+        //log_is(tmp);
         log_i("%d: %s", i, pdcfg->urls[i]);
     }
 
