@@ -13,6 +13,7 @@
 #include "hardware.h"
 #include "githash.h"
 #include "FAT32.h"
+#include "console.h"
 
 //#define TESTING 1
 
@@ -1860,5 +1861,6 @@ void loopTask(void *pvParameters)
 extern "C" void app_main() {
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
+    Console::init();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle, 1);
 }

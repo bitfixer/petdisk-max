@@ -100,7 +100,6 @@ uint8_t spi_cs()
 }
 
 static nvs_handle_t eeprom_nvs_handle;
-
 static uint8_t eeprom_data[512];
 
 void prog_init()
@@ -266,4 +265,26 @@ bool isFirmwareFile(char* fname)
     }
 
     return false;
+}
+
+int32_t nvs_get_int(const char* key) {
+    int32_t val = -1;
+    if (nvs_get_i32(eeprom_nvs_handle, key, &val) != ESP_OK) {
+        return -1;
+    }
+
+    return val;
+}
+
+void nvs_set_int(const char* key, int32_t val) {
+    esp_err_t err = nvs_set_i32(eeprom_nvs_handle, key, val);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_set_int, failed to set %s -> %" PRIi32, key, val);
+        return;
+    }
+
+    err = nvs_commit(eeprom_nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "failed to commit int value");
+    }
 }
