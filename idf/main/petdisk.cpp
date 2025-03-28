@@ -1862,5 +1862,8 @@ extern "C" void app_main() {
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
     Console::init();
+
+    // select between test mode and run mode
+    
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle, 1);
 }

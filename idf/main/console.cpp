@@ -1,7 +1,47 @@
 #include "console.h"
+#include <string.h>
 #include <esp_console.h>
+#include <esp_heap_caps.h>
+#include <esp_system.h>
 
 namespace Console {
+
+static const char* _hint = "";
+
+int reset(int argc, char** argv) {
+    printf("RESET\n");
+    esp_restart();
+}
+
+static void _init_command(const char* cmd, const char* help, esp_console_cmd_func_t cmdfunc) {
+    char* cptr = (char*)heap_caps_malloc(strlen(cmd)+1, MALLOC_CAP_SPIRAM);
+    strcpy(cptr, cmd);
+
+    char *chelp = NULL;
+    if (help) {
+      chelp = (char*)heap_caps_malloc(strlen(help)+1, MALLOC_CAP_SPIRAM);
+      strcpy(chelp, help);
+    }
+
+    esp_console_cmd_t c = {
+        .command = cptr,
+        .help = chelp,
+        .hint = _hint,
+        .func = cmdfunc,
+        .argtable = NULL,
+        .func_w_context = NULL,
+        .context = NULL
+    };
+    esp_console_cmd_register(&c);
+}
+
+void add_command(const char* cmd, const char* help, int(*func)(int,char**)) {
+    _init_command(cmd, help, func);
+}
+
+static void _init_commands() {
+    add_command("reset", "reset", reset);
+}
 
 void init() {
     esp_console_repl_t *repl = NULL;
@@ -18,5 +58,7 @@ void init() {
 
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
 }
+
+
 
 }
