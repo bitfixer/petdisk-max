@@ -1866,6 +1866,7 @@ extern "C" void app_main() {
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
     Console::init();
+    hardware_cmd_init();
 
     // select between test mode and run mode
 #ifdef TESTMODE

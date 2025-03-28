@@ -24,6 +24,12 @@
 #define PSTR(str) str
 #define PROGMEM
 
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define LED_PIN 2
+#else
+#define LED_PIN 15
+#endif
+
 #define DATA0   32
 #define DATA1   33
 #define DATA2   25
@@ -52,6 +58,7 @@ void setOutput(int pin);
 void digitalWrite2(int pin, int val);
 uint8_t digitalRead2(int pin);
 */
+void hardware_cmd_init();
 
 void gpio_init();
 

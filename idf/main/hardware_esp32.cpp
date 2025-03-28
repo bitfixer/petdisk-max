@@ -14,13 +14,15 @@
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <nvs.h>
+
+#include "console.h"
+
 //#include <Arduino.h>
 //#include <EEPROM.h>
 //#include <SPI.h>
 
 #define TAG "hardware"
 
-#define LED_PIN     2
 #define CS_PIN      4
 
 #define MISO_PIN   19
@@ -149,6 +151,31 @@ void set_led(bool value)
     {
         digitalWrite2(LED_PIN, LOW);
     }
+}
+
+// ====
+// test function
+static int ledinit(int argc, char** argv) {
+    printf("running init_led\n");
+    init_led();
+    return 0;
+}
+
+static int ledset(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: ledset <val>\n");
+        return 1;
+    }
+
+    int v = atoi(argv[1]);
+    printf("ledset %d\n", v);
+    set_led(v == 0 ? false : true);
+    return 0;
+}
+
+void hardware_cmd_init() {
+    Console::add_command("ledinit", NULL, ledinit);
+    Console::add_command("ledset", NULL, ledset);
 }
 
 void hDelayMs(int ms)
