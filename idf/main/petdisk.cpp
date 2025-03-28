@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
+#include <driver/uart.h>
 #include "EspConn.h"
 #include "EspHttp.h"
 #include "IEEE488.h"
@@ -1858,12 +1859,18 @@ void loopTask(void *pvParameters)
     }
 }
 
+#define TESTMODE 1
+
 extern "C" void app_main() {
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0, 14, 13, -1, -1));
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
     Console::init();
 
     // select between test mode and run mode
-    
+#ifdef TESTMODE
+    ESP_LOGI("main", "entering test mode");
+#else
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle, 1);
+#endif
 }

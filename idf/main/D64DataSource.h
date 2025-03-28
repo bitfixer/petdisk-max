@@ -95,7 +95,7 @@ public:
 
     void openFileForWriting(uint8_t* fileName);
     bool openFileForReading(uint8_t* fileName);
-    uint32_t seek(uint16_t position);
+    uint32_t seek(uint32_t position);
 
     bool openDirectory(const char* dirName);
     uint16_t getNextFileBlock();

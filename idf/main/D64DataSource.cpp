@@ -86,7 +86,7 @@ bool D64DataSource::openFileForReading(uint8_t* fileName)
 }
 
 
-uint32_t D64DataSource::seek(uint16_t pos) 
+uint32_t D64DataSource::seek(uint32_t pos) 
 {
     return 0; 
 }
