@@ -45,6 +45,11 @@ int gpiomode(int argc, char** argv) {
     return 0;
 }
 
+int mem(int argc, char** argv) {
+    size_t freemem = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    printf("free heap: %d\n", (int)freemem);
+}
+
 static void _init_command(const char* cmd, const char* help, esp_console_cmd_func_t cmdfunc) {
     char* cptr = (char*)heap_caps_malloc(strlen(cmd)+1, MALLOC_CAP_INTERNAL);
     strcpy(cptr, cmd);
@@ -75,6 +80,7 @@ static void _init_commands() {
     add_command("reset", "reset", reset);
     add_command("gpiomode", "gpiomode", gpiomode);
     add_command("gpioset", "gpioset", gpioset);
+    add_command("mem", NULL, mem);
 }
 
 void init() {
