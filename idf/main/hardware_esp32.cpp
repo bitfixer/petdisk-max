@@ -23,11 +23,7 @@
 
 #define TAG "hardware"
 
-#define CS_PIN      4
 
-#define MISO_PIN   19
-#define MOSI_PIN   23
-#define SCK_PIN    18
 
 gpio_hal_context_t _gpio_hal = {
     .dev = GPIO_HAL_GET_HW(GPIO_PORT_0)
@@ -173,9 +169,104 @@ static int ledset(int argc, char** argv) {
     return 0;
 }
 
+static int pdpm(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: pdpm <pin_name> <mode>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int mode = atoi(argv[2]);
+
+    if (strcmp(pinname, "data") == 0) {
+        if (mode == 0) {
+            ieee_set_data_input();
+        } else {
+            ieee_set_data_output();
+        }
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        if (mode == 0) {
+            set_nrfd_input();
+        } else {
+            set_nrfd_output();
+        }
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        if (mode == 0) {
+            set_eoi_input();
+        } else {
+            set_eoi_output();
+        }
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        if (mode == 0) {
+            set_dav_input();
+        } else {
+            set_dav_output();
+        }
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        if (mode == 0) {
+            set_ndac_input();
+        } else {
+            set_ndac_output();
+        }
+
+    }
+    return 0;
+}
+
+static int pdps(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: pdps <pin_name> <val>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int val = atoi(argv[2]);
+
+    if (strcmp(pinname, "data") == 0) {
+        uint8_t byte = (uint8_t)val;
+        ieee_write_data_byte(byte);
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        if (val == 0) {
+            lower_nrfd();
+        } else {
+            raise_nrfd();
+        }
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        if (val == 0) {
+            lower_eoi();
+        } else {
+            raise_eoi();
+        }
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        if (val == 0) {
+            lower_dav();
+        } else {
+            raise_dav();
+        }
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        if (val == 0) {
+            lower_ndac();
+        } else {
+            raise_ndac();
+        }
+    }
+
+    return 0;
+}
+
 void hardware_cmd_init() {
     Console::add_command("ledinit", NULL, ledinit);
     Console::add_command("ledset", NULL, ledset);
+    Console::add_command("pdpm", NULL, pdpm);
+    Console::add_command("pdps", NULL, pdps);
 }
 
 void hDelayMs(int ms)

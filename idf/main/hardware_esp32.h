@@ -24,11 +24,26 @@
 #define PSTR(str) str
 #define PROGMEM
 
+void hardware_cmd_init();
+
+void gpio_init();
+
+extern gpio_hal_context_t _gpio_hal;
+extern gpio_dev_t *dev;
+
+extern volatile uint32_t* gpio_low_set_reg;
+extern volatile uint32_t* gpio_low_clear_reg;
+extern volatile uint32_t* gpio_low_enable_set_reg;
+extern volatile uint32_t* gpio_low_enable_clear_reg;
+
+#define delay_ticks(ticks) vTaskDelay(ticks)
+
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define LED_PIN 2
-#else
-#define LED_PIN 15
-#endif
+#define CS_PIN      4
+#define MISO_PIN   19
+#define MOSI_PIN   23
+#define SCK_PIN    18
 
 #define DATA0   32
 #define DATA1   33
@@ -52,24 +67,6 @@
 #define NDAC_PIN    16
 #define NDAC_MASK   0b00000000000000010000000000000000
 
-/*
-void setInput(int pin);
-void setOutput(int pin);
-void digitalWrite2(int pin, int val);
-uint8_t digitalRead2(int pin);
-*/
-void hardware_cmd_init();
-
-void gpio_init();
-
-extern gpio_hal_context_t _gpio_hal;
-extern gpio_dev_t *dev;
-
-extern volatile uint32_t* gpio_low_set_reg;
-extern volatile uint32_t* gpio_low_clear_reg;
-extern volatile uint32_t* gpio_low_enable_set_reg;
-extern volatile uint32_t* gpio_low_enable_clear_reg;
-
 #define setInput(pin) gpio_hal_output_disable(&_gpio_hal, (gpio_num_t)pin)
 #define setOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
 #define digitalWrite2(pin,val) gpio_hal_set_level(&_gpio_hal, (gpio_num_t)pin, val)
@@ -82,21 +79,12 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define digitalWriteLowLL(pin) dev->out_w1tc = (1 << pin)
 #define digitalReadLL(pin) ((dev->in >> pin) & 0x1)
 
-/*
-#define setInputMask(mask) dev->enable_w1tc = mask
-#define setOutputMask(mask) dev->enable_w1ts = mask
-#define digitalWriteHighMask(mask) dev->out_w1ts = mask
-#define digitalWriteLowMask(mask) dev->out_w1tc = mask
-*/
-
 #define setInputMask(mask) *gpio_low_enable_clear_reg = mask
 #define setOutputMask(mask) *gpio_low_enable_set_reg = mask
 #define digitalWriteHighMask(mask) *gpio_low_set_reg = mask
 #define digitalWriteLowMask(mask) *gpio_low_clear_reg = mask
 
 #define digitalReadMask(mask) (dev->in & mask)
-
-#define delay_ticks(ticks) vTaskDelay(ticks)
 
 #define lower_eoi()     digitalWriteLowMask(EOI_MASK)
 #define lower_dav()     digitalWriteLowMask(DAV_MASK)
@@ -126,6 +114,66 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define set_ndac_input()    setInputLL(NDAC_PIN)
 
 #define set_datadir_output() setOutputLL(DATADIR)
+
+#else
+// esp32s2
+#define LED_PIN 15
+#define CS_PIN      4
+#define MISO_PIN   19
+#define MOSI_PIN   23
+#define SCK_PIN    18
+
+#define DATA0   5
+#define DATA1   6
+#define DATA2   7
+#define DATA3   8
+#define DATA4   9
+#define DATA5   10
+#define DATA6   11
+#define DATA7   12
+
+#define DATADIR 3
+
+#define ATN_PIN     ((gpio_num_t)33)
+#define EOI_PIN     ((gpio_num_t)2)
+#define DAV_PIN     ((gpio_num_t)1)
+#define NRFD_PIN    ((gpio_num_t)38)
+#define NDAC_PIN    ((gpio_num_t)16)
+
+#define setInput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT)
+#define setOutput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT)
+#define digitalWrite2(pin,val) gpio_set_level((gpio_num_t)pin, val)
+#define digitalRead2(pin) gpio_get_level((gpio_num_t)pin)
+
+#define lower_eoi()     gpio_set_level(EOI_PIN, 0)
+#define lower_dav()     gpio_set_level(DAV_PIN, 0)
+#define lower_nrfd()    gpio_set_level(NRFD_PIN, 0)
+#define lower_ndac()    gpio_set_level(NDAC_PIN, 0)
+
+#define raise_eoi()     gpio_set_level(EOI_PIN, 1);
+#define raise_dav()     gpio_set_level(DAV_PIN, 1)
+#define raise_nrfd()    gpio_set_level(NRFD_PIN, 1)
+#define raise_ndac()    gpio_set_level(NDAC_PIN, 1)
+
+#define set_eoi_output()     setOutput(EOI_PIN)
+#define set_dav_output()     setOutput(DAV_PIN)
+#define set_nrfd_output()    setOutput(NRFD_PIN)
+#define set_ndac_output()    setOutput(NDAC_PIN)
+
+#define read_atn()      digitalRead2(ATN_PIN)
+#define read_eoi()      digitalRead2(EOI_PIN)
+#define read_dav()      digitalRead2(DAV_PIN)
+#define read_nrfd()     digitalRead2(NRFD_PIN)
+#define read_ndac()     digitalRead2(NDAC_PIN)
+
+#define set_atn_input()     setInput(ATN_PIN)
+#define set_eoi_input()     setInput(EOI_PIN)
+#define set_dav_input()     setInput(DAV_PIN)
+#define set_nrfd_input()    setInput(NRFD_PIN)
+#define set_ndac_input()    setInput(NDAC_PIN)
+
+#define set_datadir_output() setOutput(DATADIR)
+#endif
 
 // NOTE: DATA1 is the only used GPIO pin > 32
 // this means the low level gpio functions can't be used since it
