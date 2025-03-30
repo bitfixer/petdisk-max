@@ -8,6 +8,7 @@
 #include "EspConn.h"
 #include "HTTPDataSource.h"
 #include "hardware.h"
+#include "http.h"
 
 namespace Console {
 
@@ -110,10 +111,44 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
+int wificonn(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: wificonn <ssid> <password>\n");
+        return 1;
+    }
+
+    char* ssid = argv[1];
+    char* password = argv[2];
+
+    bitfixer::EspConn conn;
+    conn.connect(ssid, password);
+    return 0;
+}
+
+int http(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: http <url>\n");
+        return 1;
+    }
+
+    uint8_t* buf = (uint8_t*)heap_caps_malloc(64*1024, MALLOC_CAP_SPIRAM);
+    bool res = HTTP::request("http://bitfixer.com/pd/petdisk.php?d=1", buf, 64*1024);
+    printf("result: %d\n", (int)res);
+    if (res) {
+        printf("result: %s\n", (char*)buf);
+    }
+
+    heap_caps_free(buf);
+    return 0;
+}
+
+/*
 int http(int argc, char** argv) {
     printf("connecting to wifi\n");
     bitfixer::EspConn conn;
-    conn.connect("bruce", "caramelle");
+    char* ssid = argv[1];
+    char* password = argv[2];
+    conn.connect(ssid, password);
 
     printf("waiting for connect.\n");
     //while (!conn.isConnected()) {
@@ -150,6 +185,7 @@ int http(int argc, char** argv) {
     //ESP_LOGI(TAG, "got buffer: %s", local_response_buffer);
     return 0;
 }
+*/
 
 static void _init_command(const char* cmd, const char* help, esp_console_cmd_func_t cmdfunc) {
     char* cptr = (char*)heap_caps_malloc(strlen(cmd)+1, MALLOC_CAP_INTERNAL);
@@ -183,6 +219,7 @@ static void _init_commands() {
     add_command("gpioset", "gpioset", gpioset);
     add_command("mem", NULL, mem);
     add_command("http", "http", http);
+    add_command("wificonn", NULL, wificonn);
 }
 
 void init() {
