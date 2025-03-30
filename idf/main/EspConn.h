@@ -20,7 +20,7 @@ public:
     bool connect(const char* ssid, const char* passphrase);
     bool startClient(const char* host, uint16_t port);
     void sendData(uint8_t sock, unsigned char* data, int len);
-
+    bool isConnected();
 private:
 
     uint8_t* _serialBuffer;
@@ -28,6 +28,8 @@ private:
 
     char _host[256];
     int _port;
+
+    bool _connected = false;
 };
 
 }

@@ -16,6 +16,12 @@
 namespace bitfixer 
 {
 
+static bool _connected = false;
+
+bool EspConn::isConnected() {
+    return _connected;
+}
+
 bool EspConn::initWithParams(uint8_t* buffer, uint16_t* bufferSize)
 {
     _serialBuffer = buffer;
@@ -30,6 +36,7 @@ static int s_retry_num = 0;
 static void example_handler_on_wifi_disconnect(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data)
 {
+    _connected = false;
     s_retry_num++;
     if (s_retry_num > 5) {
         log_i("WiFi Connect failed %d times, stop reconnect.", s_retry_num);
@@ -67,6 +74,8 @@ static void example_handler_on_sta_got_ip(void *arg, esp_event_base_t event_base
     } else {
         log_i("- IPv4 address: " IPSTR ",", IP2STR(&event->ip_info.ip));
     }
+
+    _connected = true;
 }
 
 esp_err_t example_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)

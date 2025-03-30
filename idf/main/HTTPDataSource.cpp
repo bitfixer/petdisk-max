@@ -6,6 +6,7 @@ namespace bitfixer {
 
 bool openFileForReading(uint8_t* fileName) {
     ESP_LOGI("HTTP", "open file for reading: %s", (char*)fileName);
+    return true;
 }
 
 

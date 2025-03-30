@@ -23,13 +23,13 @@ public:
         }
     }
 
-    virtual bool init() override {}
+    virtual bool init() override { return true; }
     virtual void openFileForWriting(uint8_t* fileName) override {}
     virtual bool openFileForReading(uint8_t* fileName) override;
-    virtual bool openDirectory(const char* dirName) override {}
-    virtual uint16_t getNextFileBlock() override {}
-    virtual bool isLastBlock() override {}
-    virtual bool getNextDirectoryEntry() override;
+    virtual bool openDirectory(const char* dirName) override { return true; }
+    virtual uint16_t getNextFileBlock() override { return 0; }
+    virtual bool isLastBlock() override { return false; }
+    virtual bool getNextDirectoryEntry() override { return true; }
     virtual bool isInitialized() {
         return true;
     };
