@@ -58,6 +58,7 @@ int mem(int argc, char** argv) {
     return 0;
 }
 
+#if 0
 #define MIN(a,b) (a<b?a:b)
 #define MAX(a,b) (a>b?a:b)
 
@@ -110,6 +111,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     }
     return ESP_OK;
 }
+#endif
 
 int wificonn(int argc, char** argv) {
     if (argc < 3) {
@@ -139,6 +141,21 @@ int http(int argc, char** argv) {
     }
 
     heap_caps_free(buf);
+    return 0;
+}
+
+static int httpds(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: httpds < 2\n");
+        return 1;
+    }
+
+    char* fname = argv[1];
+    printf("requesting: %s\n", fname);
+    bitfixer::HTTPDataSource ds;
+    bool res = ds.openFileForReading((uint8_t*)fname);
+
+    printf("read result: %d\n", (int)res);
     return 0;
 }
 
@@ -220,6 +237,7 @@ static void _init_commands() {
     add_command("mem", NULL, mem);
     add_command("http", "http", http);
     add_command("wificonn", NULL, wificonn);
+    add_command("httpds", NULL, httpds);
 }
 
 void init() {

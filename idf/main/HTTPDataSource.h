@@ -4,22 +4,23 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <esp_heap_caps.h>
 
 namespace bitfixer {
 
 class HTTPDataSource : public DataSource {
 public:
     HTTPDataSource() {
-        _buffer = (uint8_t*)malloc(512);
-        _file_buffer = (uint8_t*)malloc(64*1024);
+        _buffer = (uint8_t*)heap_caps_malloc(512, MALLOC_CAP_SPIRAM);
+        _file_buffer = (uint8_t*)heap_caps_malloc(64*1024, MALLOC_CAP_SPIRAM);
     }
     ~HTTPDataSource() {
         if (_buffer) {
-            free(_buffer);
+            heap_caps_free(_buffer);
         }
 
         if (_file_buffer) {
-            free(_file_buffer);
+            heap_caps_free(_file_buffer);
         }
     }
 

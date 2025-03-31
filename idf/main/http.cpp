@@ -59,7 +59,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-bool request(const char* url, uint8_t* buffer, int size) {
+int request(const char* url, uint8_t* buffer, int size) {
     esp_http_client_config_t config;
     memset(&config, 0, sizeof(esp_http_client_config_t));
     config.url = url;
@@ -70,13 +70,14 @@ bool request(const char* url, uint8_t* buffer, int size) {
 
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %"PRId64,
+        int content_length = (int)esp_http_client_get_content_length(client);
+        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d",
                 esp_http_client_get_status_code(client),
-                esp_http_client_get_content_length(client));
-        return true;
+                content_length);
+        return content_length;
     } else {
         ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
-        return false;
+        return -1;
     }
 }
 
