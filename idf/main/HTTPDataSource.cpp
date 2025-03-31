@@ -20,13 +20,42 @@ bool HTTPDataSource::openFileForReading(uint8_t* fileName) {
     int length = HTTP::request(str, _file_buffer, size);
     ESP_LOGI(TAG, "result: %d", length);
 
+    _file_pos = -1;
     if (length > 0) {
-        for (int i = 0; i < 32; i++) {
-            ESP_LOGI(TAG, "%d: %X", i, _file_buffer[i]);
-        }
+        _file_size = length;
+    } else {
+        _file_size = -1;
     }
 
     return (bool)(length > 0);
+}
+
+uint16_t HTTPDataSource::getNextFileBlock() {
+    if (_file_pos == -1) {
+        _file_pos = 0;
+    } else {
+        _file_pos += readBufferSize();
+    }
+
+    int block_size = readBufferSize();
+    int rem = _file_size - _file_pos;
+    if (block_size > rem) {
+        block_size = rem;
+    }
+
+    memcpy(_buffer, &_file_buffer[_file_pos], block_size);
+    return (uint16_t)block_size;
+}
+
+bool HTTPDataSource::isLastBlock() {
+    int next_pos = 0;
+    if (_file_pos >= 0) {
+        next_pos = _file_pos + readBufferSize();
+    }
+    if (next_pos >= _file_size) {
+        return true;
+    }
+    return false;
 }
 
 

@@ -28,8 +28,8 @@ public:
     virtual void openFileForWriting(uint8_t* fileName) override {}
     virtual bool openFileForReading(uint8_t* fileName) override;
     virtual bool openDirectory(const char* dirName) override { return true; }
-    virtual uint16_t getNextFileBlock() override { return 0; }
-    virtual bool isLastBlock() override { return false; }
+    virtual uint16_t getNextFileBlock() override;
+    virtual bool isLastBlock() override;
     virtual bool getNextDirectoryEntry() override { return true; }
     virtual bool isInitialized() {
         return true;
@@ -40,7 +40,9 @@ public:
     virtual void openCurrentDirectory() override {}
     
     virtual uint8_t* getFilename() override { return nullptr; }
-    virtual uint8_t* getBuffer() override { return nullptr; }
+    virtual uint8_t* getBuffer() override {
+        return _buffer;
+    }
     virtual uint16_t writeBufferSize() override {
         return 512;
     };
@@ -48,6 +50,8 @@ public:
 private:
     uint8_t* _buffer = nullptr;
     uint8_t* _file_buffer = nullptr;
+    int _file_size = -1;
+    int _file_pos = -1;
 };
 
 }
