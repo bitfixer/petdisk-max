@@ -119,9 +119,9 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 // esp32s2
 #define LED_PIN 15
 #define CS_PIN      4
-#define MISO_PIN   19
-#define MOSI_PIN   23
-#define SCK_PIN    18
+#define MISO_PIN   37
+#define MOSI_PIN   35
+#define SCK_PIN    36
 
 #define DATA0   5
 #define DATA1   6
@@ -138,7 +138,8 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define EOI_PIN     ((gpio_num_t)2)
 #define DAV_PIN     ((gpio_num_t)1)
 #define NRFD_PIN    ((gpio_num_t)38)
-#define NDAC_PIN    ((gpio_num_t)16)
+//#define NDAC_PIN    ((gpio_num_t)16)
+#define NDAC_PIN    ((gpio_num_t)34)
 
 #define setInput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT)
 #define setOutput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT)

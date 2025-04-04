@@ -1871,7 +1871,15 @@ extern "C" void app_main() {
     // select between test mode and run mode
 #ifdef TESTMODE
     ESP_LOGI("main", "entering test mode");
+    init_led();
+    while (1) {
+        set_led(false);
+        hDelayMs(1000);
+        set_led(true);
+        hDelayMs(1000);
+    }
+
 #else
-    xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle, 1);
+    xTaskCreate(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle);
 #endif
 }
