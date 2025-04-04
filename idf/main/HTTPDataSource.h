@@ -11,16 +11,16 @@ namespace bitfixer {
 class HTTPDataSource : public DataSource {
 public:
     HTTPDataSource() {
-        _buffer = (uint8_t*)heap_caps_malloc(512, MALLOC_CAP_SPIRAM);
-        _file_buffer = (uint8_t*)heap_caps_malloc(64*1024, MALLOC_CAP_SPIRAM);
+        _buffer = (uint8_t*)malloc(512);
+        _file_buffer = (uint8_t*)malloc(64*1024);
     }
     ~HTTPDataSource() {
         if (_buffer) {
-            heap_caps_free(_buffer);
+            free(_buffer);
         }
 
         if (_file_buffer) {
-            heap_caps_free(_file_buffer);
+            free(_file_buffer);
         }
     }
 
