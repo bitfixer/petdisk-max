@@ -1859,26 +1859,16 @@ void loopTask(void *pvParameters)
     }
 }
 
-#define TESTMODE 1
+//#define TESTMODE 1
 
 extern "C" void app_main() {
-    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0, 14, 13, -1, -1));
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
-    Console::init();
-    hardware_cmd_init();
-
     // select between test mode and run mode
 #ifdef TESTMODE
+    Console::init();
+    hardware_cmd_init();
     ESP_LOGI("main", "entering test mode");
-    init_led();
-    while (1) {
-        set_led(false);
-        hDelayMs(1000);
-        set_led(true);
-        hDelayMs(1000);
-    }
-
 #else
     xTaskCreate(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle);
 #endif
