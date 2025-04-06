@@ -142,10 +142,10 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 /*
 // updated pin layout, made all important pins < 32
-#define ATN_PIN     ((gpio_num_t)13)
+#define ATN_PIN     ((gpio_num_t)18)
 #define EOI_PIN     ((gpio_num_t)2)
 #define DAV_PIN     ((gpio_num_t)1)
-#define NRFD_PIN    ((gpio_num_t)14)
+#define NRFD_PIN    ((gpio_num_t)21)
 #define NDAC_PIN    ((gpio_num_t)16)
 */
 

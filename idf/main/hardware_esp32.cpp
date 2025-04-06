@@ -517,7 +517,11 @@ bool isFirmwareFile(char* fname)
         fname[3] == 'M' &&
         fname[9] == 'P' &&
         fname[10] == 'D' &&
+#ifdef CONFIG_IDF_TARGET_ESP32
         fname[11] == '2')
+#else
+        fname[11] == '3')
+#endif
     {
         return true;
     }
