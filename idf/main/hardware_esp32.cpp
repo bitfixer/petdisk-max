@@ -13,6 +13,7 @@
 
 #include <esp_log.h>
 #include <nvs_flash.h>
+#include <esp_timer.h>
 #include <nvs.h>
 
 #include "console.h"
@@ -262,11 +263,150 @@ static int pdps(int argc, char** argv) {
     return 0;
 }
 
+static int tog(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: tog <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        ieee_set_data_output();
+        ieee_set_data_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        set_nrfd_output();
+        set_nrfd_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        set_eoi_output();
+        set_eoi_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        set_dav_output();
+        set_dav_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        set_ndac_output();
+        set_ndac_input();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("tog %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
+static int togmode(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: togmode <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        uint8_t byte = 0xff;
+        ieee_write_data_byte(byte);
+        byte = 0x00;
+        ieee_write_data_byte(byte);
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        raise_nrfd();
+        lower_nrfd();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        raise_eoi();
+        lower_eoi();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        raise_dav();
+        lower_dav();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        raise_ndac();
+        lower_ndac();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("togmode %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
+static int rdtest(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: rdtest <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+    uint8_t byte = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        ieee_read_data_byte(byte);
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        read_nrfd();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        read_eoi();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        read_dav();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        read_ndac();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("rdtest %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
 void hardware_cmd_init() {
     Console::add_command("ledinit", NULL, ledinit);
     Console::add_command("ledset", NULL, ledset);
     Console::add_command("pdpm", NULL, pdpm);
     Console::add_command("pdps", NULL, pdps);
+    Console::add_command("tog", NULL, tog);
+    Console::add_command("togmode", NULL, togmode);
+    Console::add_command("rdtest", NULL, rdtest);
 }
 
 void hDelayMs(int ms)

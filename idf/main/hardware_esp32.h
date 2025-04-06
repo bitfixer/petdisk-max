@@ -141,11 +141,17 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 //#define NDAC_PIN    ((gpio_num_t)16)
 #define NDAC_PIN    ((gpio_num_t)34)
 
-#define setInput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT)
-#define setOutput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT)
-#define digitalWrite2(pin,val) gpio_set_level((gpio_num_t)pin, val)
-#define digitalRead2(pin) gpio_get_level((gpio_num_t)pin)
+#define setInput(pin) gpio_hal_output_disable(&_gpio_hal, (gpio_num_t)pin)
+#define setOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
+#define digitalWrite2(pin,val) gpio_hal_set_level(&_gpio_hal, (gpio_num_t)pin, val)
+#define digitalRead2(pin) gpio_hal_get_level(&_gpio_hal, (gpio_num_t)pin)
 
+//#define setInput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT)
+//#define setOutput(pin) gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT)
+//#define digitalWrite2(pin,val) gpio_set_level((gpio_num_t)pin, val)
+//#define digitalRead2(pin) gpio_get_level((gpio_num_t)pin)
+
+/*
 #define lower_eoi()     gpio_set_level(EOI_PIN, 0)
 #define lower_dav()     gpio_set_level(DAV_PIN, 0)
 #define lower_nrfd()    gpio_set_level(NRFD_PIN, 0)
@@ -155,6 +161,17 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define raise_dav()     gpio_set_level(DAV_PIN, 1)
 #define raise_nrfd()    gpio_set_level(NRFD_PIN, 1)
 #define raise_ndac()    gpio_set_level(NDAC_PIN, 1)
+*/
+
+#define lower_eoi()     digitalWrite2(EOI_PIN,0)
+#define lower_dav()     digitalWrite2(DAV_PIN,0)
+#define lower_nrfd()    digitalWrite2(NRFD_PIN,0)
+#define lower_ndac()    digitalWrite2(NDAC_PIN,0)
+
+#define raise_eoi()     digitalWrite2(EOI_PIN,1)
+#define raise_dav()     digitalWrite2(DAV_PIN,1)
+#define raise_nrfd()    digitalWrite2(NRFD_PIN,1)
+#define raise_ndac()    digitalWrite2(NDAC_PIN,1)
 
 #define set_eoi_output()     setOutput(EOI_PIN)
 #define set_dav_output()     setOutput(DAV_PIN)
