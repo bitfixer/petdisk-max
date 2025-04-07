@@ -375,22 +375,22 @@ static int rdtest(int argc, char** argv) {
     }
     else if (strcmp(pinname, "nrfd") == 0) {
         start = esp_timer_get_time();
-        read_nrfd();
+        byte = read_nrfd();
         end = esp_timer_get_time();
     }
     else if (strcmp(pinname, "eoi") == 0) {
         start = esp_timer_get_time();
-        read_eoi();
+        byte = read_eoi();
         end = esp_timer_get_time();
     }
     else if (strcmp(pinname, "dav") == 0) {
         start = esp_timer_get_time();
-        read_dav();
+        byte = read_dav();
         end = esp_timer_get_time();
     }
     else if (strcmp(pinname, "ndac") == 0) {
         start = esp_timer_get_time();
-        read_ndac();
+        byte = read_ndac();
         end = esp_timer_get_time();
     }
 
