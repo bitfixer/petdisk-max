@@ -156,8 +156,8 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define set_datadir_output() setOutputLL(DATADIR)
 
-#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK);
-#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK);
+#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK)
+#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK)
 
 // NOTE: DATA1 is the only used GPIO pin > 32
 // this means the low level gpio functions can't be used since it
