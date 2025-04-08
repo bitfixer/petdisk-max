@@ -84,6 +84,7 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define DATA7       12
 
 #define DATADIR     3
+#define DATADIR_MASK 0b1000
 
 #define ATN_PIN     18
 #define ATN_MASK    0b1000000000000000000
@@ -155,6 +156,9 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define set_datadir_output() setOutputLL(DATADIR)
 
+#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK);
+#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK);
+
 // NOTE: DATA1 is the only used GPIO pin > 32
 // this means the low level gpio functions can't be used since it
 // requires interaction with the second gpio register
@@ -217,13 +221,13 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 })
 
 #define ieee_set_data_output() ({\
-    digitalWrite2(DATADIR, HIGH);\
+    raise_datadir();\
     *gpio_low_enable_set_reg = DATA_MASK;\
 })
 
 #define ieee_set_data_input() ({\
     *gpio_low_enable_clear_reg = DATA_MASK;\
-    digitalWrite2(DATADIR, LOW);\
+    lower_datadir();\
 })
 #endif
 

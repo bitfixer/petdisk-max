@@ -399,6 +399,95 @@ static int rdtest(int argc, char** argv) {
     return 0;
 }
 
+static int testpin(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: testpin <test_pin_name> <gpio_in> [datapin]\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int gpio_in = atoi(argv[2]);
+
+    gpio_set_direction((gpio_num_t)gpio_in, GPIO_MODE_INPUT);
+
+    if (strcmp(pinname, "nrfd") == 0) {
+        set_nrfd_output();
+        for (int i = 0; i < 4; i++) {
+            lower_nrfd();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_nrfd();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_nrfd_input();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        set_eoi_output();
+        for (int i = 0; i < 4; i++) {
+            lower_eoi();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_eoi();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_eoi_input();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        set_dav_output();
+        for (int i = 0; i < 4; i++) {
+            lower_dav();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_dav();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_dav_input();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        set_ndac_output();
+        for (int i = 0; i < 4; i++) {
+            lower_ndac();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_ndac();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_ndac_input();
+    }
+    else if (strcmp(pinname, "data") == 0) {
+        int datapin = atoi(argv[3]);
+        uint8_t bytehi = 0x1 << datapin;
+        uint8_t bytelo = ~bytehi;
+        setOutput(DATADIR);
+        ieee_set_data_output();
+        for (int i = 0; i < 4; i++) {
+            ieee_write_data_byte(bytelo);
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            ieee_write_data_byte(bytehi);
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        ieee_set_data_input();
+    }
+    else if (strcmp(pinname, "datadir") == 0) {
+        set_datadir_output();
+        for (int i = 0; i < 4; i++) {
+            lower_datadir();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_datadir();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+    }
+    return 0;
+}
+
 void hardware_cmd_init() {
     Console::add_command("ledinit", NULL, ledinit);
     Console::add_command("ledset", NULL, ledset);
@@ -407,6 +496,7 @@ void hardware_cmd_init() {
     Console::add_command("tog", NULL, tog);
     Console::add_command("togmode", NULL, togmode);
     Console::add_command("rdtest", NULL, rdtest);
+    Console::add_command("testpin", NULL, testpin);
 }
 
 void hDelayMs(int ms)
