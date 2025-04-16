@@ -1853,7 +1853,7 @@ TaskHandle_t loopTaskHandle = NULL;
 void loopTask(void *pvParameters)
 {
     setup();
-    //disable_interrupts();
+    disable_interrupts();
     for(;;) {
         loop();
     }
