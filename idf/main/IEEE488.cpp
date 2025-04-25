@@ -226,7 +226,8 @@ uint8_t IEEE488::get_device_address(uint8_t* dir, bool* success)
     *success = false;
     uint8_t primary_address;
     // wait for atn signal
-    wait_for_atn_low();
+    //wait_for_atn_low();
+    wait_atn_isr();
     
     // lower NDAC to respond
     set_ndac_output();

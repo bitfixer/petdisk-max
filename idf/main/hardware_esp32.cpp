@@ -13,19 +13,18 @@
 
 #include <esp_log.h>
 #include <nvs_flash.h>
+#include <esp_timer.h>
 #include <nvs.h>
+
+#include "console.h"
+
 //#include <Arduino.h>
 //#include <EEPROM.h>
 //#include <SPI.h>
 
 #define TAG "hardware"
 
-#define LED_PIN     2
-#define CS_PIN      4
 
-#define MISO_PIN   19
-#define MOSI_PIN   23
-#define SCK_PIN    18
 
 gpio_hal_context_t _gpio_hal = {
     .dev = GPIO_HAL_GET_HW(GPIO_PORT_0)
@@ -100,7 +99,6 @@ uint8_t spi_cs()
 }
 
 static nvs_handle_t eeprom_nvs_handle;
-
 static uint8_t eeprom_data[512];
 
 void prog_init()
@@ -150,6 +148,355 @@ void set_led(bool value)
     {
         digitalWrite2(LED_PIN, LOW);
     }
+}
+
+// ====
+// test function
+static int ledinit(int argc, char** argv) {
+    printf("running init_led\n");
+    init_led();
+    return 0;
+}
+
+static int ledset(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: ledset <val>\n");
+        return 1;
+    }
+
+    int v = atoi(argv[1]);
+    printf("ledset %d\n", v);
+    set_led(v == 0 ? false : true);
+    return 0;
+}
+
+static int pdpm(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: pdpm <pin_name> <mode>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int mode = atoi(argv[2]);
+
+    if (strcmp(pinname, "data") == 0) {
+        if (mode == 0) {
+            ieee_set_data_input();
+        } else {
+            ieee_set_data_output();
+        }
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        if (mode == 0) {
+            set_nrfd_input();
+        } else {
+            set_nrfd_output();
+        }
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        if (mode == 0) {
+            set_eoi_input();
+        } else {
+            set_eoi_output();
+        }
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        if (mode == 0) {
+            set_dav_input();
+        } else {
+            set_dav_output();
+        }
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        if (mode == 0) {
+            set_ndac_input();
+        } else {
+            set_ndac_output();
+        }
+
+    }
+    return 0;
+}
+
+static int pdps(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: pdps <pin_name> <val>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int val = atoi(argv[2]);
+
+    if (strcmp(pinname, "data") == 0) {
+        uint8_t byte = (uint8_t)val;
+        ieee_write_data_byte(byte);
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        if (val == 0) {
+            lower_nrfd();
+        } else {
+            raise_nrfd();
+        }
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        if (val == 0) {
+            lower_eoi();
+        } else {
+            raise_eoi();
+        }
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        if (val == 0) {
+            lower_dav();
+        } else {
+            raise_dav();
+        }
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        if (val == 0) {
+            lower_ndac();
+        } else {
+            raise_ndac();
+        }
+    }
+
+    return 0;
+}
+
+static int tog(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: tog <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        ieee_set_data_output();
+        ieee_set_data_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        set_nrfd_output();
+        set_nrfd_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        set_eoi_output();
+        set_eoi_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        set_dav_output();
+        set_dav_input();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        set_ndac_output();
+        set_ndac_input();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("tog %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
+static int togmode(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: togmode <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        uint8_t byte = 0xff;
+        ieee_write_data_byte(byte);
+        byte = 0x00;
+        ieee_write_data_byte(byte);
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        raise_nrfd();
+        lower_nrfd();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        raise_eoi();
+        lower_eoi();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        raise_dav();
+        lower_dav();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        raise_ndac();
+        lower_ndac();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("togmode %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
+static int rdtest(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: rdtest <pin>\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int64_t start = 0;
+    int64_t end = 0;
+    uint8_t byte = 0;
+
+    if (strcmp(pinname, "data") == 0) {
+        start = esp_timer_get_time();
+        ieee_read_data_byte(byte);
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "nrfd") == 0) {
+        start = esp_timer_get_time();
+        byte = read_nrfd();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        start = esp_timer_get_time();
+        byte = read_eoi();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        start = esp_timer_get_time();
+        byte = read_dav();
+        end = esp_timer_get_time();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        start = esp_timer_get_time();
+        byte = read_ndac();
+        end = esp_timer_get_time();
+    }
+
+    int64_t dur = end-start;
+    printf("rdtest %s %" PRIi64 "\n", pinname, dur);
+    return 0;
+}
+
+static int testpin(int argc, char** argv) {
+    if (argc < 3) {
+        printf("usage: testpin <test_pin_name> <gpio_in> [datapin]\n");
+        return 1;
+    }
+
+    char* pinname = argv[1];
+    int gpio_in = atoi(argv[2]);
+
+    gpio_set_direction((gpio_num_t)gpio_in, GPIO_MODE_INPUT);
+
+    if (strcmp(pinname, "nrfd") == 0) {
+        set_nrfd_output();
+        for (int i = 0; i < 4; i++) {
+            lower_nrfd();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_nrfd();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_nrfd_input();
+    }
+    else if (strcmp(pinname, "eoi") == 0) {
+        set_eoi_output();
+        for (int i = 0; i < 4; i++) {
+            lower_eoi();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_eoi();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_eoi_input();
+    }
+    else if (strcmp(pinname, "dav") == 0) {
+        set_dav_output();
+        for (int i = 0; i < 4; i++) {
+            lower_dav();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_dav();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_dav_input();
+    }
+    else if (strcmp(pinname, "ndac") == 0) {
+        set_ndac_output();
+        for (int i = 0; i < 4; i++) {
+            lower_ndac();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_ndac();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        set_ndac_input();
+    }
+    else if (strcmp(pinname, "data") == 0) {
+        int datapin = atoi(argv[3]);
+        uint8_t bytehi = 0x1 << datapin;
+        uint8_t bytelo = ~bytehi;
+        setOutput(DATADIR);
+        ieee_set_data_output();
+        for (int i = 0; i < 4; i++) {
+            ieee_write_data_byte(bytelo);
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            ieee_write_data_byte(bytehi);
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+        ieee_set_data_input();
+    }
+    else if (strcmp(pinname, "datadir") == 0) {
+        set_datadir_output();
+        for (int i = 0; i < 4; i++) {
+            lower_datadir();
+            hDelayMs(100);
+            printf("%d low: %d\n", i, gpio_get_level((gpio_num_t)gpio_in)); 
+            raise_datadir();
+            hDelayMs(100);
+            printf("%d high: %d\n", i, gpio_get_level((gpio_num_t)gpio_in));
+        }
+    }
+    return 0;
+}
+
+void hardware_cmd_init() {
+    Console::add_command("ledinit", NULL, ledinit);
+    Console::add_command("ledset", NULL, ledset);
+    Console::add_command("pdpm", NULL, pdpm);
+    Console::add_command("pdps", NULL, pdps);
+    Console::add_command("tog", NULL, tog);
+    Console::add_command("togmode", NULL, togmode);
+    Console::add_command("rdtest", NULL, rdtest);
+    Console::add_command("testpin", NULL, testpin);
 }
 
 void hDelayMs(int ms)
@@ -260,10 +607,59 @@ bool isFirmwareFile(char* fname)
         fname[3] == 'M' &&
         fname[9] == 'P' &&
         fname[10] == 'D' &&
+#ifdef CONFIG_IDF_TARGET_ESP32
         fname[11] == '2')
+#else
+        fname[11] == '3')
+#endif
     {
         return true;
     }
 
     return false;
+}
+
+int32_t nvs_get_int(const char* key) {
+    int32_t val = -1;
+    if (nvs_get_i32(eeprom_nvs_handle, key, &val) != ESP_OK) {
+        return -1;
+    }
+
+    return val;
+}
+
+void nvs_set_int(const char* key, int32_t val) {
+    esp_err_t err = nvs_set_i32(eeprom_nvs_handle, key, val);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_set_int, failed to set %s -> %" PRIi32, key, val);
+        return;
+    }
+
+    err = nvs_commit(eeprom_nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "failed to commit int value");
+    }
+}
+
+static QueueHandle_t atn_queue = NULL;
+static bool b;
+
+static void IRAM_ATTR gpio_isr_handler(void* arg) {
+    xQueueSendFromISR(atn_queue, (void*)&b, NULL);
+}
+
+void setup_atn_interrupt() {
+    atn_queue = xQueueCreate(1, sizeof(bool));
+    // set up ATN as interrupt
+    esp_err_t err = gpio_set_intr_type((gpio_num_t)ATN_PIN, GPIO_INTR_NEGEDGE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "failed to set ATN interrupt");
+    }
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add((gpio_num_t)ATN_PIN, gpio_isr_handler, NULL);
+}
+
+void wait_atn_isr() {
+    bool t;
+    while (xQueueReceive(atn_queue, &t, portMAX_DELAY) != pdTRUE) {}
 }

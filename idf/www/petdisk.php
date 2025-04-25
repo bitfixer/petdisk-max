@@ -174,6 +174,9 @@ if ($verb == "GET")
                     $content_length = $end-$start;
                 } else {
                     $contents = file_get_contents($file);
+                    $start = 0;
+                    $end = strlen($contents);
+                    $content_length = $end;
                 }
                 header('Content-Length: '.$content_length);
                 header('Content-Type: application/octet-stream');

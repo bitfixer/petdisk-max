@@ -24,16 +24,37 @@
 #define PSTR(str) str
 #define PROGMEM
 
-#define DATA0   32
-#define DATA1   33
-#define DATA2   25
-#define DATA3   26
-#define DATA4   27
-#define DATA5   14
-#define DATA6   12
-#define DATA7   13
+void hardware_cmd_init();
 
-#define DATADIR 15
+void gpio_init();
+
+extern gpio_hal_context_t _gpio_hal;
+extern gpio_dev_t *dev;
+
+extern volatile uint32_t* gpio_low_set_reg;
+extern volatile uint32_t* gpio_low_clear_reg;
+extern volatile uint32_t* gpio_low_enable_set_reg;
+extern volatile uint32_t* gpio_low_enable_clear_reg;
+
+#define delay_ticks(ticks) vTaskDelay(ticks)
+
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define LED_PIN     2
+#define CS_PIN      4
+#define MISO_PIN    19
+#define MOSI_PIN    23
+#define SCK_PIN     18
+
+#define DATA0       32
+#define DATA1       33
+#define DATA2       25
+#define DATA3       26
+#define DATA4       27
+#define DATA5       14
+#define DATA6       12
+#define DATA7       13
+
+#define DATADIR     15
 
 #define ATN_PIN     5
 #define ATN_MASK    0b00000000000000000000000000100000
@@ -45,23 +66,47 @@
 #define NRFD_MASK   0b00000000000000100000000000000000
 #define NDAC_PIN    16
 #define NDAC_MASK   0b00000000000000010000000000000000
+#else
+// esp32s2
+#define LED_PIN     15
+#define CS_PIN      4
+#define MISO_PIN    37
+#define MOSI_PIN    35
+#define SCK_PIN     36
 
-/*
-void setInput(int pin);
-void setOutput(int pin);
-void digitalWrite2(int pin, int val);
-uint8_t digitalRead2(int pin);
-*/
+#define DATA0       5
+#define DATA1       6
+#define DATA2       7
+#define DATA3       8
+#define DATA4       9
+#define DATA5       10
+#define DATA6       11
+#define DATA7       12
 
-void gpio_init();
+#define DATADIR     3
+#define DATADIR_MASK 0b1000
 
-extern gpio_hal_context_t _gpio_hal;
-extern gpio_dev_t *dev;
+#define ATN_PIN     18
+#define ATN_MASK    0b1000000000000000000
+#define EOI_PIN     2
+#define EOI_MASK    0b100
+#define DAV_PIN     1
+#define DAV_MASK    0b10
+#define NRFD_PIN    21
+#define NRFD_MASK   0b1000000000000000000000
+#define NDAC_PIN    16
+#define NDAC_MASK   0b10000000000000000
 
-extern volatile uint32_t* gpio_low_set_reg;
-extern volatile uint32_t* gpio_low_clear_reg;
-extern volatile uint32_t* gpio_low_enable_set_reg;
-extern volatile uint32_t* gpio_low_enable_clear_reg;
+#define DATA_MASK   0b1111111100000
+
+// NOTE: old definitions
+//#define ATN_PIN     ((gpio_num_t)33)
+//#define EOI_PIN     ((gpio_num_t)2)
+//#define DAV_PIN     ((gpio_num_t)1)
+//#define NRFD_PIN    ((gpio_num_t)38)
+//#define NDAC_PIN    ((gpio_num_t)34)
+
+#endif
 
 #define setInput(pin) gpio_hal_output_disable(&_gpio_hal, (gpio_num_t)pin)
 #define setOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
@@ -75,21 +120,12 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define digitalWriteLowLL(pin) dev->out_w1tc = (1 << pin)
 #define digitalReadLL(pin) ((dev->in >> pin) & 0x1)
 
-/*
-#define setInputMask(mask) dev->enable_w1tc = mask
-#define setOutputMask(mask) dev->enable_w1ts = mask
-#define digitalWriteHighMask(mask) dev->out_w1ts = mask
-#define digitalWriteLowMask(mask) dev->out_w1tc = mask
-*/
-
 #define setInputMask(mask) *gpio_low_enable_clear_reg = mask
 #define setOutputMask(mask) *gpio_low_enable_set_reg = mask
 #define digitalWriteHighMask(mask) *gpio_low_set_reg = mask
 #define digitalWriteLowMask(mask) *gpio_low_clear_reg = mask
 
 #define digitalReadMask(mask) (dev->in & mask)
-
-#define delay_ticks(ticks) vTaskDelay(ticks)
 
 #define lower_eoi()     digitalWriteLowMask(EOI_MASK)
 #define lower_dav()     digitalWriteLowMask(DAV_MASK)
@@ -120,10 +156,14 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define set_datadir_output() setOutputLL(DATADIR)
 
+#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK)
+#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK)
+
 // NOTE: DATA1 is the only used GPIO pin > 32
 // this means the low level gpio functions can't be used since it
 // requires interaction with the second gpio register
 
+#ifdef CONFIG_IDF_TARGET_ESP32
 #define ieee_read_data_byte(recvByte) ({\
     recvByte += digitalRead2(DATA7); recvByte <<= 1;\
     recvByte += digitalRead2(DATA6); recvByte <<= 1;\
@@ -169,6 +209,27 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
     setInput(DATA7);\
     digitalWrite2(DATADIR, LOW);\
 })
+#else
+// esp32s2
+#define ieee_read_data_byte(recvByte) ({\
+    recvByte = (uint8_t)((dev->in >> DATA0) & 0xFF);\
+})
+
+#define ieee_write_data_byte(byte) ({\
+    *gpio_low_set_reg = (uint32_t)byte << DATA0;\
+    *gpio_low_clear_reg = (uint32_t)(~byte) << DATA0;\
+})
+
+#define ieee_set_data_output() ({\
+    raise_datadir();\
+    *gpio_low_enable_set_reg = DATA_MASK;\
+})
+
+#define ieee_set_data_input() ({\
+    *gpio_low_enable_clear_reg = DATA_MASK;\
+    lower_datadir();\
+})
+#endif
 
 #define enable_interrupts() portENABLE_INTERRUPTS()
 #define disable_interrupts() portDISABLE_INTERRUPTS()
@@ -180,5 +241,8 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define log_i_d(format, ...) enable_interrupts(); ESP_LOGI("pd", format, ##__VA_ARGS__); disable_interrupts()
 #define log_d_d(format, ...) enable_interrupts(); ESP_LOGD("pd", format, ##__VA_ARGS__); disable_interrupts()
 #define log_e_d(format, ...) enable_interrupts(); ESP_LOGE("pd", format, ##__VA_ARGS__); disable_interrupts()
+
+void setup_atn_interrupt();
+void wait_atn_isr();
 
 #endif
