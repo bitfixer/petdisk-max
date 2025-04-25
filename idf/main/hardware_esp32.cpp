@@ -640,3 +640,26 @@ void nvs_set_int(const char* key, int32_t val) {
         ESP_LOGE(TAG, "failed to commit int value");
     }
 }
+
+static QueueHandle_t atn_queue = NULL;
+static bool b;
+
+static void IRAM_ATTR gpio_isr_handler(void* arg) {
+    xQueueSendFromISR(atn_queue, (void*)&b, NULL);
+}
+
+void setup_atn_interrupt() {
+    atn_queue = xQueueCreate(1, sizeof(bool));
+    // set up ATN as interrupt
+    esp_err_t err = gpio_set_intr_type((gpio_num_t)ATN_PIN, GPIO_INTR_NEGEDGE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "failed to set ATN interrupt");
+    }
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add((gpio_num_t)ATN_PIN, gpio_isr_handler, NULL);
+}
+
+void wait_atn_isr() {
+    bool t;
+    while (xQueueReceive(atn_queue, &t, portMAX_DELAY) != pdTRUE) {}
+}

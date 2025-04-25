@@ -16,7 +16,14 @@
 #include "FAT32.h"
 #include "console.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "driver/gpio.h"
+
 //#define TESTING 1
+
+static const char* TAG = "PD";
 
 // global memory buffer
 uint8_t _buffer[1024];
@@ -1064,6 +1071,7 @@ bool PETdisk::isD64(const char* fileName)
 
 bool PETdisk::openFile(uint8_t* fileName)
 {
+    ESP_LOGI(TAG, "file %s", (char*)fileName);
     if (_dataSource->openFileForReading(fileName))
     {
         return true;
@@ -1084,6 +1092,7 @@ bool PETdisk::openFile(uint8_t* fileName)
 
 void PETdisk::loop()
 {
+    enable_interrupts();
     // start main loop
     if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
     {
@@ -1097,8 +1106,10 @@ void PETdisk::loop()
     if (_ieee->is_unlistened())
     {
         // if we are in an unlisten state,
-        // wait for my address
+        // wait for my address     
+        bool t;
         uint8_t buscmd = get_device_address();
+        disable_interrupts();
         if (_dataSource == 0) // no datasource found
         {
             return;
@@ -1870,6 +1881,7 @@ extern "C" void app_main() {
     hardware_cmd_init();
     ESP_LOGI("main", "entering test mode");
 #else
-    xTaskCreate(loopTask, "loopTask", 4096, NULL, 1, &loopTaskHandle);
+    setup_atn_interrupt();
+    xTaskCreate(loopTask, "loopTask", 4096, NULL, 24, &loopTaskHandle);
 #endif
 }

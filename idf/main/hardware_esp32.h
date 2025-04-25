@@ -242,4 +242,7 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define log_d_d(format, ...) enable_interrupts(); ESP_LOGD("pd", format, ##__VA_ARGS__); disable_interrupts()
 #define log_e_d(format, ...) enable_interrupts(); ESP_LOGE("pd", format, ##__VA_ARGS__); disable_interrupts()
 
+void setup_atn_interrupt();
+void wait_atn_isr();
+
 #endif
