@@ -55,6 +55,7 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #define DATA7       13
 
 #define DATADIR     15
+#define DATADIR_MASK 0b1000000000000000
 
 #define ATN_PIN     5
 #define ATN_MASK    0b00000000000000000000000000100000
