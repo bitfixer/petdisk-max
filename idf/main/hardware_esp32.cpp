@@ -641,15 +641,12 @@ void nvs_set_int(const char* key, int32_t val) {
     }
 }
 
-static QueueHandle_t atn_queue = NULL;
-static bool b;
-
+bool atn_low = false;
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
-    xQueueSendFromISR(atn_queue, (void*)&b, NULL);
+    atn_low = true;
 }
 
 void setup_atn_interrupt() {
-    atn_queue = xQueueCreate(1, sizeof(bool));
     // set up ATN as interrupt
     esp_err_t err = gpio_set_intr_type((gpio_num_t)ATN_PIN, GPIO_INTR_NEGEDGE);
     if (err != ESP_OK) {
@@ -660,6 +657,8 @@ void setup_atn_interrupt() {
 }
 
 void wait_atn_isr() {
-    bool t;
-    while (xQueueReceive(atn_queue, &t, portMAX_DELAY) != pdTRUE) {}
+    while (!atn_low) {
+        hDelayMs(1);
+    }
+    atn_low = false;
 }
