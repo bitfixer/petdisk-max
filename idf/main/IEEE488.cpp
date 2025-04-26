@@ -45,51 +45,15 @@ void IEEE488::wait_for_dav_low()
    while (read_dav() != 0) {}
 }
 
-bool IEEE488::wait_for_dav_low_with_timeout(int timeoutMs)
-{
-    int msStart = getMs();
-    while (read_dav() != 0) {
-        if ((getMs() - msStart) > timeoutMs) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 void IEEE488::wait_for_atn_high()
 {
    while (read_atn() == 0) {}
-}
-
-bool IEEE488::is_atn_asserted()
-{
-   if (read_atn() == 0)
-   {
-       return true;
-   }
-
-   return false;
 }
 
 void IEEE488::wait_for_atn_low()
 {
     while (read_atn() != 0) {}
 }
-
-bool IEEE488::wait_for_atn_low_with_timeout(int timeoutMs)
-{
-    int msStart = getMs();
-    while (read_atn() != 0) {
-        int m = getMs();
-        if ((m - msStart) > timeoutMs) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 
 void IEEE488::wait_for_nrfd_high()
 {
@@ -214,6 +178,7 @@ void IEEE488::unlisten()
     set_eoi_input();
 
     _unlistened = true;
+    clear_atn();
 }
 
 bool IEEE488::is_unlistened()
@@ -230,8 +195,8 @@ uint8_t IEEE488::get_device_address(uint8_t* dir, bool* success)
     wait_atn_isr();
     
     // lower NDAC to respond
-    set_ndac_output();
-    lower_ndac();
+    //set_ndac_output();
+    //lower_ndac();
     wait_for_dav_low();
 
     // read data

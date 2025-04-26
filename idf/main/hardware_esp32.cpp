@@ -645,6 +645,9 @@ static QueueHandle_t atn_queue = NULL;
 static bool b;
 
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
+    set_ndac_output();
+    lower_ndac();
+    gpio_intr_disable((gpio_num_t)ATN_PIN);
     xQueueSendFromISR(atn_queue, (void*)&b, NULL);
 }
 
@@ -661,5 +664,11 @@ void setup_atn_interrupt() {
 
 void wait_atn_isr() {
     bool t;
-    while (xQueueReceive(atn_queue, &t, portMAX_DELAY) != pdTRUE) {}
+    xQueueReceive(atn_queue, &t, portMAX_DELAY);
+}
+
+void clear_atn() {
+    //bool t;
+    //xQueueReceive(atn_queue, &t, 0);
+    gpio_intr_enable((gpio_num_t)ATN_PIN);
 }

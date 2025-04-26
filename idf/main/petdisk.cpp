@@ -1252,7 +1252,7 @@ void PETdisk::loop()
             // this is a directory request
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
-                log_d("dir request");
+                log_i("dir request 1");
                 _filenamePosition = 0;
                 _currentState = DIR_READ;
                 initDirectory();
@@ -1421,7 +1421,7 @@ void PETdisk::loop()
             // get packet
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
-                log_d("dir request");
+                log_i("dir request");
                 _ieee->begin_output_end();
                 // reading a directory
                 // need to handle both standard load"$" command and DIRECTORY/CATALOG here
@@ -1860,6 +1860,7 @@ void loop()
 }
 
 TaskHandle_t loopTaskHandle = NULL;
+TaskHandle_t logTaskHandle = NULL;
 
 void loopTask(void *pvParameters)
 {
@@ -1867,6 +1868,15 @@ void loopTask(void *pvParameters)
     disable_interrupts();
     for(;;) {
         loop();
+    }
+}
+
+void logTask(void* args) {
+    while (1) {
+        set_led(true);
+        hDelayMs(500);
+        set_led(false);
+        hDelayMs(500);
     }
 }
 
@@ -1881,7 +1891,10 @@ extern "C" void app_main() {
     hardware_cmd_init();
     ESP_LOGI("main", "entering test mode");
 #else
+    Console::init();
+    hardware_cmd_init();
     setup_atn_interrupt();
-    xTaskCreate(loopTask, "loopTask", 4096, NULL, 24, &loopTaskHandle);
+    xTaskCreate(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle);
+    xTaskCreate(logTask, "logTask", 4096, NULL, 5, &logTaskHandle);
 #endif
 }
