@@ -75,11 +75,8 @@ public:
     uint8_t wait_for_ndac_low_or_atn_low();
     IEEEBusSignal wait_for_ndac_high_or_atn_low();
     uint8_t wait_for_nrfd_high_or_atn_low();
-    bool is_atn_asserted();
     void wait_for_atn_low();
     void wait_for_dav_low();
-    bool wait_for_atn_low_with_timeout(int timeoutMs);
-    bool wait_for_dav_low_with_timeout(int timeoutMs);
     void recv_byte(uint8_t *byte);
 
     uint8_t get_device_address(uint8_t* dir, bool* success);
