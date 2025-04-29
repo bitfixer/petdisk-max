@@ -1252,7 +1252,6 @@ void PETdisk::loop()
             // this is a directory request
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
-                log_i("dir request 1");
                 _filenamePosition = 0;
                 _currentState = DIR_READ;
                 initDirectory();
@@ -1370,6 +1369,9 @@ void PETdisk::loop()
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             strcpy(of->_fileName, (const char*)progname);
             of->_fileBufferIndex = -1;
+            _currentState = IDLE;
+        }
+        else if (_currentState == DIR_READ) {
             _currentState = IDLE;
         }
     }
