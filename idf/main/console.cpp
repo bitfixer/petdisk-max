@@ -198,12 +198,12 @@ static int psramtest(int argc, char** argv) {
 }
 
 static void _init_command(const char* cmd, const char* help, esp_console_cmd_func_t cmdfunc) {
-    char* cptr = (char*)heap_caps_malloc(strlen(cmd)+1, MALLOC_CAP_INTERNAL);
+    char* cptr = (char*)malloc(strlen(cmd)+1);
     strcpy(cptr, cmd);
 
     char *chelp = NULL;
     if (help) {
-      chelp = (char*)heap_caps_malloc(strlen(help)+1, MALLOC_CAP_INTERNAL);
+      chelp = (char*)malloc(strlen(help)+1);
       strcpy(chelp, help);
     }
 
