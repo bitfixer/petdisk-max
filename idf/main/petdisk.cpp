@@ -73,15 +73,6 @@ const uint8_t _seqExtension[] PROGMEM =
     0x00,
 };
 
-void pgm_memcpy(uint8_t *dest, uint8_t *src, int len)
-{
-    int i;
-    for (i = 0; i < len; i++)
-    {
-        *dest++ = bf_pgm_read_byte(&(*src++));
-    }
-}
-
 void blink_led(int count, int ms_on, int ms_off)
 {
     set_led(false);
@@ -503,18 +494,13 @@ void PETdisk::init(
 
 void PETdisk::printConfig(struct pd_config* pdcfg)
 {
-    char tmp[128];
     for (int i = 0; i < 9; i++)
     {
-        //sprintf_P(tmp, PSTR("d %d->%d"), i, pdcfg->device_type[i]);
-        //log_is((const char*)tmp);
         log_i("d %d->%d", i, pdcfg->device_type[i]);
     }
 
     for (int i = 0; i < 4; i++)
     {
-        //sprintf_P(tmp, PSTR("u %d->"), i);
-        //log_is(tmp);
         log_i("%d: %s", i, pdcfg->urls[i]);
     }
 
@@ -768,10 +754,10 @@ void PETdisk::initDirectory()
     _directoryEntryByteIndex = 0;
 
     // copy the directory header
-    pgm_memcpy((uint8_t *)_directoryEntry, (uint8_t *)_dirHeader, 7);
+    memcpy((uint8_t *)_directoryEntry, (uint8_t *)_dirHeader, 7);
 
     // print directory title
-    pgm_memcpy((uint8_t *)&_directoryEntry[7], (uint8_t *)_versionString, 24);
+    memcpy((uint8_t *)&_directoryEntry[7], (uint8_t *)_versionString, 24);
     _directoryEntry[31] = 0x00;
     _directoryFinished = false;
     _lastDirectoryBlock = false;
@@ -814,10 +800,10 @@ bool PETdisk::getDirectoryEntry()
             _directoryEntry[startline+3] = 0x00;
             _directoryEntry[startline+4] = 0x20;
             _directoryEntry[startline+5] = 0x20;
-            pgm_memcpy(&_directoryEntry[startline+6], (uint8_t*)_firmwareString, 6);
+            memcpy(&_directoryEntry[startline+6], (uint8_t*)_firmwareString, 6);
             
             // TODO: add git hash back
-            pgm_memcpy(&_directoryEntry[startline+6+6], (uint8_t*)_hash, 7);
+            memcpy(&_directoryEntry[startline+6+6], (uint8_t*)_hash, 7);
             _directoryEntry[startline+31] = 0x00;
             _directoryEntryIndex++;
             _directoryFinished = true;
@@ -1293,7 +1279,7 @@ void PETdisk::loop()
                 // if not a command, copy the file extension onto the end of the file name
                 if (_secondaryAddress != 15)
                 {
-                    pgm_memcpy(&progname[_filenamePosition], (uint8_t*)ext, 5);
+                    memcpy(&progname[_filenamePosition], (uint8_t*)ext, 5);
                 }
                 _filenamePosition = 0;
             }
