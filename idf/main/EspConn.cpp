@@ -238,13 +238,13 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
     args.recvData = _serialBuffer;
     args.recCount = 0;
 
-    enable_interrupts();
+    //enable_interrupts();
 #if CONFIG_IDF_TARGET_ESP32
     esp_ipc_call_blocking(0, http_fetch, (void*)&args);
 #else
     http_fetch(&args);
 #endif
-    disable_interrupts();
+    //disable_interrupts();
     
     *_serialBufferSize = args.recCount;
 }

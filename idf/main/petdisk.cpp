@@ -1092,7 +1092,6 @@ bool PETdisk::openFile(uint8_t* fileName)
 
 void PETdisk::loop()
 {
-    enable_interrupts();
     // start main loop
     if (_currentState == FILE_NOT_FOUND || _currentState == CLOSING)
     {
@@ -1109,7 +1108,6 @@ void PETdisk::loop()
         // wait for my address     
         bool t;
         uint8_t buscmd = get_device_address();
-        disable_interrupts();
         if (_dataSource == 0) // no datasource found
         {
             return;
@@ -1316,17 +1314,15 @@ void PETdisk::loop()
         if (!_dataSource->init()) 
         {
             _fileNotFound = 1;
-            _currentState = IDLE;
         }
 
         if (_currentState == FILE_SAVE_OPENING)
         {
             // open file
             _dataSource->openFileForWriting(progname);
-            _currentState = IDLE;
         }
         else if (_currentState == FILE_READ_OPENING ||
-                    _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
+                 _currentState == OPEN_FNAME_READ_DONE) // file read, either LOAD or OPEN command
         {
             // check for direct access command
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
@@ -1362,18 +1358,14 @@ void PETdisk::loop()
                     _bufferFileIndex = _secondaryAddress;
                 }
             }
-            _currentState = IDLE;
         }
         else if (_currentState == OPEN_FNAME_READ_DONE_FOR_WRITING)
         {
             openFileInfo* of = getFileInfoForAddress(_secondaryAddress);
             strcpy(of->_fileName, (const char*)progname);
             of->_fileBufferIndex = -1;
-            _currentState = IDLE;
         }
-        else if (_currentState == DIR_READ) {
-            _currentState = IDLE;
-        }
+        _currentState = IDLE;
     }
 
     if ((rdchar == UNLISTEN) || (rdchar == UNTALK && _ieee->atn_is_low()))
@@ -1862,23 +1854,13 @@ void loop()
 }
 
 TaskHandle_t loopTaskHandle = NULL;
-TaskHandle_t logTaskHandle = NULL;
 
 void loopTask(void *pvParameters)
 {
     setup();
-    disable_interrupts();
+    //disable_interrupts();
     for(;;) {
         loop();
-    }
-}
-
-void logTask(void* args) {
-    while (1) {
-        set_led(true);
-        hDelayMs(500);
-        set_led(false);
-        hDelayMs(500);
     }
 }
 
@@ -1897,6 +1879,5 @@ extern "C" void app_main() {
     hardware_cmd_init();
     setup_atn_interrupt();
     xTaskCreate(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle);
-    xTaskCreate(logTask, "logTask", 4096, NULL, 5, &logTaskHandle);
 #endif
 }

@@ -232,11 +232,8 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 })
 #endif
 
-//#define enable_interrupts() portENABLE_INTERRUPTS()
-//#define disable_interrupts() portDISABLE_INTERRUPTS()
-
-#define enable_interrupts()
-#define disable_interrupts()
+#define enable_interrupts() portENABLE_INTERRUPTS()
+#define disable_interrupts() portDISABLE_INTERRUPTS()
 
 #define log_i(format, ...) ESP_LOGI("pd", format, ##__VA_ARGS__)
 #define log_d(format, ...) ESP_LOGD("pd", format, ##__VA_ARGS__)

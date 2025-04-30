@@ -504,10 +504,6 @@ void hDelayMs(int ms)
     vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
-int getMs() {
-    return (int)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-}
-
 uint8_t bf_pgm_read_byte(uint8_t* src)
 {
     return *src;
@@ -668,7 +664,5 @@ void wait_atn_isr() {
 }
 
 void clear_atn() {
-    //bool t;
-    //xQueueReceive(atn_queue, &t, 0);
     gpio_intr_enable((gpio_num_t)ATN_PIN);
 }
