@@ -32,7 +32,7 @@ namespace bitfixer {
 void IEEE488::init() {
     set_datadir_output();
     set_atn_input();
-    set_data_input();
+    ieee_set_data_input();
 }
 
 void IEEE488::wait_for_dav_high()
@@ -168,7 +168,7 @@ void IEEE488::raise_dav_and_eoi()
 
 void IEEE488::unlisten()
 {
-    set_data_input();
+    ieee_set_data_input();
 
     // all bus lines input
     set_atn_input();
@@ -238,17 +238,6 @@ void IEEE488::reject_address()
     wait_for_atn_high();
 }
 
-void IEEE488::set_data_output()
-{
-    // set all data lines to output
-    ieee_set_data_output();
-}
-
-void IEEE488::set_data_input()
-{
-    ieee_set_data_input();
-}
-
 // configure IEEE bus to begin sending bytes
 void IEEE488::begin_output()
 {
@@ -262,7 +251,7 @@ void IEEE488::begin_output()
     raise_dav();
     raise_eoi();
 
-    set_data_output();
+    ieee_set_data_output();
 
     wait_for_ndac_low();
 }
@@ -287,7 +276,7 @@ void IEEE488::begin_output_start()
     raise_dav();
     raise_eoi();
 
-    set_data_output();
+    ieee_set_data_output();
 
     wait_for_ndac_low();
 }
@@ -297,7 +286,7 @@ void IEEE488::begin_output_end()
     /*
     raise_dav();
     raise_eoi();
-    set_data_output();
+    ieee_set_data_output();
     wait_for_ndac_low();
     */
 }
@@ -313,7 +302,7 @@ void IEEE488::end_output()
     set_nrfd_output();
     raise_nrfd();
 
-    set_data_input();
+    ieee_set_data_input();
 }
 
 uint8_t IEEE488::sendIEEEByteCheckForATN(uint8_t byte)

@@ -83,9 +83,6 @@ public:
     void accept_address();
     void reject_address();
 
-    void set_data_output();
-    void set_data_input();
-
     void write_byte_to_data_bus(uint8_t byte);
 private:
     bool _atn_low;
