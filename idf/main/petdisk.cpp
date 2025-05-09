@@ -1057,7 +1057,7 @@ bool PETdisk::isD64(const char* fileName)
 
 bool PETdisk::openFile(uint8_t* fileName)
 {
-    ESP_LOGI(TAG, "file %s", (char*)fileName);
+    //ESP_LOGI(TAG, "file %s", (char*)fileName);
     if (_dataSource->openFileForReading(fileName))
     {
         return true;
@@ -1319,7 +1319,7 @@ void PETdisk::loop()
             }
             else if (!openFile(progname))
             {
-                log_d("not found, prog: %s", progname);
+                //log_d("not found, prog: %s", progname);
                 // file not found
                 _fileNotFound = 1;
             }
@@ -1401,7 +1401,7 @@ void PETdisk::loop()
             // get packet
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
-                log_i("dir request");
+                //log_i("dir request");
                 _ieee->begin_output_end();
                 // reading a directory
                 // need to handle both standard load"$" command and DIRECTORY/CATALOG here
@@ -1844,7 +1844,9 @@ TaskHandle_t loopTaskHandle = NULL;
 void loopTask(void *pvParameters)
 {
     setup();
-    //disable_interrupts();
+#if CONFIG_IDF_TARGET_ESP32
+    disable_interrupts();
+#endif
     for(;;) {
         loop();
     }
@@ -1863,7 +1865,9 @@ extern "C" void app_main() {
 #else
     Console::init();
     hardware_cmd_init();
+#if CONFIG_IDF_TARGET_ESP32
     setup_atn_interrupt();
+#endif
     xTaskCreate(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle);
 #endif
 }
