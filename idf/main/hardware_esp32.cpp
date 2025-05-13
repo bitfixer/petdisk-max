@@ -660,7 +660,9 @@ void setup_atn_interrupt() {
 void wait_atn_isr() {
     bool t;
     xQueueReceive(atn_queue, &t, portMAX_DELAY);
+    disable_interrupts();
 }
 
 void clear_atn() {
+    enable_interrupts();
 }

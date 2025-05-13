@@ -30,6 +30,9 @@ private:
     int _port;
 
     bool _connected = false;
+
+    bool wifi_start();
+    bool wifi_stop();
 };
 
 }

@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <lwip/dns.h>
+#include <esp_log.h>
 
 namespace bitfixer 
 {
@@ -108,6 +109,7 @@ esp_err_t example_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
     return ESP_OK;
 }
 
+static wifi_config_t _wifi_config;
 
 bool EspConn::connect(const char* ssid, const char* passphrase) {
     nvs_flash_init();
@@ -120,16 +122,23 @@ bool EspConn::connect(const char* ssid, const char* passphrase) {
 
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+
+    memset(&_wifi_config, 0, sizeof(wifi_config_t));
+    strcpy((char*)_wifi_config.sta.ssid, ssid);
+    strcpy((char*)_wifi_config.sta.password, passphrase);
+    _wifi_config.sta.scan_method = WIFI_FAST_SCAN;
+    _wifi_config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+    return wifi_start();
+}
+
+bool EspConn::wifi_start() {
     ESP_ERROR_CHECK(esp_wifi_start());
+    example_wifi_sta_do_connect(_wifi_config, true);
+    return true;
+}
 
-    wifi_config_t wifi_config;
-    memset(&wifi_config, 0, sizeof(wifi_config_t));
-    strcpy((char*)wifi_config.sta.ssid, ssid);
-    strcpy((char*)wifi_config.sta.password, passphrase);
-    wifi_config.sta.scan_method = WIFI_FAST_SCAN;
-    wifi_config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
-
-    example_wifi_sta_do_connect(wifi_config, true);
+bool EspConn::wifi_stop() {
+    esp_wifi_stop();
     return true;
 }
 
@@ -238,13 +247,19 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
     args.recvData = _serialBuffer;
     args.recCount = 0;
 
-    //enable_interrupts();
+    enable_interrupts();
 #if CONFIG_IDF_TARGET_ESP32
-    esp_ipc_call_blocking(0, http_fetch, (void*)&args);
+    //wifi_start();
+    //esp_ipc_call_blocking(1, http_fetch, (void*)&args);
+    //wifi_stop();
+    ESP_LOGI("conn", "start fetch");
+    http_fetch(&args);
+    ESP_LOGI("conn", "end fetch");
+
 #else
     http_fetch(&args);
 #endif
-    //disable_interrupts();
+    disable_interrupts();
     
     *_serialBufferSize = args.recCount;
 }

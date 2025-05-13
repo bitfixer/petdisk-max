@@ -1057,7 +1057,7 @@ bool PETdisk::isD64(const char* fileName)
 
 bool PETdisk::openFile(uint8_t* fileName)
 {
-    ESP_LOGI(TAG, "file %s", (char*)fileName);
+    //ESP_LOGI(TAG, "file %s", (char*)fileName);
     if (_dataSource->openFileForReading(fileName))
     {
         return true;
@@ -1866,6 +1866,6 @@ extern "C" void app_main() {
     Console::init();
     hardware_cmd_init();
     setup_atn_interrupt();
-    xTaskCreate(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle);
+    xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
 #endif
 }
