@@ -17,14 +17,12 @@
 #include <nvs.h>
 
 #include "console.h"
+#include "IEEE488.h"
 
 //#include <Arduino.h>
 //#include <EEPROM.h>
 //#include <SPI.h>
-
-#define TAG "hardware"
-
-
+static const char* TAG = "hw";
 
 gpio_hal_context_t _gpio_hal = {
     .dev = GPIO_HAL_GET_HW(GPIO_PORT_0)
@@ -639,11 +637,12 @@ void nvs_set_int(const char* key, int32_t val) {
 
 static QueueHandle_t atn_queue = NULL;
 static bool b;
+static bitfixer::IEEE488* _ieee = bitfixer::IEEE488::get_instance();
 
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
     set_ndac_output();
     lower_ndac();
-    gpio_intr_disable((gpio_num_t)ATN_PIN);
+    // wait for dav low
     xQueueSendFromISR(atn_queue, (void*)&b, NULL);
 }
 
@@ -664,5 +663,4 @@ void wait_atn_isr() {
 }
 
 void clear_atn() {
-    gpio_intr_enable((gpio_num_t)ATN_PIN);
 }

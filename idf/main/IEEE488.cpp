@@ -29,10 +29,16 @@
 
 namespace bitfixer {
 
+static IEEE488 _ieee;
+
 void IEEE488::init() {
     set_datadir_output();
     set_atn_input();
     ieee_set_data_input();
+}
+
+IEEE488* IEEE488::get_instance() {
+    return &_ieee;
 }
 
 void IEEE488::wait_for_dav_high()

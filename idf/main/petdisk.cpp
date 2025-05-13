@@ -1401,7 +1401,7 @@ void PETdisk::loop()
             // get packet
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
-                log_i("dir request");
+                //log_i("dir request");
                 _ieee->begin_output_end();
                 // reading a directory
                 // need to handle both standard load"$" command and DIRECTORY/CATALOG here
@@ -1746,7 +1746,7 @@ SD _sd;
 bitfixer::FAT32 _fat32;
 bitfixer::EspConn _espConn;
 bitfixer::EspHttp _espHttp;
-bitfixer::IEEE488 _ieee;
+//bitfixer::IEEE488 _ieee;
 D64DataSource _d64DataSource;
 PETdisk _petdisk;
 
@@ -1782,12 +1782,14 @@ void setup()
     _spi.init();
     _sd.initWithSPI(&_spi, spi_cs());
     _fat32.initWithParams(&_sd, _buffer, &_buffer[512]);
+
+    bitfixer::IEEE488* ieee = bitfixer::IEEE488::get_instance();
     
     if (checkForDisable((char*)&_buffer[769], &_fat32))
     {
         log_i("DISABLE.PD found, disabling device\n");
-        _ieee.init();
-        _ieee.unlisten();
+        ieee->init();
+        ieee->unlisten();
         init_led();
         while(1) {
             blink_led(4, 500, 500);
@@ -1802,8 +1804,8 @@ void setup()
     _espConn.initWithParams(_buffer, &_bufferSize);
     _espHttp.initWithParams(&_espConn);
 
-    _ieee.init();
-    _ieee.unlisten();
+    ieee->init();
+    ieee->unlisten();
     
     nds0.initWithParams(&_espHttp, _buffer, &_bufferSize);
     nds1.initWithParams(&_espHttp, _buffer, &_bufferSize);
@@ -1824,7 +1826,7 @@ void setup()
         &_espConn, 
         &_espHttp, 
         (bitfixer::NetworkDataSource**)nds_array,
-        &_ieee);
+        ieee);
 
     // run diagnostics if needed
     // TODO: check if DIAG.PD2 exists

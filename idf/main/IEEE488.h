@@ -84,6 +84,8 @@ public:
     void reject_address();
 
     void write_byte_to_data_bus(uint8_t byte);
+
+    static IEEE488* get_instance();
 private:
     bool _atn_low;
     bool _eoi_low;
