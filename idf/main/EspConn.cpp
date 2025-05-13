@@ -248,17 +248,9 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
     args.recCount = 0;
 
     enable_interrupts();
-#if CONFIG_IDF_TARGET_ESP32
-    //wifi_start();
-    //esp_ipc_call_blocking(1, http_fetch, (void*)&args);
-    //wifi_stop();
-    ESP_LOGI("conn", "start fetch");
+    //ESP_LOGI("conn", "start fetch %d", len);
     http_fetch(&args);
-    ESP_LOGI("conn", "end fetch");
-
-#else
-    http_fetch(&args);
-#endif
+    ESP_LOGI("conn", "end fetch %d", len);
     disable_interrupts();
     
     *_serialBufferSize = args.recCount;
