@@ -1865,7 +1865,7 @@ extern "C" void app_main() {
 #else
     Console::init();
     hardware_cmd_init();
-    setup_atn_interrupt();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
+    setup_atn_interrupt();
 #endif
 }

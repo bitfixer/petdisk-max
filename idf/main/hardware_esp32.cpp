@@ -662,4 +662,5 @@ void wait_atn_isr() {
 
 void clear_atn() {
     enable_interrupts();
+    set_led(true);
 }
