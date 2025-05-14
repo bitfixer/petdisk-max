@@ -657,7 +657,6 @@ void setup_atn_interrupt() {
 }
 
 void wait_atn_isr() {
-    bool t;
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 }
 
