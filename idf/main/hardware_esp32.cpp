@@ -638,6 +638,7 @@ void nvs_set_int(const char* key, int32_t val) {
 extern TaskHandle_t loopTaskHandle;
 
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
+    disable_interrupts();
     set_ndac_output();
     lower_ndac();
     BaseType_t xHigherPriorityTaskWoken;
@@ -658,7 +659,6 @@ void setup_atn_interrupt() {
 void wait_atn_isr() {
     bool t;
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    disable_interrupts();
 }
 
 void clear_atn() {

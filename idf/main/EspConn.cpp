@@ -236,7 +236,7 @@ static void http_fetch(void* args) {
         close(sock);
     }
 }
-
+ 
 void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
 {
     httpArgs args;
@@ -246,11 +246,14 @@ void EspConn::sendData(uint8_t sock, unsigned char* data, int len)
     args.dataLen = len;
     args.recvData = _serialBuffer;
     args.recCount = 0;
+    char logstr[256];
 
     enable_interrupts();
-    //ESP_LOGI("conn", "start fetch %d", len);
+    memcpy(logstr, data, len);
+    logstr[len] = 0;
     http_fetch(&args);
-    ESP_LOGI("conn", "end fetch %d", len);
+    ESP_LOGI("conn", "fetch: %s", logstr);
+    portYIELD();
     disable_interrupts();
     
     *_serialBufferSize = args.recCount;
