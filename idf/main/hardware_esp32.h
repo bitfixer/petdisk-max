@@ -28,12 +28,6 @@ void hardware_cmd_init();
 void gpio_init();
 
 extern gpio_hal_context_t _gpio_hal;
-extern gpio_dev_t *dev;
-
-extern volatile uint32_t* gpio_low_set_reg;
-extern volatile uint32_t* gpio_low_clear_reg;
-extern volatile uint32_t* gpio_low_enable_set_reg;
-extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define delay_ticks(ticks) vTaskDelay(ticks)
 
@@ -191,14 +185,8 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 })
 #else
 // esp32s2
-#define ieee_read_data_byte(recvByte) ({\
-    recvByte = (uint8_t)((dev->in >> DATA0) & 0xFF);\
-})
-
-#define ieee_write_data_byte(byte) ({\
-    *gpio_low_set_reg = (uint32_t)byte << DATA0;\
-    *gpio_low_clear_reg = (uint32_t)(~byte) << DATA0;\
-})
+#define ieee_read_data_byte(recvByte)   recvByte = EspFastGpio::readByte(DATA0)
+#define ieee_write_data_byte(byte)      EspFastGpio::writeByte(byte, DATA0)
 
 #define ieee_set_data_output() ({\
     raise_datadir();\
