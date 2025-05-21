@@ -1746,7 +1746,6 @@ SD _sd;
 bitfixer::FAT32 _fat32;
 bitfixer::EspConn _espConn;
 bitfixer::EspHttp _espHttp;
-//bitfixer::IEEE488 _ieee;
 D64DataSource _d64DataSource;
 PETdisk _petdisk;
 
@@ -1846,23 +1845,15 @@ TaskHandle_t loopTaskHandle = NULL;
 void loopTask(void *pvParameters)
 {
     setup();
-    //disable_interrupts();
     for(;;) {
         loop();
     }
 }
 
-//#define TESTMODE 1
-
 extern "C" void app_main() {
     esp_log_level_set("pd", ESP_LOG_INFO);
     gpio_init();
     // select between test mode and run mode
-#ifdef TESTMODE
-    Console::init();
-    hardware_cmd_init();
-    ESP_LOGI("main", "entering test mode");
-#else
     Console::init();
     hardware_cmd_init();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
