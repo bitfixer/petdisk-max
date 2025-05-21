@@ -1,9 +1,6 @@
 #ifndef __hardware_esp32_h__
 #define __hardware_esp32_h__
 
-//#include <Arduino.h>
-// #include <pgmspace.h>
-
 #include <stdint.h>
 #include <hal/gpio_types.h>
 #include <driver/gpio.h>
@@ -12,6 +9,8 @@
 #include <hal/gpio_hal.h>
 #include <hal/gpio_ll.h>
 #include <esp_log.h>
+
+#include "esp-fast-gpio.h"
 
 #define LOW     0x0
 #define HIGH    0x1
@@ -110,7 +109,7 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 #endif
 
 #define setInput(pin) gpio_hal_output_disable(&_gpio_hal, (gpio_num_t)pin)
-#define setOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
+#define setPinOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
 #define digitalWrite2(pin,val) gpio_hal_set_level(&_gpio_hal, (gpio_num_t)pin, val)
 #define digitalRead2(pin) gpio_hal_get_level(&_gpio_hal, (gpio_num_t)pin)
 
@@ -128,37 +127,45 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define digitalReadMask(mask) (dev->in & mask)
 
-#define lower_eoi()     digitalWriteLowMask(EOI_MASK)
-#define lower_dav()     digitalWriteLowMask(DAV_MASK)
-#define lower_nrfd()    digitalWriteLowMask(NRFD_MASK)
-#define lower_ndac()    digitalWriteLowMask(NDAC_MASK)
+#define lower_eoi()     EspFastGpio::setLow(EOI_PIN)
+#define lower_dav()     EspFastGpio::setLow(DAV_PIN)
+#define lower_nrfd()    EspFastGpio::setLow(NRFD_PIN)
+#define lower_ndac()    EspFastGpio::setLow(NDAC_PIN)
 
-#define raise_eoi()     digitalWriteHighMask(EOI_MASK)
-#define raise_dav()     digitalWriteHighMask(DAV_MASK)
-#define raise_nrfd()    digitalWriteHighMask(NRFD_MASK)
-#define raise_ndac()    digitalWriteHighMask(NDAC_MASK)
+#define raise_eoi()     EspFastGpio::setHigh(EOI_PIN)
+#define raise_dav()     EspFastGpio::setHigh(DAV_PIN)
+#define raise_nrfd()    EspFastGpio::setHigh(NRFD_PIN)
+#define raise_ndac()    EspFastGpio::setHigh(NDAC_PIN)
 
-#define set_eoi_output()     setOutputMask(EOI_MASK)
-#define set_dav_output()     setOutputMask(DAV_MASK)
-#define set_nrfd_output()    setOutputMask(NRFD_MASK)
-#define set_ndac_output()    setOutputMask(NDAC_MASK)
+//#define set_eoi_output()     setOutputMask(EOI_MASK)
+//#define set_dav_output()     setOutputMask(DAV_MASK)
+//#define set_nrfd_output()    setOutputMask(NRFD_MASK)
+//#define set_ndac_output()    setOutputMask(NDAC_MASK)
 
-#define read_atn()      digitalReadLL(ATN_PIN)
-#define read_eoi()      digitalReadLL(EOI_PIN)
-#define read_dav()      digitalReadLL(DAV_PIN)
-#define read_nrfd()     digitalReadLL(NRFD_PIN)
-#define read_ndac()     digitalReadLL(NDAC_PIN)
+#define set_eoi_output()    EspFastGpio::setOutput(EOI_PIN)
+#define set_dav_output()    EspFastGpio::setOutput(DAV_PIN)
+#define set_nrfd_output()   EspFastGpio::setOutput(NRFD_PIN)
+#define set_ndac_output()   EspFastGpio::setOutput(NDAC_PIN)
 
-#define set_atn_input()     setInputLL(ATN_PIN)
-#define set_eoi_input()     setInputLL(EOI_PIN)
-#define set_dav_input()     setInputLL(DAV_PIN)
-#define set_nrfd_input()    setInputLL(NRFD_PIN)
-#define set_ndac_input()    setInputLL(NDAC_PIN)
+#define read_atn()      EspFastGpio::get(ATN_PIN)
+#define read_eoi()      EspFastGpio::get(EOI_PIN)
+#define read_dav()      EspFastGpio::get(DAV_PIN)
+#define read_nrfd()     EspFastGpio::get(NRFD_PIN)
+#define read_ndac()     EspFastGpio::get(NDAC_PIN)
+
+#define set_atn_input()     setInputMask(ATN_MASK)
+#define set_eoi_input()     setInputMask(EOI_MASK)
+#define set_dav_input()     setInputMask(DAV_MASK)
+#define set_nrfd_input()    setInputMask(NRFD_MASK)
+#define set_ndac_input()    setInputMask(NDAC_MASK)
 
 #define set_datadir_output() setOutputLL(DATADIR)
 
-#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK)
-#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK)
+//#define raise_datadir()     digitalWriteHighMask(DATADIR_MASK)
+//#define lower_datadir()     digitalWriteLowMask(DATADIR_MASK)
+
+#define raise_datadir()     EspFastGpio::setHigh(DATADIR)
+#define lower_datadir()     EspFastGpio::setLow(DATADIR)
 
 // NOTE: DATA1 is the only used GPIO pin > 32
 // this means the low level gpio functions can't be used since it
@@ -189,14 +196,14 @@ extern volatile uint32_t* gpio_low_enable_clear_reg;
 
 #define ieee_set_data_output() ({\
     digitalWrite2(DATADIR, HIGH);\
-    setOutput(DATA0);\
-    setOutput(DATA1);\
-    setOutput(DATA2);\
-    setOutput(DATA3);\
-    setOutput(DATA4);\
-    setOutput(DATA5);\
-    setOutput(DATA6);\
-    setOutput(DATA7);\
+    setPinOutput(DATA0);\
+    setPinOutput(DATA1);\
+    setPinOutput(DATA2);\
+    setPinOutput(DATA3);\
+    setPinOutput(DATA4);\
+    setPinOutput(DATA5);\
+    setPinOutput(DATA6);\
+    setPinOutput(DATA7);\
 })
 
 #define ieee_set_data_input() ({\

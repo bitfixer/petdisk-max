@@ -71,6 +71,8 @@ void gpio_init() {
     io_conf.pull_up_en = (gpio_pullup_t)1;
     //configure GPIO with the given settings
     gpio_config(&io_conf);
+
+    EspFastGpio::init();
 }
 
 void setPinMode(int pin, int mode) {
@@ -133,7 +135,7 @@ void prog_init()
 void init_led()
 {
     // nothing for esp32
-    setOutput(LED_PIN);
+    setPinOutput(LED_PIN);
 }
 
 void set_led(bool value)
@@ -460,7 +462,7 @@ static int testpin(int argc, char** argv) {
         int datapin = atoi(argv[3]);
         uint8_t bytehi = 0x1 << datapin;
         uint8_t bytelo = ~bytehi;
-        setOutput(DATADIR);
+        setPinOutput(DATADIR);
         ieee_set_data_output();
         for (int i = 0; i < 4; i++) {
             ieee_write_data_byte(bytelo);
