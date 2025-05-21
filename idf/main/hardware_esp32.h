@@ -190,11 +190,11 @@ extern gpio_hal_context_t _gpio_hal;
 
 #define ieee_set_data_output() ({\
     raise_datadir();\
-    *gpio_low_enable_set_reg = DATA_MASK;\
+    EspFastGpio::setOutputMask(DATA_MASK);\
 })
 
 #define ieee_set_data_input() ({\
-    *gpio_low_enable_clear_reg = DATA_MASK;\
+    EspFastGpio::setInputMask(DATA_MASK);\
     lower_datadir();\
 })
 #endif
