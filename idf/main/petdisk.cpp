@@ -1858,5 +1858,4 @@ extern "C" void app_main() {
     hardware_cmd_init();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
     setup_atn_interrupt();
-#endif
 }
