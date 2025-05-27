@@ -175,6 +175,13 @@ extern uint32_t data_mask_hi[256];
     digitalWrite2(DATA7, byte & 0x01);\
 })
 
+/*
+#define ieee_write_data_byte(byte) ({\
+    EspFastGpio::writeMask(data_mask_low[byte]);\
+    EspFastGpio::writeMaskHigh(data_mask_hi[byte]);\
+})
+*/
+
 #define ieee_set_data_output() ({\
     raise_datadir();\
     EspFastGpio::setOutputHigh(DATA0_HI);\

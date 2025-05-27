@@ -35,6 +35,9 @@ volatile uint32_t* gpio_low_clear_reg = &(dev->out_w1tc);
 volatile uint32_t* gpio_low_enable_set_reg = &(dev->enable_w1ts);
 volatile uint32_t* gpio_low_enable_clear_reg = &(dev->enable_w1tc);
 
+uint32_t data_mask_low[256];
+uint32_t data_mask_hi[256];
+
 void gpio_init() {
     // set all used io pins as output
     //zero-initialize the config structure.
@@ -71,6 +74,43 @@ void gpio_init() {
     io_conf.pull_up_en = (gpio_pullup_t)1;
     //configure GPIO with the given settings
     gpio_config(&io_conf);
+
+    #ifdef CONFIG_IDF_TARGET_ESP32
+    int data_pins[8];
+    data_pins[0] = DATA0;
+    data_pins[1] = DATA1;
+    data_pins[2] = DATA2;
+    data_pins[3] = DATA3;
+    data_pins[4] = DATA4;
+    data_pins[5] = DATA5;
+    data_pins[6] = DATA6;
+    data_pins[7] = DATA7;
+
+
+    // prepare data masks, high and low registers
+    for (int i = 0; i < 256; i++) {
+        uint32_t low_mask = 0;
+        uint32_t high_mask = 0;
+
+        uint8_t byte = (uint8_t)i;
+        for (int i = 0; i < 8; i++) {
+            int data_pin = data_pins[i];
+            if (byte & 0x1) {
+                if (data_pin >= 32) {
+                    high_mask |= (1 << (data_pin-32));
+                } else {
+                    low_mask |= (1 << data_pin);
+                }
+            }
+            byte >>= 1;
+        }
+
+        ESP_LOGI(TAG, "datamask %X: %lX %lX", i, low_mask, high_mask);
+
+        data_mask_low[i] = low_mask;
+        data_mask_hi[i] = high_mask;
+    }
+    #endif
 
     EspFastGpio::init();
 }
