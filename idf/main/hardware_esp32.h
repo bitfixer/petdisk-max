@@ -39,7 +39,9 @@ extern gpio_hal_context_t _gpio_hal;
 #define SCK_PIN     18
 
 #define DATA0       32
+#define DATA0_HI    0
 #define DATA1       33
+#define DATA1_HI    1
 #define DATA2       25
 #define DATA3       26
 #define DATA4       27
@@ -60,6 +62,10 @@ extern gpio_hal_context_t _gpio_hal;
 #define NRFD_MASK   0b00000000000000100000000000000000
 #define NDAC_PIN    16
 #define NDAC_MASK   0b00000000000000010000000000000000
+
+extern uint32_t data_mask_low[256];
+extern uint32_t data_mask_hi[256];
+
 #else
 // esp32s2
 #define LED_PIN     15
@@ -133,11 +139,8 @@ extern gpio_hal_context_t _gpio_hal;
 #define raise_datadir()     EspFastGpio::setHigh(DATADIR)
 #define lower_datadir()     EspFastGpio::setLow(DATADIR)
 
-// NOTE: DATA1 is the only used GPIO pin > 32
-// this means the low level gpio functions can't be used since it
-// requires interaction with the second gpio register
-
 #ifdef CONFIG_IDF_TARGET_ESP32
+/*
 #define ieee_read_data_byte(recvByte) ({\
     recvByte += digitalRead2(DATA7); recvByte <<= 1;\
     recvByte += digitalRead2(DATA6); recvByte <<= 1;\
@@ -147,6 +150,18 @@ extern gpio_hal_context_t _gpio_hal;
     recvByte += digitalRead2(DATA2); recvByte <<= 1;\
     recvByte += digitalRead2(DATA1); recvByte <<= 1;\
     recvByte += digitalRead2(DATA0);\
+})
+*/
+
+#define ieee_read_data_byte(recvByte) ({\
+    recvByte += EspFastGpio::get(DATA7); recvByte <<= 1;\
+    recvByte += EspFastGpio::get(DATA6); recvByte <<= 1;\
+    recvByte += EspFastGpio::get(DATA5); recvByte <<= 1;\
+    recvByte += EspFastGpio::get(DATA4); recvByte <<= 1;\
+    recvByte += EspFastGpio::get(DATA3); recvByte <<= 1;\
+    recvByte += EspFastGpio::get(DATA2); recvByte <<= 1;\
+    recvByte += EspFastGpio::get_high(DATA1_HI); recvByte <<= 1;\
+    recvByte += EspFastGpio::get_high(DATA0_HI);\
 })
 
 #define ieee_write_data_byte(byte) ({\
@@ -161,27 +176,27 @@ extern gpio_hal_context_t _gpio_hal;
 })
 
 #define ieee_set_data_output() ({\
-    digitalWrite2(DATADIR, HIGH);\
-    setPinOutput(DATA0);\
-    setPinOutput(DATA1);\
-    setPinOutput(DATA2);\
-    setPinOutput(DATA3);\
-    setPinOutput(DATA4);\
-    setPinOutput(DATA5);\
-    setPinOutput(DATA6);\
-    setPinOutput(DATA7);\
+    raise_datadir();\
+    EspFastGpio::setOutputHigh(DATA0_HI);\
+    EspFastGpio::setOutputHigh(DATA1_HI);\
+    EspFastGpio::setOutput(DATA2);\
+    EspFastGpio::setOutput(DATA3);\
+    EspFastGpio::setOutput(DATA4);\
+    EspFastGpio::setOutput(DATA5);\
+    EspFastGpio::setOutput(DATA6);\
+    EspFastGpio::setOutput(DATA7);\
 })
 
 #define ieee_set_data_input() ({\
-    setPinInput(DATA0);\
-    setPinInput(DATA1);\
-    setPinInput(DATA2);\
-    setPinInput(DATA3);\
-    setPinInput(DATA4);\
-    setPinInput(DATA5);\
-    setPinInput(DATA6);\
-    setPinInput(DATA7);\
-    digitalWrite2(DATADIR, LOW);\
+    EspFastGpio::setInputHigh(DATA0_HI);\
+    EspFastGpio::setInputHigh(DATA1_HI);\
+    EspFastGpio::setInput(DATA2);\
+    EspFastGpio::setInput(DATA3);\
+    EspFastGpio::setInput(DATA4);\
+    EspFastGpio::setInput(DATA5);\
+    EspFastGpio::setInput(DATA6);\
+    EspFastGpio::setInput(DATA7);\
+    lower_datadir();\
 })
 #else
 // esp32s2
