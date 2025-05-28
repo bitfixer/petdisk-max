@@ -37,6 +37,7 @@ volatile uint32_t* gpio_low_enable_clear_reg = &(dev->enable_w1tc);
 
 uint32_t data_mask_low[256];
 uint32_t data_mask_hi[256];
+uint8_t data_lut[256];
 
 void gpio_init() {
     // set all used io pins as output
@@ -86,6 +87,15 @@ void gpio_init() {
     data_pins[6] = DATA6;
     data_pins[7] = DATA7;
 
+    int pin_order[8];
+    pin_order[0] = 0;
+    pin_order[1] = 1;
+    pin_order[2] = 6;
+    pin_order[3] = 7;
+    pin_order[4] = 5;
+    pin_order[5] = 2;
+    pin_order[6] = 3;
+    pin_order[7] = 4;
 
     // prepare data masks, high and low registers
     for (int i = 0; i < 256; i++) {
@@ -109,6 +119,17 @@ void gpio_init() {
 
         data_mask_low[i] = low_mask;
         data_mask_hi[i] = high_mask;
+
+        // data lut for byte ordering
+        byte = (uint8_t)i;
+        uint8_t output_byte = 0;
+        for (int i = 0; i < 8; i++) {
+            if (byte & 0x1) {
+                output_byte |= (1<<pin_order[i]);
+            }
+            byte >>= 1;
+        }
+        data_lut[i] = output_byte;
     }
     #endif
 

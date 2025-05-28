@@ -49,6 +49,12 @@ extern gpio_hal_context_t _gpio_hal;
 #define DATA6       12
 #define DATA7       13
 
+#define DATA_LOW_MASK   0xE007000
+#define DATA_HIGH_MASK  0x3
+
+#define DATA_LOW_SUBMASK_1 0xE000000
+#define DATA_LOW_SUBMASK_2 0x0007000
+
 #define DATADIR     15
 #define DATADIR_MASK 0b1000000000000000
 
@@ -65,6 +71,7 @@ extern gpio_hal_context_t _gpio_hal;
 
 extern uint32_t data_mask_low[256];
 extern uint32_t data_mask_hi[256];
+extern uint8_t data_lut[256];
 
 #else
 // esp32s2
@@ -140,18 +147,6 @@ extern uint32_t data_mask_hi[256];
 #define lower_datadir()     EspFastGpio::setLow(DATADIR)
 
 #ifdef CONFIG_IDF_TARGET_ESP32
-/*
-#define ieee_read_data_byte(recvByte) ({\
-    recvByte += digitalRead2(DATA7); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA6); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA5); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA4); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA3); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA2); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA1); recvByte <<= 1;\
-    recvByte += digitalRead2(DATA0);\
-})
-*/
 
 #define ieee_read_data_byte(recvByte) ({\
     recvByte += EspFastGpio::get(DATA7); recvByte <<= 1;\
@@ -165,46 +160,22 @@ extern uint32_t data_mask_hi[256];
 })
 
 #define ieee_write_data_byte(byte) ({\
-    digitalWrite2(DATA0, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA1, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA2, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA3, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA4, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA5, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA6, byte & 0x01); byte >>= 1;\
-    digitalWrite2(DATA7, byte & 0x01);\
+    EspFastGpio::writeMask(data_mask_low[byte], DATA_LOW_MASK);\
+    EspFastGpio::writeMaskHigh(data_mask_hi[byte], DATA_HIGH_MASK);\
 })
-
-/*
-#define ieee_write_data_byte(byte) ({\
-    EspFastGpio::writeMask(data_mask_low[byte]);\
-    EspFastGpio::writeMaskHigh(data_mask_hi[byte]);\
-})
-*/
 
 #define ieee_set_data_output() ({\
     raise_datadir();\
-    EspFastGpio::setOutputHigh(DATA0_HI);\
-    EspFastGpio::setOutputHigh(DATA1_HI);\
-    EspFastGpio::setOutput(DATA2);\
-    EspFastGpio::setOutput(DATA3);\
-    EspFastGpio::setOutput(DATA4);\
-    EspFastGpio::setOutput(DATA5);\
-    EspFastGpio::setOutput(DATA6);\
-    EspFastGpio::setOutput(DATA7);\
+    EspFastGpio::setOutputMask(DATA_LOW_MASK);\
+    EspFastGpio::setOutputMaskHigh(DATA_HIGH_MASK);\
 })
 
 #define ieee_set_data_input() ({\
-    EspFastGpio::setInputHigh(DATA0_HI);\
-    EspFastGpio::setInputHigh(DATA1_HI);\
-    EspFastGpio::setInput(DATA2);\
-    EspFastGpio::setInput(DATA3);\
-    EspFastGpio::setInput(DATA4);\
-    EspFastGpio::setInput(DATA5);\
-    EspFastGpio::setInput(DATA6);\
-    EspFastGpio::setInput(DATA7);\
+    EspFastGpio::setInputMask(DATA_LOW_MASK);\
+    EspFastGpio::setInputMaskHigh(DATA_HIGH_MASK);\
     lower_datadir();\
 })
+
 #else
 // esp32s2
 #define ieee_read_data_byte(recvByte)   recvByte = EspFastGpio::readByte(DATA0)
