@@ -37,7 +37,6 @@ volatile uint32_t* gpio_low_enable_clear_reg = &(dev->enable_w1tc);
 
 uint32_t data_mask_low[256];
 uint32_t data_mask_hi[256];
-uint8_t data_lut[256];
 
 void gpio_init() {
     // set all used io pins as output
@@ -115,21 +114,10 @@ void gpio_init() {
             byte >>= 1;
         }
 
-        ESP_LOGI(TAG, "datamask %X: %lX %lX", i, low_mask, high_mask);
+        ESP_LOGV(TAG, "datamask %X: %lX %lX", i, low_mask, high_mask);
 
         data_mask_low[i] = low_mask;
         data_mask_hi[i] = high_mask;
-
-        // data lut for byte ordering
-        byte = (uint8_t)i;
-        uint8_t output_byte = 0;
-        for (int i = 0; i < 8; i++) {
-            if (byte & 0x1) {
-                output_byte |= (1<<pin_order[i]);
-            }
-            byte >>= 1;
-        }
-        data_lut[i] = output_byte;
     }
     #endif
 

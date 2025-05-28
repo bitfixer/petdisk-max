@@ -52,26 +52,16 @@ extern gpio_hal_context_t _gpio_hal;
 #define DATA_LOW_MASK   0xE007000
 #define DATA_HIGH_MASK  0x3
 
-#define DATA_LOW_SUBMASK_1 0xE000000
-#define DATA_LOW_SUBMASK_2 0x0007000
-
 #define DATADIR     15
-#define DATADIR_MASK 0b1000000000000000
 
 #define ATN_PIN     5
-#define ATN_MASK    0b00000000000000000000000000100000
 #define EOI_PIN     22
-#define EOI_MASK    0b00000000010000000000000000000000
 #define DAV_PIN     21
-#define DAV_MASK    0b00000000001000000000000000000000
 #define NRFD_PIN    17
-#define NRFD_MASK   0b00000000000000100000000000000000
 #define NDAC_PIN    16
-#define NDAC_MASK   0b00000000000000010000000000000000
 
 extern uint32_t data_mask_low[256];
 extern uint32_t data_mask_hi[256];
-extern uint8_t data_lut[256];
 
 #else
 // esp32s2
@@ -99,13 +89,6 @@ extern uint8_t data_lut[256];
 #define NDAC_PIN    16
 
 #define DATA_MASK   0b1111111100000
-
-// NOTE: old definitions
-//#define ATN_PIN     ((gpio_num_t)33)
-//#define EOI_PIN     ((gpio_num_t)2)
-//#define DAV_PIN     ((gpio_num_t)1)
-//#define NRFD_PIN    ((gpio_num_t)38)
-//#define NDAC_PIN    ((gpio_num_t)34)
 
 #endif
 
