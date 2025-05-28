@@ -34,5 +34,4 @@ bool isFirmwareFile(char* fname);
 int32_t nvs_get_int(const char* key);
 void nvs_set_int(const char* key, int32_t val);
 
-
 #endif

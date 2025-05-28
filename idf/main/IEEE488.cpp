@@ -56,6 +56,16 @@ void IEEE488::wait_for_atn_high()
    while (read_atn() == 0) {}
 }
 
+void IEEE488::wait_for_atn_high_with_timeout(int timeout_us)
+{
+   int64_t start_time_us = get_time_us();
+   while (read_atn() == 0) {
+     if ((get_time_us() - start_time_us) > timeout_us) {
+        return;
+     }
+   }
+}
+
 void IEEE488::wait_for_atn_low()
 {
     while (read_atn() != 0) {}
@@ -241,7 +251,7 @@ void IEEE488::reject_address()
     // unlisten the bus
     unlisten();
     // wait for atn to release
-    wait_for_atn_high();
+    wait_for_atn_high_with_timeout(200000);
 }
 
 // configure IEEE bus to begin sending bytes

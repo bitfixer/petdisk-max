@@ -9,6 +9,7 @@
 #include <hal/gpio_hal.h>
 #include <hal/gpio_ll.h>
 #include <esp_log.h>
+#include <esp_timer.h>
 
 #include "esp-fast-gpio.h"
 
@@ -185,6 +186,8 @@ extern uint32_t data_mask_hi[256];
 #define log_i_d(format, ...) enable_interrupts(); ESP_LOGI("pd", format, ##__VA_ARGS__); disable_interrupts()
 #define log_d_d(format, ...) enable_interrupts(); ESP_LOGD("pd", format, ##__VA_ARGS__); disable_interrupts()
 #define log_e_d(format, ...) enable_interrupts(); ESP_LOGE("pd", format, ##__VA_ARGS__); disable_interrupts()
+
+#define get_time_us()   esp_timer_get_time()
 
 void setup_atn_interrupt();
 void wait_atn_isr();

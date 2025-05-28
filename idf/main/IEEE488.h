@@ -93,6 +93,7 @@ private:
     bool _unlistened;
 
     void wait_for_atn_high();
+    void wait_for_atn_high_with_timeout(int timeout_us);
     void wait_for_dav_high();
 
     void wait_for_nrfd_high();

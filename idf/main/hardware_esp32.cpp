@@ -35,8 +35,10 @@ volatile uint32_t* gpio_low_clear_reg = &(dev->out_w1tc);
 volatile uint32_t* gpio_low_enable_set_reg = &(dev->enable_w1ts);
 volatile uint32_t* gpio_low_enable_clear_reg = &(dev->enable_w1tc);
 
+#ifdef CONFIG_IDF_TARGET_ESP32
 uint32_t data_mask_low[256];
 uint32_t data_mask_hi[256];
+#endif
 
 void gpio_init() {
     // set all used io pins as output
