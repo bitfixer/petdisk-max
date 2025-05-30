@@ -539,6 +539,110 @@ static int testpin(int argc, char** argv) {
     return 0;
 }
 
+int pinspeed(int argc, char** argv) {
+    int pin = 1;
+
+    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT);
+    printf("gpio speed test for pin: %d\n", pin);
+
+    int i;
+    int64_t time_start, time_end;
+    time_start = get_time_us();
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    i = gpio_get_level((gpio_num_t)pin);
+    time_end = get_time_us();
+
+    double avg_time_us = (double)(time_end-time_start) / 10.0;
+
+    printf("gpio_get_level: %" PRIi64 " %lf us\n", time_end-time_start, avg_time_us);
+
+    time_start = get_time_us();
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    i = EspFastGpio::get(pin);
+    time_end = get_time_us();
+
+    avg_time_us = (double)(time_end-time_start) / 10.0;
+
+    printf("EspFastGpio::get: %" PRIi64 " %lf us\n", time_end-time_start, avg_time_us);
+
+    time_start = get_time_us();
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    i = EspFastGpio::mac_get(pin);
+    time_end = get_time_us();
+
+    avg_time_us = (double)(time_end-time_start) / 10.0;
+
+    printf("mac_get: %" PRIi64 " %lf us\n", time_end-time_start, avg_time_us);
+
+    // == output
+    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT);
+
+    time_start = get_time_us();
+    gpio_set_level((gpio_num_t)pin, 1);
+    gpio_set_level((gpio_num_t)pin, 0);
+    gpio_set_level((gpio_num_t)pin, 1);
+    gpio_set_level((gpio_num_t)pin, 0);
+    gpio_set_level((gpio_num_t)pin, 1);
+    gpio_set_level((gpio_num_t)pin, 0);
+    gpio_set_level((gpio_num_t)pin, 1);
+    gpio_set_level((gpio_num_t)pin, 0);
+    gpio_set_level((gpio_num_t)pin, 1);
+    gpio_set_level((gpio_num_t)pin, 0);
+    time_end = get_time_us();
+
+    avg_time_us = (double)(time_end-time_start) / 10.0;
+
+    printf("gpio_set_level: %" PRIi64 " %lf us\n", time_end-time_start, avg_time_us);
+
+    time_start = get_time_us();
+    EspFastGpio::setHigh(pin);
+    EspFastGpio::setLow(pin);
+    EspFastGpio::setHigh(pin);
+    EspFastGpio::setLow(pin);
+    EspFastGpio::setHigh(pin);
+    EspFastGpio::setLow(pin);
+    EspFastGpio::setHigh(pin);
+    EspFastGpio::setLow(pin);
+    EspFastGpio::setHigh(pin);
+    EspFastGpio::setLow(pin);
+    time_end = get_time_us();
+
+    avg_time_us = (double)(time_end-time_start) / 10.0;
+
+    printf("EspFastGpio::set: %" PRIi64 " %lf us\n", time_end-time_start, avg_time_us);
+
+
+    // now set output
+
+
+
+    return 0;
+}
+
 void hardware_cmd_init() {
     Console::add_command("ledinit", NULL, ledinit);
     Console::add_command("ledset", NULL, ledset);
@@ -548,6 +652,7 @@ void hardware_cmd_init() {
     Console::add_command("togmode", NULL, togmode);
     Console::add_command("rdtest", NULL, rdtest);
     Console::add_command("testpin", NULL, testpin);
+    Console::add_command("pinspeed", NULL, pinspeed);
 }
 
 void hDelayMs(int ms)
