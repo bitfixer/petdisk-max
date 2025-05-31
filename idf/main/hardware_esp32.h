@@ -25,10 +25,7 @@
 #define PROGMEM
 
 void hardware_cmd_init();
-
 void gpio_init();
-
-extern gpio_hal_context_t _gpio_hal;
 
 #define delay_ticks(ticks) vTaskDelay(ticks)
 
@@ -93,9 +90,6 @@ extern uint32_t data_mask_hi[256];
 
 #endif
 
-#define digitalWrite2(pin,val) gpio_hal_set_level(&_gpio_hal, (gpio_num_t)pin, val)
-#define digitalRead2(pin) gpio_hal_get_level(&_gpio_hal, (gpio_num_t)pin)
-
 #define lower_eoi()         fast_gpio_set_low(EOI_PIN)
 #define lower_dav()         fast_gpio_set_low(DAV_PIN)
 #define lower_nrfd()        fast_gpio_set_low(NRFD_PIN)
@@ -158,6 +152,8 @@ extern uint32_t data_mask_hi[256];
     lower_datadir();\
 })
 
+#define read_miso() fast_gpio_get(MISO_PIN)
+
 #else
 // esp32s2
 #define ieee_read_data_byte(recvByte)   recvByte = fast_gpio_read_byte(DATA0)
@@ -172,6 +168,8 @@ extern uint32_t data_mask_hi[256];
     fast_gpio_set_input_mask(DATA_MASK);\
     lower_datadir();\
 })
+
+#define read_miso()     fast_gpio_get_high(MISO_PIN-32)
 #endif
 
 #define enable_interrupts() portENABLE_INTERRUPTS()

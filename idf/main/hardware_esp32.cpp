@@ -15,6 +15,7 @@
 #include <nvs_flash.h>
 #include <esp_timer.h>
 #include <nvs.h>
+#include <esp_cpu.h>
 
 #include "console.h"
 #include "IEEE488.h"
@@ -745,42 +746,49 @@ void spi_init() {
     setPinMode(MOSI_PIN, OUTPUT);
     setPinMode(SCK_PIN, OUTPUT);
 
-    digitalWrite2(MOSI_PIN, LOW);
-    digitalWrite2(SCK_PIN, LOW);
+    fast_gpio_write(MOSI_PIN, LOW);
+    fast_gpio_write(SCK_PIN, LOW);
+}
+
+static void delay_cycles(uint32_t cycles) {
+    uint32_t start = esp_cpu_get_cycle_count();
+    while ((esp_cpu_get_cycle_count() - start) < cycles) {
+        __asm__ __volatile__("nop");
+    }
 }
 
 uint8_t spi_transmit(uint8_t data) {
     uint8_t recv = 0;
     uint8_t bit = 0;
-    uint32_t clockDelay = 2;
-    digitalWrite2(SCK_PIN, LOW);
+    uint32_t cycleDelay = 5;
+    fast_gpio_write(SCK_PIN, LOW);
     for (int i = 7; i >= 0; i--) {
         // get current output bit
         bit = (data >> i) & 0x1;
-        digitalWrite2(SCK_PIN, LOW);
-        digitalWrite2(MOSI_PIN, bit);
+        fast_gpio_write(SCK_PIN, LOW);
+        fast_gpio_write(MOSI_PIN, bit);
         // wait
-        esp_rom_delay_us(clockDelay);
+        delay_cycles(cycleDelay);
         // raise sck
-        digitalWrite2(SCK_PIN, HIGH);
+        fast_gpio_write(SCK_PIN, HIGH);
 
         // sample miso
-        bit = digitalRead2(MISO_PIN);
+        bit = read_miso();
         recv <<= 1;
         recv += bit;
-        esp_rom_delay_us(clockDelay);
+        delay_cycles(cycleDelay);
     }
-    digitalWrite2(MOSI_PIN, LOW);
-    digitalWrite2(SCK_PIN, LOW);
+    fast_gpio_write(MOSI_PIN, LOW);
+    fast_gpio_write(SCK_PIN, LOW);
     return recv;
 }
 
 void spi_cs_select() {
-    digitalWrite2(CS_PIN, LOW);
+    fast_gpio_write(CS_PIN, LOW);
 }
 
 void spi_cs_unselect() {
-    digitalWrite2(CS_PIN, HIGH);
+    fast_gpio_write(CS_PIN, HIGH);
 }
 
 bool isFirmwareFile(char* fname)
