@@ -737,50 +737,55 @@ uint8_t bf_eeprom_read_byte(const uint8_t* addr)
     return eeprom_data[index];
 }
 
+static spi_device_handle_t _spi;
+static bool _spi_init = false;
+
 void spi_init() {
-    ESP_LOGI("spi", "spi init");
+    ESP_LOGW(TAG, "spi_init");
+    if (_spi_init) {
+        return;
+    }
     setPinMode(CS_PIN, OUTPUT);
     spi_cs_unselect();
 
-    setPinMode(MISO_PIN, INPUT_PULLUP);
-    setPinMode(MOSI_PIN, OUTPUT);
-    setPinMode(SCK_PIN, OUTPUT);
+    esp_err_t ret;
+    spi_bus_config_t buscfg = {
+        .mosi_io_num = MOSI_PIN,
+        .miso_io_num = MISO_PIN,
+        .sclk_io_num = SCK_PIN,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 0,  // default
+    };
 
-    fast_gpio_write(MOSI_PIN, LOW);
-    fast_gpio_write(SCK_PIN, LOW);
-}
+    ret = spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_DISABLED);
+    _spi_init = true;
+    ESP_ERROR_CHECK(ret);
 
-static void delay_cycles(uint32_t cycles) {
-    uint32_t start = esp_cpu_get_cycle_count();
-    while ((esp_cpu_get_cycle_count() - start) < cycles) {
-        __asm__ __volatile__("nop");
-    }
+    spi_device_interface_config_t devcfg = {};
+    devcfg.clock_speed_hz = 25 * 1000 * 1000;  // 25 MHz
+    devcfg.mode = 0;
+    devcfg.spics_io_num = -1;  // <--- NO CS pin
+    devcfg.queue_size = 1;
+
+    ret = spi_bus_add_device(SPI2_HOST, &devcfg, &_spi);
+    ESP_ERROR_CHECK(ret);
+    ESP_LOGW(TAG, "SPI initialized without CS");
 }
 
 uint8_t spi_transmit(uint8_t data) {
-    uint8_t recv = 0;
-    uint8_t bit = 0;
-    uint32_t cycleDelay = 5;
-    fast_gpio_write(SCK_PIN, LOW);
-    for (int i = 7; i >= 0; i--) {
-        // get current output bit
-        bit = (data >> i) & 0x1;
-        fast_gpio_write(SCK_PIN, LOW);
-        fast_gpio_write(MOSI_PIN, bit);
-        // wait
-        delay_cycles(cycleDelay);
-        // raise sck
-        fast_gpio_write(SCK_PIN, HIGH);
+    uint8_t rx_byte = 0;
 
-        // sample miso
-        bit = read_miso();
-        recv <<= 1;
-        recv += bit;
-        delay_cycles(cycleDelay);
-    }
-    fast_gpio_write(MOSI_PIN, LOW);
-    fast_gpio_write(SCK_PIN, LOW);
-    return recv;
+    spi_transaction_t trans = {
+        .length = 8,  // bits
+        .tx_buffer = &data,
+        .rx_buffer = &rx_byte,
+    };
+
+    esp_err_t ret = spi_device_transmit(_spi, &trans);
+    ESP_ERROR_CHECK(ret);
+
+    return rx_byte;
 }
 
 void spi_cs_select() {
