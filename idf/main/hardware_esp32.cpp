@@ -171,19 +171,18 @@ void prog_init()
 
 void init_led()
 {
-    // nothing for esp32
-    setPinOutput(LED_PIN);
+    fast_gpio_set_output(LED_PIN);
 }
 
 void set_led(bool value)
 {
     if (value == true)
     {
-        digitalWrite2(LED_PIN, HIGH);
+        fast_gpio_set_high(LED_PIN);
     }
     else
     {
-        digitalWrite2(LED_PIN, LOW);
+        fast_gpio_set_low(LED_PIN);
     }
 }
 
@@ -499,7 +498,7 @@ static int testpin(int argc, char** argv) {
         int datapin = atoi(argv[3]);
         uint8_t bytehi = 0x1 << datapin;
         uint8_t bytelo = ~bytehi;
-        setPinOutput(DATADIR);
+        set_datadir_output();
         ieee_set_data_output();
         for (int i = 0; i < 4; i++) {
             ieee_write_data_byte(bytelo);

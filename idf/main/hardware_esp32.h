@@ -93,85 +93,83 @@ extern uint32_t data_mask_hi[256];
 
 #endif
 
-#define setPinInput(pin) gpio_hal_output_disable(&_gpio_hal, (gpio_num_t)pin)
-#define setPinOutput(pin) gpio_hal_output_enable(&_gpio_hal, (gpio_num_t)pin)
 #define digitalWrite2(pin,val) gpio_hal_set_level(&_gpio_hal, (gpio_num_t)pin, val)
 #define digitalRead2(pin) gpio_hal_get_level(&_gpio_hal, (gpio_num_t)pin)
 
-#define lower_eoi()         EspFastGpio::setLow(EOI_PIN)
-#define lower_dav()         EspFastGpio::setLow(DAV_PIN)
-#define lower_nrfd()        EspFastGpio::setLow(NRFD_PIN)
-#define lower_ndac()        EspFastGpio::setLow(NDAC_PIN)
+#define lower_eoi()         fast_gpio_set_low(EOI_PIN)
+#define lower_dav()         fast_gpio_set_low(DAV_PIN)
+#define lower_nrfd()        fast_gpio_set_low(NRFD_PIN)
+#define lower_ndac()        fast_gpio_set_low(NDAC_PIN)
 
-#define raise_eoi()         EspFastGpio::setHigh(EOI_PIN)
-#define raise_dav()         EspFastGpio::setHigh(DAV_PIN)
-#define raise_nrfd()        EspFastGpio::setHigh(NRFD_PIN)
-#define raise_ndac()        EspFastGpio::setHigh(NDAC_PIN)
+#define raise_eoi()         fast_gpio_set_high(EOI_PIN)
+#define raise_dav()         fast_gpio_set_high(DAV_PIN)
+#define raise_nrfd()        fast_gpio_set_high(NRFD_PIN)
+#define raise_ndac()        fast_gpio_set_high(NDAC_PIN)
 
-#define set_eoi_output()    EspFastGpio::setOutput(EOI_PIN)
-#define set_dav_output()    EspFastGpio::setOutput(DAV_PIN)
-#define set_nrfd_output()   EspFastGpio::setOutput(NRFD_PIN)
-#define set_ndac_output()   EspFastGpio::setOutput(NDAC_PIN)
+#define set_eoi_output()    fast_gpio_set_output(EOI_PIN)
+#define set_dav_output()    fast_gpio_set_output(DAV_PIN)
+#define set_nrfd_output()   fast_gpio_set_output(NRFD_PIN)
+#define set_ndac_output()   fast_gpio_set_output(NDAC_PIN)
 
-#define read_atn()          EspFastGpio::get(ATN_PIN)
-#define read_eoi()          EspFastGpio::get(EOI_PIN)
-#define read_dav()          EspFastGpio::get(DAV_PIN)
-#define read_nrfd()         EspFastGpio::get(NRFD_PIN)
-#define read_ndac()         EspFastGpio::get(NDAC_PIN)
+#define read_atn()          fast_gpio_get(ATN_PIN)
+#define read_eoi()          fast_gpio_get(EOI_PIN)
+#define read_dav()          fast_gpio_get(DAV_PIN)
+#define read_nrfd()         fast_gpio_get(NRFD_PIN)
+#define read_ndac()         fast_gpio_get(NDAC_PIN)
 
-#define set_atn_input()     EspFastGpio::setInput(ATN_PIN)
-#define set_eoi_input()     EspFastGpio::setInput(EOI_PIN)
-#define set_dav_input()     EspFastGpio::setInput(DAV_PIN)
-#define set_nrfd_input()    EspFastGpio::setInput(NRFD_PIN)
-#define set_ndac_input()    EspFastGpio::setInput(NDAC_PIN)
+#define set_atn_input()     fast_gpio_set_input(ATN_PIN)
+#define set_eoi_input()     fast_gpio_set_input(EOI_PIN)
+#define set_dav_input()     fast_gpio_set_input(DAV_PIN)
+#define set_nrfd_input()    fast_gpio_set_input(NRFD_PIN)
+#define set_ndac_input()    fast_gpio_set_input(NDAC_PIN)
 
-#define set_datadir_output()    EspFastGpio::setOutput(DATADIR)
+#define set_datadir_output()    fast_gpio_set_output(DATADIR)
 
-#define raise_datadir()     EspFastGpio::setHigh(DATADIR)
-#define lower_datadir()     EspFastGpio::setLow(DATADIR)
+#define raise_datadir()     fast_gpio_set_high(DATADIR)
+#define lower_datadir()     fast_gpio_set_low(DATADIR)
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 
 #define ieee_read_data_byte(recvByte) ({\
-    recvByte += EspFastGpio::get(DATA7); recvByte <<= 1;\
-    recvByte += EspFastGpio::get(DATA6); recvByte <<= 1;\
-    recvByte += EspFastGpio::get(DATA5); recvByte <<= 1;\
-    recvByte += EspFastGpio::get(DATA4); recvByte <<= 1;\
-    recvByte += EspFastGpio::get(DATA3); recvByte <<= 1;\
-    recvByte += EspFastGpio::get(DATA2); recvByte <<= 1;\
-    recvByte += EspFastGpio::get_high(DATA1_HI); recvByte <<= 1;\
-    recvByte += EspFastGpio::get_high(DATA0_HI);\
+    recvByte += fast_gpio_get(DATA7); recvByte <<= 1;\
+    recvByte += fast_gpio_get(DATA6); recvByte <<= 1;\
+    recvByte += fast_gpio_get(DATA5); recvByte <<= 1;\
+    recvByte += fast_gpio_get(DATA4); recvByte <<= 1;\
+    recvByte += fast_gpio_get(DATA3); recvByte <<= 1;\
+    recvByte += fast_gpio_get(DATA2); recvByte <<= 1;\
+    recvByte += fast_gpio_get_high(DATA1_HI); recvByte <<= 1;\
+    recvByte += fast_gpio_get_high(DATA0_HI);\
 })
 
 #define ieee_write_data_byte(byte) ({\
-    EspFastGpio::writeMask(data_mask_low[byte], DATA_LOW_MASK);\
-    EspFastGpio::writeMaskHigh(data_mask_hi[byte], DATA_HIGH_MASK);\
+    fast_gpio_write_mask(data_mask_low[byte], DATA_LOW_MASK);\
+    fast_gpio_write_mask_high(data_mask_hi[byte], DATA_HIGH_MASK);\
 })
 
 #define ieee_set_data_output() ({\
     raise_datadir();\
-    EspFastGpio::setOutputMask(DATA_LOW_MASK);\
-    EspFastGpio::setOutputMaskHigh(DATA_HIGH_MASK);\
+    fast_gpio_set_output_mask(DATA_LOW_MASK);\
+    fast_gpio_set_output_mask_high(DATA_HIGH_MASK);\
 })
 
 #define ieee_set_data_input() ({\
-    EspFastGpio::setInputMask(DATA_LOW_MASK);\
-    EspFastGpio::setInputMaskHigh(DATA_HIGH_MASK);\
+    fast_gpio_set_input_mask(DATA_LOW_MASK);\
+    fast_gpio_set_input_mask_high(DATA_HIGH_MASK);\
     lower_datadir();\
 })
 
 #else
 // esp32s2
-#define ieee_read_data_byte(recvByte)   recvByte = EspFastGpio::readByte(DATA0)
-#define ieee_write_data_byte(byte)      EspFastGpio::writeByte(byte, DATA0)
+#define ieee_read_data_byte(recvByte)   recvByte = fast_gpio_read_byte(DATA0)
+#define ieee_write_data_byte(byte)      fast_gpio_write_byte(byte, DATA0)
 
 #define ieee_set_data_output() ({\
     raise_datadir();\
-    EspFastGpio::setOutputMask(DATA_MASK);\
+    fast_gpio_set_output_mask(DATA_MASK);\
 })
 
 #define ieee_set_data_input() ({\
-    EspFastGpio::setInputMask(DATA_MASK);\
+    fast_gpio_set_input_mask(DATA_MASK);\
     lower_datadir();\
 })
 #endif
