@@ -85,6 +85,7 @@ extern uint32_t data_mask_hi[256];
 #define DAV_PIN     1
 #define NRFD_PIN    21
 #define NDAC_PIN    16
+#define NDAC_MASK   0b10000000000000000
 
 #define DATA_MASK   0b1111111100000
 
@@ -93,7 +94,7 @@ extern uint32_t data_mask_hi[256];
 #define lower_eoi()         fast_gpio_set_low(EOI_PIN)
 #define lower_dav()         fast_gpio_set_low(DAV_PIN)
 #define lower_nrfd()        fast_gpio_set_low(NRFD_PIN)
-#define lower_ndac()        fast_gpio_set_low(NDAC_PIN)
+#define lower_ndac()        fast_gpio_set_low_mask(NDAC_MASK)
 
 #define raise_eoi()         fast_gpio_set_high(EOI_PIN)
 #define raise_dav()         fast_gpio_set_high(DAV_PIN)
