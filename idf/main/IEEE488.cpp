@@ -29,7 +29,7 @@
 
 namespace bitfixer {
 
-static constexpr const int PIN_TIMEOUT_US = 100000;
+static constexpr const int PIN_TIMEOUT_US = 200000;
 static IEEE488 _ieee;
 
 void IEEE488::init() {
@@ -42,9 +42,15 @@ IEEE488* IEEE488::get_instance() {
     return &_ieee;
 }
 
-void IEEE488::wait_for_dav_high()
+bool IEEE488::wait_for_dav_high(int timeout_us)
 {
-   while (read_dav() == 0) {}
+    int64_t time_start_us = esp_timer_get_time();
+    while (read_dav() == 0) {
+        if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool IEEE488::wait_for_dav_low(int timeout_us)
@@ -243,7 +249,7 @@ void IEEE488::accept_address()
     // raise NDAC
     raise_ndac();
     // wait for data to finish
-    wait_for_dav_high();
+    wait_for_dav_high(PIN_TIMEOUT_US);
     
     // release control and handle transaction
     raise_nrfd();
@@ -257,7 +263,7 @@ void IEEE488::reject_address()
     // unlisten the bus
     unlisten();
     // wait for atn to release
-    wait_for_atn_high_with_timeout(200000);
+    wait_for_atn_high_with_timeout(PIN_TIMEOUT_US);
 }
 
 // configure IEEE bus to begin sending bytes
@@ -435,7 +441,9 @@ void IEEE488::acknowledge_bus_byte()
 {
     lower_nrfd();
     raise_ndac();
-    wait_for_dav_high();
+    if (!wait_for_dav_high(PIN_TIMEOUT_US)) {
+        return;
+    }
 }
 
 }
