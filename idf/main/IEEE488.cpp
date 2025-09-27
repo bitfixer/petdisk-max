@@ -29,6 +29,7 @@
 
 namespace bitfixer {
 
+static constexpr const int PIN_TIMEOUT_US = 100000;
 static IEEE488 _ieee;
 
 void IEEE488::init() {
@@ -46,9 +47,15 @@ void IEEE488::wait_for_dav_high()
    while (read_dav() == 0) {}
 }
 
-void IEEE488::wait_for_dav_low()
+bool IEEE488::wait_for_dav_low(int timeout_us)
 {
-   while (read_dav() != 0) {}
+    int64_t time_start_us = esp_timer_get_time();
+    while (read_dav() != 0) {
+        if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void IEEE488::wait_for_atn_high()
@@ -207,13 +214,12 @@ uint8_t IEEE488::get_device_address(uint8_t* dir, bool* success)
     *success = false;
     uint8_t primary_address;
     // wait for atn signal
-    //wait_for_atn_low();
     wait_atn_isr();
     
     // lower NDAC to respond
-    //set_ndac_output();
-    //lower_ndac();
-    wait_for_dav_low();
+    if (!wait_for_dav_low(PIN_TIMEOUT_US)) {
+        return 0xFF;
+    }
 
     // read data
     recv_byte(&primary_address);
@@ -408,7 +414,9 @@ bool IEEE488::eoi_is_low()
 uint8_t IEEE488::get_byte_from_bus()
 {
     uint8_t rdchar;
-    wait_for_dav_low();
+    if (!wait_for_dav_low(PIN_TIMEOUT_US)) {
+        return 0xFF;
+    }
     // lower NDAC and NRFD
     lower_ndac();
     lower_nrfd();
