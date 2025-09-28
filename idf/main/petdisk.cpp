@@ -1539,10 +1539,16 @@ void PETdisk::loop()
                 if (of->_useRemainderByte == true)
                 {
                     result = _ieee->sendIEEEByteCheckForATN(of->_remainderByte);
+                    if (result == TIMEOUT) {
+                        return;
+                    }
                 }
                 else
                 {
                     result = _ieee->sendIEEEByteCheckForATN(of->_nextByte);
+                    if (result == TIMEOUT) {
+                        return;
+                    }
                 }
 
                 result = _ieee->wait_for_ndac_high_or_atn_low();

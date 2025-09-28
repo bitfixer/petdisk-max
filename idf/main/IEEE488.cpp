@@ -156,17 +156,22 @@ IEEEBusSignal IEEE488::wait_for_ndac_high_or_atn_low()
 
 uint8_t IEEE488::wait_for_nrfd_high_or_atn_low()
 {
-   while (1)
-   {
-       if (read_atn() == 0)
-       {
-           return IEEEBusSignal::ATN;
-       }
-       else if (read_nrfd() != 0)
-       {
-           return IEEEBusSignal::NRFD;
-       }
-   }
+    int64_t start_time_us = get_time_us();
+    while (1)
+    {
+        if (read_atn() == 0)
+        {
+            return IEEEBusSignal::ATN;
+        }
+        else if (read_nrfd() != 0)
+        {
+            return IEEEBusSignal::NRFD;
+        }
+        if ((get_time_us() - start_time_us) > PIN_TIMEOUT_US) {
+            unlisten();
+            return TIMEOUT;
+        }
+    }
 }
 
 void IEEE488::signal_ready_for_data()
