@@ -1063,7 +1063,6 @@ void PETdisk::loop()
     {
         // if we are in an unlisten state,
         // wait for my address     
-        bool t;
         uint8_t buscmd = get_device_address();
         if (_dataSource == 0) // no datasource found
         {
@@ -1571,9 +1570,9 @@ void PETdisk::loop()
                     _ieee->raise_dav_and_eoi();
 
                     result = _ieee->wait_for_ndac_low_or_atn_low();
-                    if (result == TIMEOUT {
+                    if (result == TIMEOUT) {
                         return;
-                    })
+                    }
                     
                     if (result == ATN)
                     {
