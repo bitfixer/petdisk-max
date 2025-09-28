@@ -65,7 +65,7 @@ public:
     void end_output();
 
     uint8_t get_byte_from_bus();
-    void acknowledge_bus_byte();
+    bool acknowledge_bus_byte();
     bool atn_is_low();
     bool eoi_is_low();
     void signal_ready_for_data();
@@ -95,8 +95,8 @@ private:
 
     uint8_t wait_for_nrfd_high_or_atn_low();
     bool wait_for_nrfd_high();
-    void wait_for_ndac_high();
-    void wait_for_ndac_low();
+    bool wait_for_ndac_high();
+    bool wait_for_ndac_low();
     bool send_byte(uint8_t byte, int last);
 
 };

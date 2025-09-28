@@ -298,7 +298,7 @@ private:
     bool configChanged(struct pd_config* pdcfg);
     uint8_t processFilename(uint8_t* filename, uint8_t length, bool* write);
     bool processCommand(uint8_t* command);
-    void writeFile();
+    bool writeFile();
     uint8_t get_device_address();
     openFileInfo* getFileInfoForAddress(uint8_t address);
     void resetFileInformation(uint8_t address);
@@ -700,7 +700,7 @@ DataSource* PETdisk::getDataSource(uint8_t id)
     return _dataSources[id-MIN_DEVICE_ID];
 }
 
-void PETdisk::writeFile()
+bool PETdisk::writeFile()
 {
     uint16_t numBytes;
     uint8_t rdchar;
@@ -718,7 +718,9 @@ void PETdisk::writeFile()
             numBytes = 0;
         }
         
-        _ieee->acknowledge_bus_byte();
+        if (!_ieee->acknowledge_bus_byte()) {
+            return false;
+        }
         _ieee->signal_ready_for_data();
     }
     while (!_ieee->eoi_is_low());
@@ -744,6 +746,7 @@ void PETdisk::writeFile()
     }
 
     _dataSource->closeFile();
+    return true;
 }
 
 void PETdisk::initDirectory()
@@ -1257,7 +1260,9 @@ void PETdisk::loop()
         }
     }
 
-    _ieee->acknowledge_bus_byte();
+    if (!_ieee->acknowledge_bus_byte()) {
+        return;
+    }
 
     // === PREPARE FOR READ/WRITE
 
@@ -1385,6 +1390,10 @@ void PETdisk::loop()
                 {
                     // send one header byte
                     result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
+                    if (result == TIMEOUT) {
+                        return;
+                    }
+
                     IEEEBusSignal busSignal = _ieee->wait_for_ndac_high_or_atn_low();
                     if (busSignal == TIMEOUT) {
                         return;
@@ -1529,6 +1538,9 @@ void PETdisk::loop()
                 }
 
                 result = _ieee->wait_for_ndac_high_or_atn_low();
+                if (result == TIMEOUT) {
+                    return;
+                }
 
                 if (result == ATN)
                 {
@@ -1601,7 +1613,9 @@ void PETdisk::loop()
     else if (_currentState == FILE_SAVE)
     {
         // save command
-        writeFile();
+        if (!writeFile()) {
+            return;
+        }
         _ieee->unlisten();
         _currentState = IDLE;
     }
