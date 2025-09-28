@@ -37,7 +37,8 @@ typedef enum {
     NDAC = 0x02,
     DAV = 0x04,
     NRFD = 0x08,
-    EOI = 0x10
+    EOI = 0x10,
+    TIMEOUT = 0xFF
 } IEEEBusSignal;
 
 namespace bitfixer {
@@ -53,7 +54,7 @@ public:
     ~IEEE488() {}
 
     void init();
-    void sendIEEEBytes(uint8_t *entry, int size, uint8_t isLast);
+    bool sendIEEEBytes(uint8_t *entry, int size, uint8_t isLast);
     uint8_t sendIEEEByteCheckForATN(uint8_t byte);
     uint8_t sendIEEEByteCheckForATN2(uint8_t byte, bool last);
     void unlisten();
@@ -72,8 +73,7 @@ public:
     void raise_dav_and_eoi();
     uint8_t wait_for_ndac_low_or_atn_low();
     IEEEBusSignal wait_for_ndac_high_or_atn_low();
-    uint8_t wait_for_nrfd_high_or_atn_low();
-    void wait_for_atn_low();
+
     bool wait_for_dav_low(int timeout_us);
     void recv_byte(uint8_t *byte);
 
@@ -93,11 +93,11 @@ private:
     bool wait_for_atn_high(int timeout_us);
     bool wait_for_dav_high(int timeout_us);
 
-    void wait_for_nrfd_high();
-    void wait_for_nrfd_low();
+    uint8_t wait_for_nrfd_high_or_atn_low();
+    bool wait_for_nrfd_high();
     void wait_for_ndac_high();
     void wait_for_ndac_low();
-    void send_byte(uint8_t byte, int last);
+    bool send_byte(uint8_t byte, int last);
 
 };
 

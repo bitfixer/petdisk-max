@@ -1387,6 +1387,10 @@ void PETdisk::loop()
                     // send one header byte
                     result = _ieee->sendIEEEByteCheckForATN2(_directoryNextByte, _lastDirectoryBlock && _directoryEntryByteIndex == 31);
                     IEEEBusSignal busSignal = _ieee->wait_for_ndac_high_or_atn_low();
+                    if (busSignal == TIMEOUT) {
+                        return;
+                    }
+
                     if (busSignal == ATN)
                     {
                         // ATN asserted, break out of directory listing
@@ -1458,7 +1462,11 @@ void PETdisk::loop()
 
                         _ieee->raise_dav_and_eoi();
 
-                            result = _ieee->wait_for_ndac_low_or_atn_low();
+                        result = _ieee->wait_for_ndac_low_or_atn_low();
+                        if (result == TIMEOUT) {
+                            return;
+                        }
+
                         if (result == ATN)
                         {
                             _directoryEntryByteIndex--;
@@ -1491,7 +1499,9 @@ void PETdisk::loop()
                     if (!output_started) {
                         output_started = true;
                     }
-                    _ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending);
+                    if (!_ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending)) {
+                        return;
+                    }
                     _bytesToSend = 0;
                 }
             }
@@ -1561,6 +1571,9 @@ void PETdisk::loop()
                     _ieee->raise_dav_and_eoi();
 
                     result = _ieee->wait_for_ndac_low_or_atn_low();
+                    if (result == TIMEOUT {
+                        return;
+                    })
                     
                     if (result == ATN)
                     {
