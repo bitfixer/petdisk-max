@@ -47,6 +47,7 @@ bool IEEE488::wait_for_dav_high(int timeout_us)
     int64_t time_start_us = esp_timer_get_time();
     while (read_dav() == 0) {
         if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+            unlisten();
             return false;
         }
     }
@@ -58,25 +59,23 @@ bool IEEE488::wait_for_dav_low(int timeout_us)
     int64_t time_start_us = esp_timer_get_time();
     while (read_dav() != 0) {
         if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+            unlisten();
             return false;
         }
     }
     return true;
 }
 
-void IEEE488::wait_for_atn_high()
+bool IEEE488::wait_for_atn_high()
 {
-   while (read_atn() == 0) {}
-}
-
-void IEEE488::wait_for_atn_high_with_timeout(int timeout_us)
-{
-   int64_t start_time_us = get_time_us();
-   while (read_atn() == 0) {
-     if ((get_time_us() - start_time_us) > timeout_us) {
-        return;
-     }
-   }
+    int64_t start_time_us = get_time_us();
+    while (read_atn() == 0) {
+        if ((get_time_us() - start_time_us) > timeout_us) {
+            unlisten();
+            return false;
+        }
+    }
+    return true;
 }
 
 void IEEE488::wait_for_atn_low()
@@ -263,14 +262,15 @@ void IEEE488::reject_address()
     // unlisten the bus
     unlisten();
     // wait for atn to release
-    wait_for_atn_high_with_timeout(PIN_TIMEOUT_US);
+    wait_for_atn_high(PIN_TIMEOUT_US);
 }
 
-// configure IEEE bus to begin sending bytes
-void IEEE488::begin_output()
+bool IEEE488::begin_output_start()
 {
     set_nrfd_input();
-    wait_for_atn_high();
+    if (!wait_for_atn_high(PIN_TIMEOUT_US)) {
+        return false;
+    }
 
     set_ndac_input();
     set_dav_output();
@@ -282,41 +282,7 @@ void IEEE488::begin_output()
     ieee_set_data_output();
 
     wait_for_ndac_low();
-}
-
-void IEEE488::begin_output_start()
-{
-    /*
-    set_nrfd_input();
-    wait_for_atn_high();
-    set_ndac_input();
-    set_dav_output();
-    set_eoi_output();
-    */
-
-    set_nrfd_input();
-    wait_for_atn_high();
-
-    set_ndac_input();
-    set_dav_output();
-    set_eoi_output();
-
-    raise_dav();
-    raise_eoi();
-
-    ieee_set_data_output();
-
-    wait_for_ndac_low();
-}
-
-void IEEE488::begin_output_end()
-{
-    /*
-    raise_dav();
-    raise_eoi();
-    ieee_set_data_output();
-    wait_for_ndac_low();
-    */
+    return true;
 }
 
 void IEEE488::end_output()

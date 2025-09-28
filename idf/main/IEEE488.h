@@ -58,10 +58,8 @@ public:
     uint8_t sendIEEEByteCheckForATN2(uint8_t byte, bool last);
     void unlisten();
     bool is_unlistened();
-    void begin_output();
 
-    void begin_output_start();
-    void begin_output_end();
+    bool begin_output_start();
 
     void end_output();
 
@@ -92,8 +90,7 @@ private:
 
     bool _unlistened;
 
-    void wait_for_atn_high();
-    void wait_for_atn_high_with_timeout(int timeout_us);
+    bool wait_for_atn_high(int timeout_us);
     bool wait_for_dav_high(int timeout_us);
 
     void wait_for_nrfd_high();

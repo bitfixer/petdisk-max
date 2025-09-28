@@ -1067,6 +1067,7 @@ void PETdisk::loop()
         uint8_t buscmd = get_device_address();
         if (_dataSource == 0) // no datasource found
         {
+            _ieee->unlisten();
             return;
         }
 
@@ -1365,7 +1366,9 @@ void PETdisk::loop()
     if (_currentState == FILE_READ || _currentState == OPEN_DATA_READ)
     {
         // ==== STARTING LOAD SEQUENCE
-        _ieee->begin_output_start();
+        if (!_ieee->begin_output_start()) {
+            return;
+        }
 
         if (_currentState == FILE_READ)
         {
@@ -1373,7 +1376,6 @@ void PETdisk::loop()
             if (progname[0] == '$' || (progname[0] == '@' && progname[1] == ':'))
             {
                 //log_i("dir request");
-                _ieee->begin_output_end();
                 // reading a directory
                 // need to handle both standard load"$" command and DIRECTORY/CATALOG here
                 // on each byte sent, we should check for ATN asserted.
@@ -1487,7 +1489,6 @@ void PETdisk::loop()
                     }
 
                     if (!output_started) {
-                        _ieee->begin_output_end();
                         output_started = true;
                     }
                     _ieee->sendIEEEBytes(_dataSource->getBuffer(), _bytesToSend, done_sending);
@@ -1507,7 +1508,6 @@ void PETdisk::loop()
                 // read from address 15 is the drive status
                 of->_nextByte = '\r';
             }
-            _ieee->begin_output_end();
             while (!done)
             {
                 if (of->_useRemainderByte == true)
