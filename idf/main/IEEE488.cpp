@@ -44,9 +44,9 @@ IEEE488* IEEE488::get_instance() {
 
 bool IEEE488::wait_for_dav_high(int timeout_us)
 {
-    int64_t time_start_us = esp_timer_get_time();
+    int64_t time_start_us = get_time_us();
     while (read_dav() == 0) {
-        if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+        if (timeout_us < (get_time_us()-time_start_us)) {
             unlisten();
             return false;
         }
@@ -56,9 +56,9 @@ bool IEEE488::wait_for_dav_high(int timeout_us)
 
 bool IEEE488::wait_for_dav_low(int timeout_us)
 {
-    int64_t time_start_us = esp_timer_get_time();
+    int64_t time_start_us = get_time_us();
     while (read_dav() != 0) {
-        if (timeout_us < (esp_timer_get_time()-time_start_us)) {
+        if (timeout_us < (get_time_us()-time_start_us)) {
             unlisten();
             return false;
         }
@@ -66,7 +66,7 @@ bool IEEE488::wait_for_dav_low(int timeout_us)
     return true;
 }
 
-bool IEEE488::wait_for_atn_high()
+bool IEEE488::wait_for_atn_high(int timeout_us)
 {
     int64_t start_time_us = get_time_us();
     while (read_atn() == 0) {
