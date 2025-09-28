@@ -299,7 +299,7 @@ private:
     uint8_t processFilename(uint8_t* filename, uint8_t length, bool* write);
     bool processCommand(uint8_t* command);
     bool writeFile();
-    uint8_t get_device_address();
+    bool get_device_address(uint8_t& address);
     openFileInfo* getFileInfoForAddress(uint8_t address);
     void resetFileInformation(uint8_t address);
     bool isD64(const char* fileName);
@@ -953,30 +953,29 @@ bool PETdisk::getDirectoryEntry()
     return true;
 }
 
-uint8_t PETdisk::get_device_address()
+bool PETdisk::get_device_address(uint8_t& address)
 {
     uint8_t ieee_address;
     uint8_t buscmd;
     _dataSource = 0;
    
-    bool success = false;
-    ieee_address = _ieee->get_device_address(&buscmd, &success);
-    if (!success)
-    {
-        return 0;
+    if (!_ieee->get_device_address(&buscmd, ieee_address)) {
+        return false;
     }
-
+    
     _dataSource = getDataSource(ieee_address);
     if (_dataSource == 0)
     {
         _ieee->reject_address();
-        return 0;
+        address = 0;
+        return true;
     }
 
     _ieee->accept_address();
     _primaryAddress = ieee_address;
 
-    return buscmd;
+    address = buscmd;
+    return true;
 }
 
 openFileInfo* PETdisk::getFileInfoForAddress(uint8_t address)
@@ -1067,8 +1066,12 @@ void PETdisk::loop()
     if (_ieee->is_unlistened())
     {
         // if we are in an unlisten state,
-        // wait for my address     
-        uint8_t buscmd = get_device_address();
+        // wait for my address
+        uint8_t buscmd = 0;
+        if (!get_device_address(buscmd)) {
+            return;
+        }
+        
         if (_dataSource == 0) // no datasource found
         {
             _ieee->unlisten();

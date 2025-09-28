@@ -77,7 +77,7 @@ public:
     bool wait_for_dav_low(int timeout_us);
     void recv_byte(uint8_t *byte);
 
-    uint8_t get_device_address(uint8_t* dir, bool* success);
+    bool get_device_address(uint8_t* dir, uint8_t& primary_address);
     void accept_address();
     void reject_address();
 

@@ -240,16 +240,14 @@ bool IEEE488::is_unlistened()
     return _unlistened;
 }
 
-uint8_t IEEE488::get_device_address(uint8_t* dir, bool* success)
+bool IEEE488::get_device_address(uint8_t* dir, uint8_t& primary_address)
 {
-    *success = false;
-    uint8_t primary_address;
     // wait for atn signal
     wait_atn_isr();
     
     // lower NDAC to respond
     if (!wait_for_dav_low(PIN_TIMEOUT_US)) {
-        return 0xFF;
+        return false;
     }
 
     // read data
@@ -264,9 +262,7 @@ uint8_t IEEE488::get_device_address(uint8_t* dir, bool* success)
     
     *dir = primary_address & 0xF0;
     primary_address = primary_address & 0x0F;
-    
-    *success = true;
-    return primary_address;
+    return true;
 }
 
 void IEEE488::accept_address()
@@ -334,14 +330,14 @@ uint8_t IEEE488::sendIEEEByteCheckForATN(uint8_t byte)
     write_byte_to_data_bus(byte);
     
     result = wait_for_ndac_low_or_atn_low();
-    if (result == ATN)
+    if (result == TIMEOUT || result == ATN)
     {
         return result;
     }
 
     // wait for NRFD high
     result = wait_for_nrfd_high_or_atn_low();
-    if (result == ATN)
+    if (result == TIMEOUT || result == ATN)
     {
         return result;
     }
