@@ -300,7 +300,6 @@ private:
     bool processCommand(uint8_t* command);
     void writeFile();
     uint8_t get_device_address();
-    uint8_t wait_for_device_address();
     openFileInfo* getFileInfoForAddress(uint8_t address);
     void resetFileInformation(uint8_t address);
     bool isD64(const char* fileName);
@@ -971,34 +970,6 @@ uint8_t PETdisk::get_device_address()
 
     _ieee->accept_address();
     _primaryAddress = ieee_address;
-
-    return buscmd;
-}
-
-uint8_t PETdisk::wait_for_device_address()
-{
-    uint8_t ieee_address;
-    uint8_t buscmd;
-    _dataSource = 0;
-    while (_dataSource == 0)
-    {
-        bool success = false;
-        ieee_address = _ieee->get_device_address(&buscmd, &success);
-        if (!success)
-        {
-            continue;
-        }
-        _dataSource = getDataSource(ieee_address);
-
-        if (_dataSource == 0)
-        {
-            _ieee->reject_address();
-            continue;
-        }
-
-        _ieee->accept_address();
-        _primaryAddress = ieee_address;
-    }
 
     return buscmd;
 }
