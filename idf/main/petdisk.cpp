@@ -709,7 +709,9 @@ bool PETdisk::writeFile()
     numBytes = 0;
     do
     {
-        rdchar = _ieee->get_byte_from_bus();
+        if (!_ieee->get_byte_from_bus(rdchar)) {
+            return false;
+        }
         _dataSource->getBuffer()[numBytes++] = rdchar;
         
         if (numBytes >= writeBufferSize)
@@ -1083,7 +1085,10 @@ void PETdisk::loop()
         }
     }
 
-    uint8_t rdchar = _ieee->get_byte_from_bus();
+    uint8_t rdchar;
+    if (!_ieee->get_byte_from_bus(rdchar)) {
+        return;
+    }
 
     if (_ieee->atn_is_low()) // check for bus command
     {

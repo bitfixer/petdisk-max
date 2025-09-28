@@ -64,7 +64,7 @@ public:
 
     void end_output();
 
-    uint8_t get_byte_from_bus();
+    bool get_byte_from_bus(uint8_t& rdchar);
     bool acknowledge_bus_byte();
     bool atn_is_low();
     bool eoi_is_low();

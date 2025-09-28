@@ -416,11 +416,10 @@ bool IEEE488::eoi_is_low()
     return _eoi_low;
 }
 
-uint8_t IEEE488::get_byte_from_bus()
+bool IEEE488::get_byte_from_bus(uint8_t& rdchar)
 {
-    uint8_t rdchar;
     if (!wait_for_dav_low(PIN_TIMEOUT_US)) {
-        return 0xFF;
+        return false;
     }
     // lower NDAC and NRFD
     lower_ndac();
@@ -433,7 +432,7 @@ uint8_t IEEE488::get_byte_from_bus()
     _atn_low = (atnval == 0) ? true : false;
     _eoi_low = (eoival == 0) ? true : false;
 
-    return rdchar;
+    return true;
 }
 
 bool IEEE488::acknowledge_bus_byte()
