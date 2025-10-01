@@ -57,6 +57,7 @@ void gpio_init();
 #define DAV_PIN     21
 #define NRFD_PIN    17
 #define NDAC_PIN    16
+#define NDAC_MASK   0b10000000000000000
 
 extern uint32_t data_mask_low[256];
 extern uint32_t data_mask_hi[256];
