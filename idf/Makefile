@@ -3,6 +3,7 @@
 ###############################################################################
 
 B_DIR := ../esp-sd-loader
+PORT ?= /dev/ttyUSB0
 CHIP ?= esp32s2
 
 A_DIR := $(CURDIR)
@@ -10,6 +11,7 @@ A_BUILD := $(A_DIR)/build
 B_BUILD := $(B_DIR)/build
 
 PART_TABLE := $(B_DIR)/partitions.csv
+IMAGE_FILE := $(A_BUILD)/image-$(CHIP).bin
 
 ###############################################################################
 # MAIN TARGET (robust CSV parsing + auto-detect .bin files)
@@ -68,7 +70,7 @@ firmware:
 
 	@echo "=== MERGING BINARIES ==="
 	mkdir -p $(A_BUILD)
-	esptool.py --chip $(CHIP) merge_bin -o $(A_BUILD)/image-$(CHIP).bin \
+	esptool.py --chip $(CHIP) merge_bin -o $(IMAGE_FILE) \
 		$(BOOT_OFFSET) $(B_BUILD)/bootloader/bootloader.bin \
 		$(PART_OFFSET) $(B_BUILD)/partition_table/partition-table.bin \
 		$(OTADATA_OFFSET) $(B_BUILD)/ota_data_initial.bin \
@@ -77,8 +79,20 @@ firmware:
 
 	@echo ""
 	@echo "======================================================="
-	@echo "  DONE! Image written to: $(A_BUILD)/image-$(CHIP).bin"
+	@echo "  DONE! Image written to: $(IMAGE_FILE)"
 	@echo "======================================================="
 	@echo ""
 
 .PHONY: firmware
+
+#
+# Flash full monolithic image
+#
+flash:
+	@if [ ! -f "$(IMAGE_FILE)" ]; then \
+		echo "ERROR: Image file not found: $(IMAGE_FILE)"; \
+		echo "Build the project first."; \
+		exit 1; \
+	fi
+
+	esptool.py --chip $(CHIP) -p $(PORT) write_flash 0x0 $(IMAGE_FILE)
