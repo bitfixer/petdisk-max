@@ -1,3 +1,6 @@
 [submodule "idf/components/esp-fast-gpio"]
 	path = idf/components/esp-fast-gpio
 	url = git@github.com:bitfixer/esp-fast-gpio.git
+[submodule "esp-sd-loader"]
+	path = esp-sd-loader
+	url = git@github.com:bitfixer/esp-sd-loader.git
