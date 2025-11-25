@@ -53,7 +53,14 @@ const uint8_t _dirHeader[] PROGMEM =
     0x12
 };
 
+#if CONFIG_IDF_TARGET_ESP32
 const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V2.0\"      ";
+#elif CONFIG_IDF_TARGET_ESP32S2
+const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V3.0\"      ";
+#else
+// should never get here, unsupported architecture
+const uint8_t _versionString[] PROGMEM = "\"PETDISK MAX V1.0\"      ";
+#endif
 const uint8_t _firmwareString[] PROGMEM = "BUILD ";
 const uint8_t _fileExtension[] PROGMEM =
 {
