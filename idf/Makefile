@@ -13,6 +13,9 @@ B_BUILD := $(B_DIR)/build
 PART_TABLE := $(B_DIR)/partitions.csv
 IMAGE_FILE := $(A_BUILD)/image-$(CHIP).bin
 
+A_APP_BIN := $(A_BUILD)/main.bin
+B_APP_BIN := $(B_BUILD)/main.bin
+
 ###############################################################################
 # MAIN TARGET (robust CSV parsing + auto-detect .bin files)
 ###############################################################################
@@ -56,14 +59,6 @@ firmware:
 	@if [ -z "$(OTADATA_OFFSET)" ]; then echo "ERROR: otadata offset not found in partition-table.csv"; exit 1; fi
 	@if [ -z "$(APP0_OFFSET)" ]; then echo "ERROR: app0 offset not found in partition-table.csv"; exit 1; fi
 	@if [ -z "$(APP1_OFFSET)" ]; then echo "ERROR: app1 offset not found in partition-table.csv"; exit 1; fi
-
-	@echo "=== LOCATING B's app binary and A's app binary ==="
-	# Try to find sensible .bin candidates, excluding known meta files
-	$(eval B_APP_BIN := $(shell find $(B_BUILD) -maxdepth 2 -type f -name '*.bin' ! -name 'bootloader.bin' ! -name 'partition-table.bin' ! -name 'ota_data_initial.bin' -print | head -n1))
-	$(eval A_APP_BIN := $(shell find $(A_BUILD) -maxdepth 2 -type f -name '*.bin' ! -name 'bootloader.bin' ! -name 'partition-table.bin' ! -name 'ota_data_initial.bin' -print | head -n1))
-
-	@if [ -z "$(B_APP_BIN)" ]; then echo "ERROR: could not find B's app .bin under $(B_BUILD)"; exit 1; fi
-	@if [ -z "$(A_APP_BIN)" ]; then echo "ERROR: could not find A's app .bin under $(A_BUILD)"; exit 1; fi
 
 	@echo "B app binary: $(B_APP_BIN)"
 	@echo "A app binary: $(A_APP_BIN)"
