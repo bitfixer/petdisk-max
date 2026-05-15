@@ -69,6 +69,7 @@ extern uint32_t data_mask_hi[256];
 #define MISO_PIN    37
 #define MOSI_PIN    35
 #define SCK_PIN     36
+#define CD_PIN      17
 
 #define DATA0       5
 #define DATA1       6

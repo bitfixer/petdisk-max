@@ -127,7 +127,7 @@ public:
     void setupCardDetectInterrupt(gpio_num_t cdPin);
 
     // Called by the ISR — do not call from application code.
-    void IRAM_ATTR onCardDetectISR();
+    void onCardDetectISR();
 
 private:
 

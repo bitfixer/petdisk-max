@@ -1760,8 +1760,6 @@ bool PETdisk::processCommand(uint8_t* command)
     return false;
 }
 
-//bSPI _spi;
-//SD _sd;
 bitfixer::SDFAT _fat32;
 bitfixer::EspConn _espConn;
 bitfixer::EspHttp _espHttp;
@@ -1797,10 +1795,9 @@ void setup()
 {
     _bufferSize = 0;
     prog_init();
-    //_spi.init();
-    //_sd.initWithSPI(&_spi, spi_cs());
-    //_fat32.initWithParams(&_sd, _buffer, &_buffer[512]);
+    setup_atn_interrupt();
     _fat32.init();
+    _fat32.setupCardDetectInterrupt((gpio_num_t)CD_PIN);
 
     bitfixer::IEEE488* ieee = bitfixer::IEEE488::get_instance();
     
@@ -1877,5 +1874,4 @@ extern "C" void app_main() {
     Console::init();
     hardware_cmd_init();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
-    setup_atn_interrupt();
 }
