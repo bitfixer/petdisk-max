@@ -147,7 +147,7 @@ bool SDFAT::mount()
         buscfg.sclk_io_num   = SCK_PIN;
         buscfg.quadwp_io_num = -1;
         buscfg.quadhd_io_num = -1;
-        buscfg.max_transfer_sz = 0;
+        buscfg.max_transfer_sz = 4000;
 
         esp_err_t ret = spi_bus_initialize(SDFAT_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
         if (ret == ESP_OK)
@@ -169,12 +169,12 @@ bool SDFAT::mount()
     }
 
     // ---- sdspi device ------------------------------------------------------
-    sdmmc_host_t host         = SDSPI_HOST_DEFAULT();
-    host.slot                 = SDFAT_SPI_HOST;
-    // IDF's sdspi layer starts at 400 kHz for CMD0/ACMD41, then switches
-    // to max_freq_khz automatically after card identification — no manual
-    // slow/fast switching needed.
-    host.max_freq_khz         = SDFAT_SPI_FREQ_KHZ;
+    // Use SDSPI_HOST_DEFAULT() without overriding slot or max_freq_khz.
+    // Manually setting host.slot or host.max_freq_khz in some IDF 5.x builds
+    // interferes with the SDIO probe sequence and causes CMD52 CRC errors
+    // even on plain SD cards.  The default (SPI2_HOST, 20MHz) is correct;
+    // the driver handles the 400kHz init ramp internally.
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
     sdspi_device_config_t slot = SDSPI_DEVICE_CONFIG_DEFAULT();
     slot.host_id  = (spi_host_device_t)SDFAT_SPI_HOST;
@@ -187,8 +187,7 @@ bool SDFAT::mount()
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
     mount_config.format_if_mount_failed = false;
     mount_config.max_files              = SDFAT_MAX_FILES;
-    // allocation_unit_size only matters if format_if_mount_failed is true
-    mount_config.allocation_unit_size  = 0;
+    mount_config.allocation_unit_size   = 16 * 1024;
 
     esp_err_t ret = esp_vfs_fat_sdspi_mount(
         SDFAT_MOUNT_POINT,

@@ -35,8 +35,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -54,7 +54,6 @@
 #define SDFAT_MOUNT_POINT   "/disk"
 #define SDFAT_MAX_FILES     4       // max simultaneously open FDs in fatfs
 #define SDFAT_SPI_HOST      SPI2_HOST
-#define SDFAT_SPI_FREQ_KHZ  25000   // post-init clock (kHz); init always at 400 kHz
 
 // Read/write buffer size.  Must match SD sector size.
 #define SDFAT_BUF_SIZE      512
