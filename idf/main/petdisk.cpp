@@ -13,7 +13,8 @@
 #include "helpers.h"
 #include "hardware.h"
 #include "githash.h"
-#include "FAT32.h"
+//#include "FAT32.h"
+#include "sdfat.h"
 #include "console.h"
 
 #include "freertos/FreeRTOS.h"
@@ -98,7 +99,7 @@ void blink_led(int count, int ms_on, int ms_off)
     }
 }
 
-bool checkForDisable(char* buffer, bitfixer::FAT32* fat32)
+bool checkForDisable(char* buffer, bitfixer::SDFAT* fat32)
 {
     if (!fat32->init())
     {
@@ -115,7 +116,7 @@ bool checkForDisable(char* buffer, bitfixer::FAT32* fat32)
     return false;
 }
 
-void checkForFirmware(char* buffer, bitfixer::FAT32* fat32)
+void checkForFirmware(char* buffer, bitfixer::SDFAT* fat32)
 {
     log_i("checking for firmware");
     if (!fat32->init())
@@ -162,7 +163,7 @@ void checkForFirmware(char* buffer, bitfixer::FAT32* fat32)
     }
 
     log_i("firmware found, deleting");
-    fat32->deleteFile();
+    fat32->deleteFile((char*)fat32->getFilename());
     return;
 }
 
@@ -257,7 +258,7 @@ public:
     ~PETdisk() {}
 
     void init(
-        bitfixer::FAT32* fat32,
+        bitfixer::SDFAT* fat32,
         D64DataSource* d64,
         uint8_t* buffer, 
         uint16_t* bufferSize, 
@@ -268,7 +269,7 @@ public:
     void setDataSource(uint8_t id, DataSource* dataSource);
     DataSource* getDataSource(uint8_t id);
 
-    bool readConfigFile(bitfixer::FAT32* fat32, uint8_t* buffer);
+    bool readConfigFile(bitfixer::SDFAT* fat32, uint8_t* buffer);
     void printConfig(struct pd_config* pdcfg);
     void loop();
 
@@ -279,7 +280,7 @@ private:
     bitfixer::EspConn* _espConn;
     bitfixer::EspHttp* _espHttp;
     bitfixer::IEEE488* _ieee;
-    bitfixer::FAT32* _fat32;
+    bitfixer::SDFAT* _fat32;
     D64DataSource* _d64;
 
     openFileInfo _openFileInformation[14];
@@ -344,7 +345,7 @@ bool petdisk_config_valid(struct pd_config* cfg) {
 }
 
 void PETdisk::init(
-    bitfixer::FAT32* fat32,
+    bitfixer::SDFAT* fat32,
     D64DataSource* d64,
     uint8_t* buffer, 
     uint16_t* bufferSize, 
@@ -560,7 +561,7 @@ static bool parseCSVLine(const char* line, char* key, char* value) {
     return true;
 }
 
-bool PETdisk::readConfigFile(bitfixer::FAT32* fat32, uint8_t* buffer)
+bool PETdisk::readConfigFile(bitfixer::SDFAT* fat32, uint8_t* buffer)
 {
     // check for config file
     char cfg_fname[32];
@@ -1759,9 +1760,7 @@ bool PETdisk::processCommand(uint8_t* command)
     return false;
 }
 
-bSPI _spi;
-SD _sd;
-bitfixer::FAT32 _fat32;
+bitfixer::SDFAT _fat32;
 bitfixer::EspConn _espConn;
 bitfixer::EspHttp _espHttp;
 D64DataSource _d64DataSource;
@@ -1796,9 +1795,9 @@ void setup()
 {
     _bufferSize = 0;
     prog_init();
-    _spi.init();
-    _sd.initWithSPI(&_spi, spi_cs());
-    _fat32.initWithParams(&_sd, _buffer, &_buffer[512]);
+    setup_atn_interrupt();
+    _fat32.init();
+    _fat32.setupCardDetectInterrupt((gpio_num_t)CD_PIN);
 
     bitfixer::IEEE488* ieee = bitfixer::IEEE488::get_instance();
     
@@ -1875,5 +1874,4 @@ extern "C" void app_main() {
     Console::init();
     hardware_cmd_init();
     xTaskCreatePinnedToCore(loopTask, "loopTask", 4096, NULL, 20, &loopTaskHandle, 0);
-    setup_atn_interrupt();
 }
