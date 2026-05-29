@@ -35,6 +35,7 @@ void gpio_init();
 #define MISO_PIN    19
 #define MOSI_PIN    23
 #define SCK_PIN     18
+#define CD_PIN      34
 
 #define DATA0       32
 #define DATA0_HI    0
